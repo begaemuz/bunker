@@ -4,10 +4,12 @@
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let enabled = true;
+/** Контекст создаётся только после первого касания экрана. */
+let unlocked = false;
 const lastPlayed: Record<string, number> = {};
 
 function ac(): AudioContext | null {
-  if (!enabled) return null;
+  if (!enabled || !unlocked) return null;
   if (!ctx) {
     const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctor) return null;
@@ -22,6 +24,7 @@ function ac(): AudioContext | null {
 
 /** Браузеры разрешают звук только после действия пользователя. */
 export function unlockAudio(): void {
+  unlocked = true;
   ac();
 }
 
