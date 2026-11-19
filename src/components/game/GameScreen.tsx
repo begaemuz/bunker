@@ -57,7 +57,6 @@ function TopBar() {
   const setSpeed = useUi((s) => s.setSpeed);
   const paused = useUi((s) => s.paused);
   const setPaused = useUi((s) => s.setPaused);
-  const setScreen = useUi((s) => s.setScreen);
   const loc = getLocation(profile.locations.current);
   const r = profile.resources;
   const lvl = profile.bunker.level;
@@ -85,9 +84,6 @@ function TopBar() {
         </div>
         <button className="btn icon-btn" onClick={() => setPaused(!paused)} aria-label="Пауза">
           <UiIcon kind={paused ? 'play' : 'pause'} size={18} />
-        </button>
-        <button className="btn icon-btn" onClick={() => setScreen('menu')} aria-label="Меню">
-          <UiIcon kind="menu" size={18} />
         </button>
       </div>
       <div className="res-strip">

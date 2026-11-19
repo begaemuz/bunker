@@ -29,11 +29,20 @@ export function shortStats(item: Item, max = 3): string {
     .join(' · ');
 }
 
-export function ItemRow({ item, equipped, onClick }: { item: Item; equipped?: boolean; onClick: () => void }) {
+export function ItemRow({ item, equipped, better, onClick }: { item: Item; equipped?: boolean; better?: number; onClick: () => void }) {
   const col = rarityColor[item.rarity];
   return (
     <button className="item-row" style={{ borderLeftColor: col }} onClick={onClick}>
-      <ItemIcon category={item.category} rarity={item.rarity} level={item.level} />
+      <div style={{ position: 'relative' }}>
+        <ItemIcon category={item.category} rarity={item.rarity} level={item.level} />
+        {better !== undefined && (
+          <span className="better-arrow" title="Лучше установленного">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 20V5M5 11l7-7 7 7" />
+            </svg>
+          </span>
+        )}
+      </div>
       <div className="grow">
         <div className="item-name" style={{ color: col }}>
           {item.name}
@@ -43,6 +52,11 @@ export function ItemRow({ item, equipped, onClick }: { item: Item; equipped?: bo
           {ru.rarity[item.rarity]} · Т{item.tier} · ур. {item.level} <SlotDots item={item} />
         </div>
         <div className="item-stats">{shortStats(item)}</div>
+        {better !== undefined && (
+          <div className="small" style={{ color: 'var(--good)', fontWeight: 800 }}>
+            {better >= 1 ? 'Свободный слот — установите' : `Лучше установленного: +${Math.max(1, Math.round(better * 100))}% к мощи комплекса`}
+          </div>
+        )}
       </div>
     </button>
   );

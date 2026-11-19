@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { computeBunkerStats, type BunkerStats } from '../../game/bunker/BunkerStats';
+import { betterSlotFor } from '../../game/bunker/compare';
 import { modeConfig } from '../../game/config/gameConfig';
 import { getLocation } from '../../game/config/locationsConfig';
 import { coilProps, itemModifiers, sellPrice } from '../../game/items/ItemGenerator';
@@ -88,7 +89,8 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
   const equippedSlot = item ? slotOf(profile, item.id) : null;
   const fits = item ? SLOT_IDS.filter((s) => SLOT_CATEGORY[s] === item.category) : [];
   const slot: SlotId | null = item
-    ? (chosenSlot ?? (equipTarget && SLOT_CATEGORY[equipTarget] === item.category ? equipTarget : defaultSlotFor(profile, item)))
+    ? (chosenSlot ??
+      (equipTarget && SLOT_CATEGORY[equipTarget] === item.category ? equipTarget : (betterSlotFor(profile, item)?.slot ?? defaultSlotFor(profile, item))))
     : null;
 
   const preview = useMemo(() => {

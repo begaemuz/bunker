@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { techConfig } from '../game/config/techConfig';
 import { upgradeBlock } from '../game/items/ItemUpgrade';
-import { isEquipped } from '../game/profile/Profile';
+import { upgradeHints } from '../game/bunker/compare';
 import { researchBlock } from '../game/progression/TechnologyTree';
 import { SLOT_IDS } from '../game/types';
 import { setSoundEnabled } from '../services/sound';
@@ -13,16 +13,15 @@ import { UiIcon } from '../components/common/Icons';
 import { GameScreen } from '../components/game/GameScreen';
 import { MenuScreen } from '../components/game/MenuScreen';
 import { BossRewardModal, ResultScreen } from '../components/game/ResultScreen';
-import { InventoryScreen } from '../components/inventory/InventoryScreen';
 import { LocationsScreen } from '../components/locations/LocationsScreen';
 import { TechScreen } from '../components/tech/TechScreen';
 
-const navItems: { id: Screen; label: string; icon: 'battle' | 'bunker' | 'inventory' | 'tech' | 'map' }[] = [
+const navItems: { id: Screen; label: string; icon: 'battle' | 'bunker' | 'tech' | 'map' | 'menu' }[] = [
   { id: 'game', label: 'Бой', icon: 'battle' },
   { id: 'bunker', label: 'Бункер', icon: 'bunker' },
-  { id: 'inventory', label: 'Склад', icon: 'inventory' },
   { id: 'tech', label: 'Наука', icon: 'tech' },
   { id: 'locations', label: 'Локации', icon: 'map' },
+  { id: 'menu', label: 'Меню', icon: 'menu' },
 ];
 
 export function App() {
@@ -42,10 +41,8 @@ function Main() {
   const screen = useUi((s) => s.screen);
   const setScreen = useUi((s) => s.setScreen);
   const result = useUi((s) => s.result);
-  const spare = useProfile((s) => {
-    const p = s.profile!;
-    return Object.keys(p.items).filter((id) => !isEquipped(p, id)).length;
-  });
+  const profile = useProfile((s) => s.profile)!;
+  const better = useMemo(() => upgradeHints(profile).size, [profile]);
   const canResearch = useProfile((s) => techConfig.some((t) => !researchBlock(s.profile!, t)));
   const canUpgrade = useProfile((s) => {
     const p = s.profile!;
@@ -60,7 +57,6 @@ function Main() {
       <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <GameScreen />
         {screen === 'bunker' && <BunkerScreen />}
-        {screen === 'inventory' && <InventoryScreen />}
         {screen === 'tech' && <TechScreen />}
         {screen === 'locations' && <LocationsScreen />}
         {screen === 'menu' && <MenuScreen />}
@@ -74,9 +70,10 @@ function Main() {
             <button key={n.id} className={screen === n.id ? 'on' : ''} onClick={() => setScreen(n.id)}>
               <UiIcon kind={n.icon} />
               {n.label}
-              {n.id === 'inventory' && spare > 0 && <span className="nav-badge">{spare}</span>}
+
               {n.id === 'tech' && canResearch && <span className="nav-dot" />}
-              {n.id === 'bunker' && canUpgrade && <span className="nav-dot" />}
+              {n.id === 'bunker' && better > 0 && <span className="nav-badge" style={{ background: 'linear-gradient(#7be38a, #2f9a3c)', boxShadow: '0 0 6px rgba(95,209,106,0.8)' }}>{better}</span>}
+              {n.id === 'bunker' && better === 0 && canUpgrade && <span className="nav-dot" />}
             </button>
           ))}
         </nav>

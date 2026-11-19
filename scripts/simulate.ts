@@ -1,6 +1,7 @@
 /* Проверка игровой логики без браузера: тесты механик и прогон баланса.
    Запуск: npm run sim */
 import { computeBunkerStats } from '../src/game/bunker/BunkerStats';
+import { upgradeHints } from '../src/game/bunker/compare';
 import { techConfig } from '../src/game/config/techConfig';
 import { getLocation, locationsConfig } from '../src/game/config/locationsConfig';
 import { bossesConfig } from '../src/game/config/bossesConfig';
@@ -84,6 +85,21 @@ console.log('— Слоты и экипировка');
   check('Без генератора катушкам нечем питаться', noGen.energyFactor === 0);
   const sold = sellItem(p, gen.id);
   check('Продажа начисляет монеты', !sold.error && sold.profile.resources.coins === p.resources.coins + sellPrice(gen));
+}
+
+console.log('— Подсказка «лучше установленного»');
+{
+  let p = createNewProfile();
+  const good = generateItem({ templateId: 'gen_diesel', rarity: 'legendary', tier: 2, source: { kind: 'start' } });
+  const bad = { ...generateItem({ templateId: 'gen_diesel', rarity: 'common', tier: 1, source: { kind: 'start' } }) };
+  bad.baseStats = [{ stat: 'genPower', value: 5 }];
+  const shield = generateItem({ templateId: 'sh_armor', rarity: 'common', tier: 1, source: { kind: 'start' } });
+  p = addItems(p, [good, bad, shield]).profile;
+  const hints = upgradeHints(p);
+  check('Лучший генератор отмечен стрелкой', hints.has(good.id));
+  check('Слабый генератор не отмечен', !hints.has(bad.id));
+  check('Предмет в пустой слот отмечен', hints.get(shield.id)?.slot === 'shield');
+  check('Установленные предметы не отмечаются', !hints.has(p.equipment.generator!));
 }
 
 console.log('— Технологии и уровень');

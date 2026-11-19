@@ -5,7 +5,7 @@ import type { CoilMode, Item, SlotId } from '../game/types';
 import { loadSettings, saveSettings, type Settings } from '../services/storage';
 import { setSoundEnabled } from '../services/sound';
 
-export type Screen = 'game' | 'bunker' | 'inventory' | 'tech' | 'locations' | 'menu';
+export type Screen = 'game' | 'bunker' | 'tech' | 'locations' | 'menu';
 
 export interface Toast {
   id: number;
@@ -97,7 +97,7 @@ export const useUi = create<UiState>((set, get) => ({
   toasts: [],
   runId: 1,
 
-  setScreen: (screen) => set({ screen, selectedItemId: null, equipTarget: screen === 'inventory' ? get().equipTarget : null }),
+  setScreen: (screen) => set({ screen, selectedItemId: null, equipTarget: null }),
   setPaused: (paused) => set({ paused }),
   setSpeed: (speed) => {
     const settings = { ...get().settings, speed };

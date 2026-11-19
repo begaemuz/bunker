@@ -1,7 +1,10 @@
 import { Fragment, useState } from 'react';
 import { useProfile } from '../../stores/profileStore';
 import { useUi } from '../../stores/uiStore';
-import { fmtNum } from '../../i18n/ru';
+import { fmtNum, ru } from '../../i18n/ru';
+import { RESOURCE_KEYS } from '../../game/types';
+import { rarityColor } from '../../ui/theme';
+import { ResourceIcon } from '../common/Icons';
 import { ConfirmDialog, Switch } from '../common/Common';
 import { getActiveSession } from './GameScreen';
 
@@ -18,7 +21,8 @@ export function MenuScreen() {
   const setScreen = useUi((s) => s.setScreen);
   const newRun = useUi((s) => s.newRun);
   const reset = useProfile((s) => s.reset);
-  const stats = useProfile((s) => s.profile!.stats);
+  const profile = useProfile((s) => s.profile)!;
+  const stats = profile.stats;
   const [confirm, setConfirm] = useState<'surrender' | 'reset' | null>(null);
 
   const rows: [string, string | number][] = [
@@ -54,6 +58,18 @@ export function MenuScreen() {
           </button>
         </div>
 
+        <div className="section-title">Ресурсы</div>
+        {RESOURCE_KEYS.map((k) => (
+          <div key={k} className="panel" style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 6 }}>
+            <ResourceIcon type={k} size={26} />
+            <div className="grow">
+              <div style={{ fontWeight: 800 }}>{ru.resource[k]}</div>
+              <div className="small muted">{ru.resourceHint[k]}</div>
+            </div>
+            <div style={{ fontWeight: 900, fontSize: 16 }}>{fmtNum(profile.resources[k])}</div>
+          </div>
+        ))}
+
         <div className="section-title">Настройки</div>
         <div className="menu-list">
           <div className="toggle-row">
@@ -73,6 +89,26 @@ export function MenuScreen() {
               <span>{k}</span>
               <span>{v}</span>
             </Fragment>
+          ))}
+        </div>
+
+        <div className="section-title">История оборудования</div>
+        <div className="panel">
+          {profile.history.length === 0 && <div className="muted small">История пуста.</div>}
+          {profile.history.slice(0, 40).map((h, i) => (
+            <div key={i} className="stat-line">
+              <span>
+                <span style={{ color: rarityColor[h.rarity] }}>{h.itemName}</span>
+                <br />
+                <span className="small muted">
+                  {new Date(h.at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                  {h.detail ? ` · ${h.detail}` : ''}
+                </span>
+              </span>
+              <span className={h.action === 'obtained' || h.action === 'upgraded' ? 'pos' : h.action === 'destroyed' ? 'neg' : 'muted'}>
+                {{ obtained: 'получено', sold: 'продано', scrapped: 'разобрано', upgraded: 'улучшено', destroyed: 'уничтожено' }[h.action]}
+              </span>
+            </div>
           ))}
         </div>
 

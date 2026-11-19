@@ -1204,3 +1204,35 @@ button {
     opacity: 0;
   }
 }
+
+.better-arrow {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #062b0b;
+  background: radial-gradient(circle at 40% 35%, #9dffa6, #3fbf4c);
+  box-shadow: 0 0 10px rgba(95, 209, 106, 0.9);
+  animation: bob 1.2s ease-in-out infinite;
+}
+@keyframes bob {
+  50% {
+    transform: translateY(-2px);
+  }
+}
+.equip-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.equip-grid .slot-tile {
+  min-height: 96px;
+  padding: 7px 3px 6px;
+}
+.stats-fab {
+  position: relative;
+}
