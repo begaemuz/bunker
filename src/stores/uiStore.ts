@@ -13,6 +13,14 @@ export interface Toast {
   tone: 'info' | 'good' | 'bad' | 'rare';
 }
 
+/** Строка ленты добычи на экране боя. */
+export interface FeedEntry {
+  id: number;
+  text: string;
+  color: string;
+  at: number;
+}
+
 export interface CoilHud {
   name: string;
   mode: CoilMode;
@@ -66,6 +74,7 @@ interface UiState {
   result: RunResult | null;
   bossReward: BossReward | null;
   toasts: Toast[];
+  feed: FeedEntry[];
   runId: number;
   introOpen: boolean;
   setIntroOpen: (o: boolean) => void;
@@ -84,11 +93,14 @@ interface UiState {
   setResult: (r: RunResult | null) => void;
   setBossReward: (r: BossReward | null) => void;
   toast: (text: string, tone?: Toast['tone']) => void;
+  pushFeed: (text: string, color: string) => void;
+  pruneFeed: () => void;
   dismissToast: (id: number) => void;
   newRun: () => void;
 }
 
 let toastId = 1;
+export const FEED_TTL = 7000;
 
 export const useUi = create<UiState>((set, get) => ({
   screen: 'game',
@@ -141,5 +153,12 @@ export const useUi = create<UiState>((set, get) => ({
     setTimeout(() => get().dismissToast(id), 2600);
   },
   dismissToast: (id) => set({ toasts: get().toasts.filter((t) => t.id !== id) }),
+  feed: [],
+  pushFeed: (text, color) => set({ feed: [{ id: toastId++, text, color, at: Date.now() }, ...get().feed].slice(0, 6) }),
+  pruneFeed: () => {
+    const now = Date.now();
+    const f = get().feed;
+    if (f.some((x) => now - x.at > FEED_TTL)) set({ feed: f.filter((x) => now - x.at <= FEED_TTL) });
+  },
   newRun: () => set({ runId: get().runId + 1, result: null, paused: false, screen: 'game' }),
 }));

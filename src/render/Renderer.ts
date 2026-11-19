@@ -176,59 +176,6 @@ export class Renderer {
     }
     this.drawBiome(c, rnd, cx, cy, s);
 
-    // Руины — объёмные коробки, сортируются по глубине.
-    const ruins: { x: number; y: number; bw: number; bh: number; d: number }[] = [];
-    for (let i = 0; i < 30; i++) {
-      const x = rnd() * this.w;
-      const y = this.h * 0.08 + rnd() * this.h * 0.95;
-      if (Math.hypot(x - cx, (y - cy) / TILT) < 190 * s) continue;
-      ruins.push({ x, y, bw: (16 + rnd() * 40) * s, bh: (10 + rnd() * 46) * s, d: (10 + rnd() * 26) * s * TILT });
-    }
-    ruins.sort((a, b) => a.y - b.y);
-    for (const r of ruins) {
-      const x0 = r.x - r.bw / 2;
-      const yB = r.y;
-      const yT = r.y - r.bh;
-      // тень
-      c.fillStyle = 'rgba(0,0,0,0.35)';
-      c.beginPath();
-      c.ellipse(r.x + r.bw * 0.2, yB, r.bw * 0.75, r.d + 4 * s, 0, 0, Math.PI * 2);
-      c.fill();
-      // верхняя грань
-      c.fillStyle = p.accent;
-      c.beginPath();
-      c.moveTo(x0, yT);
-      c.lineTo(x0 + r.d * 0.6, yT - r.d);
-      c.lineTo(x0 + r.bw + r.d * 0.6, yT - r.d);
-      c.lineTo(x0 + r.bw, yT);
-      c.closePath();
-      c.fill();
-      // боковая грань
-      c.fillStyle = 'rgba(0,0,0,0.45)';
-      c.beginPath();
-      c.moveTo(x0 + r.bw, yT);
-      c.lineTo(x0 + r.bw + r.d * 0.6, yT - r.d);
-      c.lineTo(x0 + r.bw + r.d * 0.6, yB - r.d);
-      c.lineTo(x0 + r.bw, yB);
-      c.closePath();
-      c.fill();
-      // фасад с окнами
-      const fg = c.createLinearGradient(0, yT, 0, yB);
-      fg.addColorStop(0, p.debris);
-      fg.addColorStop(1, 'rgba(0,0,0,0.6)');
-      c.fillStyle = fg;
-      c.fillRect(x0, yT, r.bw, r.bh);
-      c.strokeStyle = 'rgba(0,0,0,0.6)';
-      c.strokeRect(x0, yT, r.bw, r.bh);
-      c.fillStyle = 'rgba(0,0,0,0.55)';
-      for (let wy = yT + 5 * s; wy < yB - 6 * s; wy += 9 * s)
-        for (let wx = x0 + 4 * s; wx < x0 + r.bw - 6 * s; wx += 8 * s) if (rnd() < 0.7) c.fillRect(wx, wy, 3.5 * s, 4 * s);
-      if (rnd() < 0.15) {
-        c.fillStyle = 'rgba(255,190,90,0.5)';
-        c.fillRect(x0 + 4 * s, yT + 5 * s, 3.5 * s, 4 * s);
-      }
-    }
-
     // Виньетка
     const v = c.createRadialGradient(cx, cy, Math.min(this.w, this.h) * 0.35, cx, cy, Math.max(this.w, this.h) * 0.75);
     v.addColorStop(0, 'rgba(0,0,0,0)');
@@ -334,10 +281,11 @@ export class Renderer {
     }
   }
 
-  /** Трансформация «земля»: круги превращаются в эллипсы. */
-  private ground(): void {
-    const s = this.scale * this.dpr;
-    this.ctx.setTransform(s, 0, 0, s * TILT, this.cx * this.dpr, this.cy * this.dpr);
+  /** Путь круга на земле: эллипс с ровной линией. */
+  private ring(x: number, y: number, r: number): void {
+    const c = this.ctx;
+    c.beginPath();
+    c.ellipse(x, y * TILT, Math.max(0.1, r), Math.max(0.1, r * TILT), 0, 0, Math.PI * 2);
   }
 
   /** Трансформация «стоячие объекты»: мир сжат только по положению. */
@@ -358,8 +306,9 @@ export class Renderer {
 
     const alive = engine.enemies.filter((e) => e.alive).sort((a, b) => a.y - b.y);
 
-    // Слой земли
-    this.ground();
+    // Слой земли: эллипсы рисуются в «стоячих» координатах,
+    // чтобы толщина линий и штрихи были ровными по всему кругу.
+    this.upright();
     this.drawRadius(engine);
     this.drawShadows(alive);
     this.drawBunkerBase(engine);
@@ -367,7 +316,6 @@ export class Renderer {
     this.drawBlasts(engine);
 
     // Стоячие объекты по глубине: что дальше — рисуется раньше.
-    this.upright();
     let bunkerDone = false;
     for (const en of alive) {
       if (!bunkerDone && en.y >= 0) {
@@ -387,33 +335,36 @@ export class Renderer {
   private drawRadius(e: GameEngine): void {
     const c = this.ctx;
     const supp = e.bunker.suppressT > 0;
-    e.stats.coils.forEach((coil, i) => {
+    // Катушки с почти одинаковым радиусом рисуются одним кольцом.
+    const rings: { r: number; col: string }[] = [];
+    for (const coil of e.stats.coils) {
       const col = supp ? '#b04dff' : modeConfig[coil.mode].color;
-      const r = coil.radius;
-      const g = c.createRadialGradient(0, 0, r * 0.6, 0, 0, r);
+      if (rings.some((x) => Math.abs(x.r - coil.radius) < coil.radius * 0.08)) continue;
+      rings.push({ r: coil.radius, col });
+    }
+    rings.forEach(({ r, col }, i) => {
+      // мягкая заливка у края зоны поражения
+      c.save();
+      c.scale(1, TILT);
+      const g = c.createRadialGradient(0, 0, r * 0.55, 0, 0, r);
       g.addColorStop(0, 'rgba(0,0,0,0)');
       g.addColorStop(1, col);
-      c.globalAlpha = 0.12;
+      c.globalAlpha = 0.13;
       c.fillStyle = g;
       c.beginPath();
       c.arc(0, 0, r, 0, Math.PI * 2);
       c.fill();
-      c.globalAlpha = 0.55;
+      c.restore();
+      c.globalAlpha = 0.7;
       c.strokeStyle = col;
       c.lineWidth = 1.6;
-      c.setLineDash([8, 7]);
+      c.setLineDash([9, 7]);
       c.lineDashOffset = (i ? 1 : -1) * this.time * 14;
+      this.ring(0, 0, r);
       c.stroke();
       c.setLineDash([]);
       c.globalAlpha = 1;
     });
-    if (e.stats.detectRange > 0) {
-      c.strokeStyle = 'rgba(95,224,138,0.14)';
-      c.lineWidth = 1;
-      c.beginPath();
-      c.arc(0, 0, e.stats.detectRange, 0, Math.PI * 2);
-      c.stroke();
-    }
   }
 
   private drawShadows(list: Enemy[]): void {
@@ -422,8 +373,7 @@ export class Renderer {
     for (const en of list) {
       const hover = en.kind === 'support' || en.kind === 'shielded';
       const r = en.size * VIS * (hover ? 0.7 : 1.0);
-      c.beginPath();
-      c.arc(en.x, en.y, r, 0, Math.PI * 2);
+      this.ring(en.x, en.y, r);
       c.fill();
     }
   }
@@ -432,28 +382,23 @@ export class Renderer {
     const c = this.ctx;
     const R = gameConfig.bunkerBodyRadius;
     c.fillStyle = 'rgba(0,0,0,0.5)';
-    c.beginPath();
-    c.arc(4, 4, R * 1.55, 0, Math.PI * 2);
+    this.ring(3, 5, R * 1.55);
     c.fill();
-    // бетонная площадка с сигнальным кольцом
     c.fillStyle = '#34383c';
-    c.beginPath();
-    c.arc(0, 0, R * 1.45, 0, Math.PI * 2);
+    this.ring(0, 0, R * 1.45);
     c.fill();
-    c.lineWidth = R * 0.14;
-    c.strokeStyle = '#f2a93b';
-    c.setLineDash([R * 0.22, R * 0.22]);
-    c.beginPath();
-    c.arc(0, 0, R * 1.36, 0, Math.PI * 2);
-    c.stroke();
-    c.setLineDash([]);
     c.strokeStyle = '#15181a';
     c.lineWidth = 2;
-    c.beginPath();
-    c.arc(0, 0, R * 1.45, 0, Math.PI * 2);
     c.stroke();
+    c.lineWidth = R * 0.1;
+    c.strokeStyle = '#f2a93b';
+    c.setLineDash([R * 0.2, R * 0.2]);
+    this.ring(0, 0, R * 1.33);
+    c.stroke();
+    c.setLineDash([]);
     if (e.bunker.hitFlash > 0) {
       c.fillStyle = `rgba(255,60,40,${e.bunker.hitFlash * 1.5})`;
+      this.ring(0, 0, R * 1.45);
       c.fill();
     }
   }
@@ -584,12 +529,11 @@ export class Renderer {
       const rad = R0 + (r.radius - R0) * Math.min(1, k * 1.4);
       c.globalAlpha = 1 - k;
       c.strokeStyle = r.crit ? '#ffd75a' : r.color;
-      c.lineWidth = (r.crit ? 6 : 4) * (1 - k * 0.6);
-      c.beginPath();
-      c.arc(0, 0, rad, 0, Math.PI * 2);
+      c.lineWidth = (r.crit ? 5 : 3) * (1 - k * 0.6);
+      this.ring(0, 0, rad);
       c.stroke();
       c.globalAlpha = (1 - k) * 0.3;
-      c.lineWidth = 14 * (1 - k);
+      c.lineWidth = 12 * (1 - k);
       c.stroke();
       c.globalAlpha = 1;
     }
@@ -602,8 +546,7 @@ export class Renderer {
       c.strokeStyle = b.color;
       c.globalAlpha = 1 - k;
       c.lineWidth = 3;
-      c.beginPath();
-      c.arc(b.x, b.y, b.r * (0.3 + k * 0.7), 0, Math.PI * 2);
+      this.ring(b.x, b.y, b.r * (0.3 + k * 0.7));
       c.stroke();
       c.globalAlpha = (1 - k) * 0.25;
       c.fillStyle = b.color;

@@ -10,6 +10,8 @@ import { ratesFromRun } from './progression/offline';
 import { rewardDecay } from './progression/rewards';
 import { Renderer } from '../render/Renderer';
 import { useProfile } from '../stores/profileStore';
+import { rarityColor } from '../ui/theme';
+import { CONSUMABLES, consumableInfo } from './consumables';
 import { useUi } from '../stores/uiStore';
 import { ru } from '../i18n/ru';
 import { setMusicMode, sfx } from '../services/sound';
@@ -143,13 +145,15 @@ export class GameSession {
         for (const it of e.loot.items) {
           if (sold.has(it.id)) continue;
           const rare = isAtLeast(it.rarity, 'rare');
-          ui.toast(`${ru.rarity[it.rarity]}: ${it.name}`, rare ? 'rare' : 'info');
+          ui.pushFeed(it.name, rarityColor[it.rarity]);
           sfx.item(rare);
           if (rare) haptic('medium');
         }
-        for (const p of e.loot.parts) ui.toast(`Модификация: ${p.name}`, 'rare');
-        if (e.loot.resources.expansionKeys) ui.toast('Найден ключ расширения слота', 'rare');
-        if (e.loot.resources.bossPasses) ui.toast('Найден пропуск вызова босса', 'rare');
+        for (const p of e.loot.parts) ui.pushFeed(`Модификация: ${p.name}`, rarityColor[p.rarity]);
+        for (const k of CONSUMABLES) {
+          const n = e.loot.resources[k];
+          if (n) ui.pushFeed(`${ru.resource[k]} ×${n}`, consumableInfo[k].color);
+        }
         if (e.enemy.isMiniboss) prof.addStats({ minibossesKilled: 1 });
         sfx.kill(e.enemy.isMiniboss);
         break;

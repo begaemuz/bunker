@@ -10,8 +10,8 @@ import { fmtNum } from '../../i18n/ru';
 import { unlockAudio } from '../../services/sound';
 import { useProfile } from '../../stores/profileStore';
 import { useUi, type CoilHud } from '../../stores/uiStore';
-import { colors, rarityColor } from '../../ui/theme';
-import { Bar } from '../common/Common';
+import { colors } from '../../ui/theme';
+import { Bar, ResourceStrip } from '../common/Common';
 import { ResourceIcon, UiIcon } from '../common/Icons';
 
 let activeSession: GameSession | null = null;
@@ -56,12 +56,10 @@ export function GameScreen() {
 
 function TopBar() {
   const profile = useProfile((s) => s.profile)!;
-  const speed = useUi((s) => s.settings.speed);
-  const setSpeed = useUi((s) => s.setSpeed);
   const paused = useUi((s) => s.paused);
   const setPaused = useUi((s) => s.setPaused);
+  const setScreen = useUi((s) => s.setScreen);
   const loc = getLocation(profile.locations.current);
-  const r = profile.resources;
   const lvl = profile.bunker.level;
   const setQuests = useUi((s) => s.setQuestsOpen);
   const badge = useQuestBadge();
@@ -75,7 +73,7 @@ function TopBar() {
   return (
     <div className="topbar">
       <div className="topbar-row">
-        <div className="grow">
+        <div className="grow" style={{ minWidth: 0 }}>
           <div className="loc-title">
             Локация {loc.id} · {loc.name}
           </div>
@@ -89,67 +87,95 @@ function TopBar() {
             </span>
           </div>
         </div>
-        <div className="seg">
-          {gameConfig.speeds.map((s) => (
-            <button key={s} className={speed === s ? 'on' : ''} onClick={() => setSpeed(s)}>
-              x{s}
-            </button>
-          ))}
-        </div>
-        <button className="btn icon-btn" style={{ position: 'relative', overflow: 'visible' }} onClick={() => setQuests(true)} aria-label="Задания">
-          <UiIcon kind="gift" size={18} />
-          {badge > 0 && <span className="nav-badge" style={{ top: 1, right: 1 }}>{badge}</span>}
+        <button className="btn top-btn" onClick={() => setQuests(true)} aria-label="Задания и награды">
+          <UiIcon kind="gift" size={26} />
+          {badge > 0 && <span className="nav-badge">{badge}</span>}
         </button>
-        <button className="btn icon-btn" onClick={() => setPaused(!paused)} aria-label="Пауза">
-          <UiIcon kind={paused ? 'play' : 'pause'} size={18} />
+        <button className="btn top-btn" onClick={() => setPaused(!paused)} aria-label="Пауза">
+          <UiIcon kind={paused ? 'play' : 'pause'} size={26} />
+        </button>
+        <button className="btn top-btn" onClick={() => setScreen('menu')} aria-label="Меню">
+          <UiIcon kind="menu" size={26} />
         </button>
       </div>
-      <div className="res-strip">
-        {(['coins', 'scrap', 'techParts', 'blueprints', 'energyCores', 'stabilizers', 'bossPasses'] as const).map((k) => (
-          <span key={k} className="res">
-            <ResourceIcon type={k} /> {fmtNum(r[k])}
-          </span>
-        ))}
-      </div>
+      <ResourceStrip />
     </div>
   );
 }
 
-function BossProgress() {
+function BossChip() {
+  const profile = useProfile((s) => s.profile)!;
+  const loc = getLocation(profile.locations.current);
+  const prog = locationProgress(profile, loc.id);
+  const ready = canSummonBoss(profile, loc.id);
+  const k = Math.min(1, prog.groups / loc.groupsForBoss);
+  return (
+    <span className={`chip boss-chip${ready ? ' ready' : ''}`}>
+      <span className="boss-chip-t">
+        <UiIcon kind="skull" size={12} /> Босс {Math.min(prog.groups, loc.groupsForBoss)}/{loc.groupsForBoss}
+      </span>
+      <span className="boss-chip-bar">
+        <i style={{ width: `${k * 100}%` }} />
+      </span>
+    </span>
+  );
+}
+
+function SpeedButton() {
+  const speed = useUi((s) => s.settings.speed);
+  const setSpeed = useUi((s) => s.setSpeed);
+  const list = gameConfig.speeds;
+  const next = () => setSpeed((list as readonly number[])[((list as readonly number[]).indexOf(speed) + 1) % list.length]);
+  return (
+    <button className={`btn speed-btn s${speed}`} onClick={next} aria-label="Скорость боя">
+      <span>x{speed}</span>
+      <i>скорость</i>
+    </button>
+  );
+}
+
+function BossButton() {
   const profile = useProfile((s) => s.profile)!;
   const hud = useUi((s) => s.hud);
   const toast = useUi((s) => s.toast);
   const loc = getLocation(profile.locations.current);
-  const prog = locationProgress(profile, loc.id);
   const ready = canSummonBoss(profile, loc.id);
   const passes = profile.resources.bossPasses;
   if (!hud || hud.mode === 'boss' || hud.state !== 'running') return null;
-
   const summon = (usePass: boolean) => {
     const ok = getActiveSession()?.summonBoss(usePass);
     if (!ok) toast('Сейчас вызвать босса нельзя', 'bad');
   };
+  if (ready)
+    return (
+      <button className="btn btn-gold btn-pulse boss-btn" onClick={() => summon(false)}>
+        <UiIcon kind="skull" size={20} /> Вызвать босса
+      </button>
+    );
+  if (passes > 0)
+    return (
+      <button className="btn btn-danger btn-sm boss-btn pass" onClick={() => summon(true)}>
+        <ResourceIcon type="bossPasses" /> Босс по пропуску ×{passes}
+      </button>
+    );
+  return null;
+}
 
+function LootFeed() {
+  const feed = useUi((s) => s.feed);
+  const prune = useUi((s) => s.pruneFeed);
+  useEffect(() => {
+    const t = setInterval(prune, 1000);
+    return () => clearInterval(t);
+  }, [prune]);
+  if (!feed.length) return null;
   return (
-    <div className="boss-progress">
-      <div className="boss-card">
-        <div className="t">
-          <span>До босса</span>
-          <span>
-            Уничтожено <b>{prog.groups}</b> / {loc.groupsForBoss} групп
-          </span>
+    <div className="loot-feed">
+      {feed.slice(0, 5).map((f) => (
+        <div key={f.id} className="loot-line" style={{ borderLeftColor: f.color, color: f.color }}>
+          {f.text}
         </div>
-        <Bar value={prog.groups} max={loc.groupsForBoss} color={ready ? '#5fd16a' : '#d9772e'} thin />
-      </div>
-      {ready ? (
-        <button className="btn btn-gold btn-pulse" onClick={() => summon(false)}>
-          <UiIcon kind="skull" size={18} /> Вызвать босса
-        </button>
-      ) : passes > 0 ? (
-        <button className="btn btn-danger btn-sm" onClick={() => summon(true)}>
-          <ResourceIcon type="bossPasses" /> Пропуск <span className="badge">{passes}</span>
-        </button>
-      ) : null}
+      ))}
     </div>
   );
 }
@@ -157,7 +183,6 @@ function BossProgress() {
 function FieldOverlay() {
   const hud = useUi((s) => s.hud);
   const paused = useUi((s) => s.paused);
-  const showDrops = !!hud && hud.recentDrops.length > 0;
   if (!hud) return null;
   return (
     <>
@@ -165,8 +190,9 @@ function FieldOverlay() {
         <span className="chip">
           DPS <b>{fmtNum(hud.dps)}</b>
         </span>
+        {hud.mode !== 'boss' && <BossChip />}
         <span className="chip">
-          Угроза <b style={{ color: hud.threat > 0.4 ? '#ff6b5a' : undefined }}>{Math.round(hud.threat * 100)}%</b> · уничтожено <b>{hud.kills}</b>
+          Угроза <b style={{ color: hud.threat > 0.4 ? '#ff6b5a' : undefined }}>{Math.round(hud.threat * 100)}%</b>
         </span>
       </div>
       {hud.boss && (
@@ -196,16 +222,11 @@ function FieldOverlay() {
           ЭМ-ПОДАВЛЕНИЕ: частота снижена
         </div>
       )}
-      {showDrops && (
-        <div className="drops" style={{ bottom: hud.mode === 'boss' ? 8 : 64 }}>
-          {hud.recentDrops.slice(0, 3).map((it) => (
-            <div key={it.id} className="drop-pill" style={{ borderLeftColor: rarityColor[it.rarity], color: rarityColor[it.rarity] }}>
-              {it.name}
-            </div>
-          ))}
-        </div>
-      )}
-      <BossProgress />
+      <div className="field-bottom">
+        <SpeedButton />
+        <BossButton />
+        <LootFeed />
+      </div>
     </>
   );
 }

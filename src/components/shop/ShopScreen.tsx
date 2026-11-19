@@ -1,3 +1,4 @@
+import { ResourceStrip } from '../common/Common';
 import { useEffect, useState } from 'react';
 import { exchangeConfig, shopConfig } from '../../game/config/metaConfig';
 import { exchangeUsed, nextShopRefresh, shopRefreshCost, type Offer } from '../../game/meta/Meta';
@@ -202,6 +203,7 @@ export function ShopScreen() {
     <div className="screen">
       <div className="screen-header">
         <h2 className="grow">Магазин</h2>
+        <ResourceStrip />
       </div>
       <div className="tabs">
         {(
@@ -218,13 +220,7 @@ export function ShopScreen() {
         ))}
       </div>
       <div className="screen-body">
-        <div className="res-strip" style={{ justifyContent: 'center', marginBottom: 10 }}>
-          {(['coins', 'scrap', 'techParts', 'blueprints', 'energyCores', 'crystals'] as const).map((k) => (
-            <span key={k} className="res">
-              <ResourceIcon type={k} /> {fmtNum(r[k])}
-            </span>
-          ))}
-        </div>
+        
 
         {(tab === 'regular' || tab === 'rare') && (
           <>

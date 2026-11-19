@@ -11,12 +11,14 @@ import { fmtNum, ru } from '../../i18n/ru';
 import { useProfile } from '../../stores/profileStore';
 import { useUi } from '../../stores/uiStore';
 import { colors, rarityColor } from '../../ui/theme';
-import { Bar } from '../common/Common';
+import { Bar, ResourceStrip } from '../common/Common';
 import { CategoryGlyph, ItemIcon, UiIcon } from '../common/Icons';
 import { ItemCard } from '../inventory/ItemCard';
 import { ItemTile } from '../inventory/ItemRow';
 import { MassFuseSheet, PartCard, PartsGrid } from '../parts/Parts';
 import { BunkerArt } from './BunkerArt';
+import { ConsumableSheet, ConsumableTiles } from '../inventory/Consumables';
+import { CONSUMABLES, type ConsumableKey } from '../../game/consumables';
 import { Select, Sheet } from '../common/Sheet';
 import { MassSellSheet } from './MassSell';
 
@@ -180,6 +182,7 @@ export function BunkerScreen() {
   const setAutoSell = useProfile((s) => s.setAutoSell);
   const [massSell, setMassSell] = useState(false);
   const [massFuse, setMassFuse] = useState(false);
+  const [cons, setCons] = useState<ConsumableKey | null>(null);
   const freeParts = Object.values(profile.parts).filter((p) => !p.installedIn).length;
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -221,6 +224,7 @@ export function BunkerScreen() {
           <UiIcon kind="bolt" size={15} /> {fmtNum(power)}
         </span>
         <span className="lvl-badge">УР {profile.bunker.level}</span>
+        <ResourceStrip />
       </div>
       <div className="screen-body">
         <div className="doll">
@@ -311,6 +315,11 @@ export function BunkerScreen() {
                 </button>
               </div>
             )}
+            {!forSlot && CONSUMABLES.some((k) => profile.resources[k] > 0) && (
+              <div className="item-grid" style={{ marginBottom: 7 }}>
+                <ConsumableTiles onOpen={setCons} />
+              </div>
+            )}
             {items.length === 0 ? (
               <div className="empty">{forSlot ? 'Для этого слота на складе ничего нет. Оборудование выпадает с роботов и боссов.' : 'Здесь появится оборудование, выпавшее с роботов и боссов.'}</div>
             ) : (
@@ -325,6 +334,7 @@ export function BunkerScreen() {
       </div>
 
       {massSell && <MassSellSheet onClose={() => setMassSell(false)} hints={hints} />}
+      {cons && <ConsumableSheet k={cons} onClose={() => setCons(null)} />}
       {massFuse && <MassFuseSheet onClose={() => setMassFuse(false)} />}
       {partId && <PartCard partId={partId} onClose={() => setPartId(null)} />}
       {showStats && <StatsSheet profile={profile} stats={stats} onClose={() => setShowStats(false)} />}

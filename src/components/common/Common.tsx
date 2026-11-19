@@ -1,5 +1,10 @@
 import type { ReactNode } from 'react';
 import { useUi } from '../../stores/uiStore';
+import { useProfile } from '../../stores/profileStore';
+import { CURRENCIES } from '../../game/consumables';
+import type { ResourceKey } from '../../game/types';
+import { fmtNum } from '../../i18n/ru';
+import { ResourceIcon } from './Icons';
 
 export function Bar({
   value,
@@ -80,4 +85,19 @@ export function Toasts() {
 
 export function Switch({ on, onChange }: { on: boolean; onChange: () => void }) {
   return <button className={`switch${on ? ' on' : ''}`} onClick={onChange} aria-pressed={on} />;
+}
+
+/** Полоса валют под заголовком любого экрана. */
+export function ResourceStrip({ keys }: { keys?: ResourceKey[] }) {
+  const r = useProfile((s) => s.profile?.resources);
+  if (!r) return null;
+  return (
+    <div className="res-strip">
+      {(keys ?? CURRENCIES).map((k) => (
+        <span key={k} className="res">
+          <ResourceIcon type={k} /> {fmtNum(r[k])}
+        </span>
+      ))}
+    </div>
+  );
 }

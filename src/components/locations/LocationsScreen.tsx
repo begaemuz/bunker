@@ -8,7 +8,7 @@ import type { ResourceKey } from '../../game/types';
 import { ru } from '../../i18n/ru';
 import { useProfile } from '../../stores/profileStore';
 import { useUi } from '../../stores/uiStore';
-import { Bar } from '../common/Common';
+import { Bar, ResourceStrip } from '../common/Common';
 import { ResourceIcon, UiIcon } from '../common/Icons';
 
 export function LocationsScreen() {
@@ -34,6 +34,7 @@ export function LocationsScreen() {
         <span className="small muted">
           открыто {profile.locations.unlocked.length} / {locationsConfig.length}
         </span>
+        <ResourceStrip />
       </div>
       <div className="screen-body">
         {locationsConfig.map((l) => {

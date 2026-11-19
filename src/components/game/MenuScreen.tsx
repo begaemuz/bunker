@@ -3,9 +3,10 @@ import { useProfile } from '../../stores/profileStore';
 import { useUi } from '../../stores/uiStore';
 import { fmtNum, ru } from '../../i18n/ru';
 import { RESOURCE_KEYS } from '../../game/types';
+import { CONSUMABLES } from '../../game/consumables';
 import { rarityColor } from '../../ui/theme';
 import { ResourceIcon } from '../common/Icons';
-import { ConfirmDialog, Switch } from '../common/Common';
+import { ConfirmDialog, Switch, ResourceStrip } from '../common/Common';
 import { getActiveSession } from './GameScreen';
 
 function fmtDuration(sec: number): string {
@@ -52,6 +53,7 @@ export function MenuScreen() {
     <div className="screen">
       <div className="screen-header">
         <h2 className="grow">Меню</h2>
+        <ResourceStrip />
       </div>
       <div className="screen-body">
         <div className="panel tg-card" style={{ marginBottom: 10 }}>
@@ -81,7 +83,7 @@ export function MenuScreen() {
         </div>
 
         <div className="section-title">Ресурсы</div>
-        {RESOURCE_KEYS.map((k) => (
+        {RESOURCE_KEYS.filter((k) => !(CONSUMABLES as readonly string[]).includes(k)).map((k) => (
           <div key={k} className="panel" style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 6 }}>
             <ResourceIcon type={k} size={26} />
             <div className="grow">

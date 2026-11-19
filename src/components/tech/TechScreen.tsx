@@ -1,3 +1,4 @@
+import { ResourceStrip } from '../common/Common';
 import { useState } from 'react';
 import { getTech, techBranches, techConfig, type TechBranch, type TechEffect, type TechNode } from '../../game/config/techConfig';
 import { formatStatValue } from '../../game/items/statInfo';
@@ -216,7 +217,6 @@ export function TechScreen() {
   const profile = useProfile((s) => s.profile)!;
   const [open, setOpen] = useState<TechNode | null>(null);
   const [tab, setTab] = useState<TechBranch>('energy');
-  const r = profile.resources;
   const branch = techBranches.find((b) => b.id === tab)!;
   const readyIn = (b: TechBranch) => techConfig.filter((n) => n.branch === b && !researchBlock(profile, n)).length;
   return (
@@ -224,6 +224,7 @@ export function TechScreen() {
       <div className="screen-header">
         <h2 className="grow">Наука</h2>
         <span className="lvl-badge">УР {profile.bunker.level}</span>
+        <ResourceStrip keys={['coins', 'scrap', 'techParts', 'blueprints', 'energyCores']} />
       </div>
       <div className="tabs skill-tabs">
         {techBranches.map((b) => {
@@ -248,13 +249,7 @@ export function TechScreen() {
             <span>очков</span>
           </div>
         </div>
-        <div className="res-strip skill-res">
-          {(['coins', 'scrap', 'techParts', 'blueprints', 'energyCores'] as const).map((k) => (
-            <span key={k} className="res">
-              <ResourceIcon type={k} /> {fmtNum(r[k])}
-            </span>
-          ))}
-        </div>
+        
         <BranchTree branch={branch} onOpen={setOpen} />
         <div className="small muted" style={{ margin: '4px 0 12px', textAlign: 'center' }}>
           Знак «+» — можно изучить сейчас. Уровни навыков не ограничены.

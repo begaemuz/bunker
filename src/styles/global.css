@@ -2865,3 +2865,192 @@ body,
 .bunker-art {
   border-radius: 12px;
 }
+
+/* ═════ Экран боя v3 ═════ */
+.top-btn {
+  position: relative;
+  width: 52px;
+  min-width: 52px;
+  height: 52px;
+  min-height: 52px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  overflow: visible;
+}
+.top-btn .nav-badge {
+  top: -5px;
+  right: -5px;
+}
+.topbar .res-strip {
+  margin-top: 6px;
+}
+.overlay-info {
+  align-items: flex-start;
+  gap: 6px;
+}
+.overlay-info .chip {
+  font-family: var(--display);
+  font-size: 12px;
+  border-radius: 10px;
+  padding: 5px 9px;
+  background: rgba(10, 13, 16, 0.82);
+  border: 1px solid #2c343c;
+}
+.boss-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 108px;
+}
+.boss-chip-t {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #d0d6db;
+}
+.boss-chip-bar {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: #1a1f24;
+  overflow: hidden;
+}
+.boss-chip-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #d9772e, #ffb347);
+}
+.boss-chip.ready {
+  border-color: #5fd16a;
+}
+.boss-chip.ready .boss-chip-t {
+  color: #7be38a;
+}
+.boss-chip.ready .boss-chip-bar i {
+  background: #5fd16a;
+}
+.field-bottom {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  height: 0;
+  pointer-events: none;
+}
+.field-bottom > * {
+  pointer-events: auto;
+}
+.speed-btn {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 62px;
+  height: 62px;
+  min-height: 62px;
+  padding: 0;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+.speed-btn span {
+  font-size: 20px;
+  line-height: 1;
+}
+.speed-btn i {
+  font-style: normal;
+  font-family: var(--body);
+  font-size: 9px;
+  opacity: 0.75;
+}
+.speed-btn::after {
+  border-radius: 50%;
+}
+.speed-btn.s2 {
+  --c1: #67e0ff;
+  --c2: #1b8fc2;
+  --edge: #0b4a66;
+}
+.speed-btn.s3 {
+  --c1: #ffd06a;
+  --c2: #e8901c;
+  --edge: #8a4d08;
+  --ink: #2a1600;
+}
+.boss-btn {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.boss-btn:active {
+  transform: translateX(-50%) translateY(3px);
+}
+.loot-feed {
+  position: absolute;
+  right: 0;
+  bottom: 70px;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-end;
+  gap: 4px;
+  max-width: 58%;
+  pointer-events: none;
+}
+.loot-line {
+  font-family: var(--display);
+  font-size: 12px;
+  padding: 4px 9px;
+  border-radius: 8px;
+  border-left: 3px solid;
+  background: rgba(10, 13, 16, 0.85);
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: loot-in 0.25s ease-out;
+}
+@keyframes loot-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+
+/* Полоса ресурсов в заголовках экранов */
+.screen-header {
+  flex-wrap: wrap;
+}
+.screen-header .res-strip {
+  flex-basis: 100%;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+/* Расходники на складе */
+.cons-tile {
+  background: radial-gradient(circle at 50% 38%, #2f2a22, #0b0e11 78%);
+}
+.cons-hero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 14px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--rc) 22%, transparent), transparent 70%), #0b0e11;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rc) 45%, transparent);
+}
+.cons-hero b {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 28px;
+  color: var(--rc);
+}
