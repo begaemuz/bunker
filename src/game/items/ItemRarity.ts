@@ -5,7 +5,7 @@ export function rollRarity(table: Record<Rarity, number>, luck = 0): Rarity {
   // luck сдвигает вероятность в сторону более редких предметов.
   return pickWeighted(RARITIES, (r) => {
     const idx = RARITIES.indexOf(r);
-    return table[r] * (idx > 0 ? 1 + luck * idx : 1);
+    return (table[r] ?? 0) * (idx > 0 ? 1 + luck * idx : 1);
   });
 }
 
@@ -19,6 +19,6 @@ export function isAtLeast(r: Rarity, min: Rarity): boolean {
 
 /** Проверка, что таблица вероятностей суммируется до 1. */
 export function validateRarityTable(table: Record<Rarity, number>): boolean {
-  const sum = RARITIES.reduce((s, r) => s + table[r], 0);
+  const sum = RARITIES.reduce((s, r) => s + (table[r] ?? 0), 0);
   return Math.abs(sum - 1) < 1e-6;
 }

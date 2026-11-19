@@ -1,4 +1,5 @@
-import type { EnemyKind } from '../game/config/enemiesConfig';
+import { bossesConfig, type BossLook } from '../game/config/bossesConfig';
+import type { EnemyKind, RobotKind } from '../game/config/enemiesConfig';
 
 // Спрайты роботов рисуются процедурно один раз в offscreen-canvas.
 // Каждый тип имеет узнаваемый силуэт, смотрит вправо (+x).
@@ -19,7 +20,7 @@ function plate(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: 
   c.stroke();
 }
 
-const drawers: Record<EnemyKind, Draw> = {
+const drawers: Record<RobotKind, Draw> = {
   // Лёгкий: узкий треугольный корпус на паучьих ножках.
   light: (c, s, elite) => {
     c.strokeStyle = '#2a2d31';
@@ -153,38 +154,85 @@ const drawers: Record<EnemyKind, Draw> = {
     c.arc(0, 0, s * 0.22, 0, Math.PI * 2);
     c.fill();
   },
-  // Босс: массивная платформа с пушками и красным ядром.
-  boss: (c, s) => {
-    c.fillStyle = '#25282c';
-    c.strokeStyle = '#0e0f10';
-    c.lineWidth = 3;
-    c.beginPath();
-    for (let i = 0; i < 8; i++) {
-      const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
-      c.lineTo(Math.cos(a) * s, Math.sin(a) * s);
+  // Бронированный: квадратный корпус в толстых плитах с заклёпками.
+  armored: (c, s, elite) => {
+    plate(c, -s, -s * 0.9, s * 2, s * 1.8, '#2a2c2f');
+    plate(c, -s * 0.8, -s * 0.7, s * 1.6, s * 1.4, metal(elite));
+    c.fillStyle = '#9aa0a6';
+    for (const [x, y] of [[-0.6, -0.5], [0.6, -0.5], [-0.6, 0.5], [0.6, 0.5]]) {
+      c.beginPath();
+      c.arc(x * s, y * s, s * 0.08, 0, Math.PI * 2);
+      c.fill();
     }
-    c.closePath();
+    plate(c, s * 0.5, -s * 0.25, s * 0.45, s * 0.5, metalLight(elite));
+    c.fillStyle = eye;
+    c.fillRect(s * 0.75, -s * 0.08, s * 0.15, s * 0.16);
+  },
+  // Щитоносец: дрон с излучателями щита по бокам.
+  shielded: (c, s, elite) => {
+    c.fillStyle = metal(elite);
+    c.strokeStyle = '#1a1c1f';
+    c.lineWidth = 1.2;
+    c.beginPath();
+    c.ellipse(0, 0, s * 0.7, s * 0.55, 0, 0, Math.PI * 2);
     c.fill();
     c.stroke();
-    c.fillStyle = '#4a3a30';
+    c.fillStyle = '#6ebeff';
     for (const sgn of [-1, 1]) {
-      c.fillRect(s * 0.2, sgn * s * 0.55 - s * 0.1, s * 0.9, s * 0.2);
+      c.beginPath();
+      c.arc(0, sgn * s * 0.75, s * 0.22, 0, Math.PI * 2);
+      c.fill();
     }
-    c.fillStyle = '#5a5f66';
+    c.fillStyle = eye;
     c.beginPath();
-    c.arc(0, 0, s * 0.6, 0, Math.PI * 2);
-    c.fill();
-    c.stroke();
-    const g = c.createRadialGradient(0, 0, 0, 0, 0, s * 0.35);
-    g.addColorStop(0, '#ffd0c0');
-    g.addColorStop(0.4, '#ff2a2a');
-    g.addColorStop(1, '#5a0000');
-    c.fillStyle = g;
-    c.beginPath();
-    c.arc(0, 0, s * 0.35, 0, Math.PI * 2);
+    c.arc(s * 0.35, 0, s * 0.15, 0, Math.PI * 2);
     c.fill();
   },
 };
+
+/** Босс рисуется по описанию внешнего вида из конфигурации. */
+function drawBoss(c: CanvasRenderingContext2D, s: number, look: BossLook): void {
+  c.fillStyle = look.hull;
+  c.strokeStyle = '#0e0f10';
+  c.lineWidth = 3;
+  c.beginPath();
+  for (let i = 0; i < look.sides; i++) {
+    const a = (i / look.sides) * Math.PI * 2 + Math.PI / look.sides;
+    c.lineTo(Math.cos(a) * s, Math.sin(a) * s);
+  }
+  c.closePath();
+  c.fill();
+  c.stroke();
+  if (look.spikes) {
+    c.fillStyle = '#5a5f66';
+    for (let i = 0; i < look.sides; i++) {
+      const a = (i / look.sides) * Math.PI * 2;
+      c.beginPath();
+      c.moveTo(Math.cos(a - 0.12) * s * 0.95, Math.sin(a - 0.12) * s * 0.95);
+      c.lineTo(Math.cos(a) * s * 1.25, Math.sin(a) * s * 1.25);
+      c.lineTo(Math.cos(a + 0.12) * s * 0.95, Math.sin(a + 0.12) * s * 0.95);
+      c.fill();
+    }
+  }
+  c.fillStyle = '#4a3a30';
+  for (let i = 0; i < look.guns; i++) {
+    const off = (i - (look.guns - 1) / 2) * s * 0.35;
+    c.fillRect(s * 0.2, off - s * 0.08, s * 0.95, s * 0.16);
+  }
+  c.fillStyle = '#5a5f66';
+  c.beginPath();
+  c.arc(0, 0, s * 0.58, 0, Math.PI * 2);
+  c.fill();
+  c.stroke();
+  const g = c.createRadialGradient(0, 0, 0, 0, 0, s * 0.35);
+  g.addColorStop(0, '#ffffff');
+  g.addColorStop(0.4, look.core);
+  g.addColorStop(1, '#000000');
+  c.fillStyle = g;
+  c.beginPath();
+  c.arc(0, 0, s * 0.35, 0, Math.PI * 2);
+  c.fill();
+}
 
 const cache = new Map<string, HTMLCanvasElement>();
 
@@ -202,7 +250,8 @@ export function getSprite(kind: EnemyKind, size: number, elite: boolean, scale: 
     c.shadowColor = '#ffcc33';
     c.shadowBlur = px * 0.5;
   }
-  drawers[kind](c, px, elite);
+  if (kind.startsWith('boss:')) drawBoss(c, px, bossesConfig[kind.slice(5)].look);
+  else drawers[kind as RobotKind](c, px, elite);
   cache.set(key, cv);
   return cv;
 }

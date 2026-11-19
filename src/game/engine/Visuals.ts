@@ -9,6 +9,7 @@ export interface PulseRing {
   radius: number;
   crit: boolean;
   weak: boolean;
+  color: string;
 }
 export interface DamageNumber {
   x: number;
@@ -65,8 +66,8 @@ export class Visuals {
   /** Пул частиц, чтобы не создавать объекты каждый кадр. */
   private particlePool: Particle[] = [];
 
-  ring(radius: number, crit: boolean, weak = false): void {
-    this.rings.push({ t: 0, maxT: gameConfig.pulseVisualTime, radius, crit, weak });
+  ring(radius: number, crit: boolean, weak = false, color = '#78dcff'): void {
+    this.rings.push({ t: 0, maxT: gameConfig.pulseVisualTime, radius, crit, weak, color });
   }
 
   number(x: number, y: number, value: number, crit: boolean, color = '#e8f6ff'): void {

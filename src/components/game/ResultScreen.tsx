@@ -1,10 +1,12 @@
-import { enemiesConfig, type EnemyKind } from '../../game/config/enemiesConfig';
-import { getMap } from '../../game/config/mapsConfig';
-import { DAMAGE_TYPES, RESOURCE_KEYS } from '../../game/types';
-import { fmtNum, ru } from '../../i18n/ru';
+import { bossesConfig } from '../../game/config/bossesConfig';
+import { getLocation } from '../../game/config/locationsConfig';
+import { robotsConfig, type RobotKind } from '../../game/config/enemiesConfig';
+import { COIL_MODES, RESOURCE_KEYS } from '../../game/types';
+import { modeConfig } from '../../game/config/gameConfig';
+import { fmtNum, ru, uniqueText } from '../../i18n/ru';
 import { useUi } from '../../stores/uiStore';
-import { damageColor, rarityColor } from '../../ui/theme';
-import { ResourceIcon } from '../common/Icons';
+import { modeColor, rarityColor } from '../../ui/theme';
+import { ItemIcon, ResourceIcon } from '../common/Icons';
 
 function fmtTime(sec: number): string {
   const m = Math.floor(sec / 60);
@@ -12,51 +14,57 @@ function fmtTime(sec: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+function enemyName(kind: string): string {
+  if (kind.startsWith('boss:')) return bossesConfig[kind.slice(5)]?.name ?? kind;
+  return robotsConfig[kind as RobotKind]?.name ?? kind;
+}
+
+/** Экран после разрушения бункера. */
 export function ResultScreen() {
   const result = useUi((s) => s.result);
   const newRun = useUi((s) => s.newRun);
   const setScreen = useUi((s) => s.setScreen);
   if (!result) return null;
-  const { run, outcome } = result;
-  const map = getMap(result.mapId);
-  const win = outcome === 'victory';
+  const { run } = result;
+  const loc = getLocation(result.locationId);
   const gained = RESOURCE_KEYS.filter((k) => run.resources[k] > 0);
-  const dmgTypes = DAMAGE_TYPES.filter((t) => run.damageByType[t] > 0).sort((a, b) => run.damageByType[b] - run.damageByType[a]);
+  const modes = [...COIL_MODES, 'dot' as const].filter((m) => run.damageByMode[m] > 0).sort((a, b) => run.damageByMode[b] - run.damageByMode[a]);
 
-  const go = (screen: 'inventory' | 'equipment') => {
+  const go = (screen: 'bunker' | 'tech') => {
     newRun();
     setScreen(screen);
   };
 
   return (
     <div className="result">
-      <h1 style={{ color: win ? '#5fd16a' : '#ff5a4a' }}>{win ? 'ПОБЕДА' : 'БУНКЕР ПАЛ'}</h1>
+      <h1 style={{ color: '#ff5a4a' }}>БУНКЕР ПОВРЕЖДЁН</h1>
       <div className="subtitle">
-        {map.name} · {win ? `босс уничтожен` : `волна ${result.wave}`}
+        {loc.name}
+        {result.duringBoss ? ' · босс отступил, условие вызова сохранено' : ''}
       </div>
 
       <div className="panel kv">
         <span>Уничтожено роботов</span>
         <span>{run.kills}</span>
-        <span>Пройдено волн</span>
-        <span>{run.wavesCleared}</span>
+        <span>Уничтожено групп</span>
+        <span>{run.groupsCleared}</span>
         <span>Нанесено урона</span>
         <span>{fmtNum(run.damageDealt)}</span>
         <span>Получено урона</span>
         <span>{fmtNum(run.damageTaken)}</span>
-        <span>Средний DPS</span>
-        <span>{fmtNum(run.damageDealt / Math.max(1, run.time))}</span>
-        <span>Максимальный DPS</span>
-        <span>{fmtNum(run.maxDps)}</span>
+        <span>Средний / макс. DPS</span>
+        <span>
+          {fmtNum(run.damageDealt / Math.max(1, run.time))} / {fmtNum(run.maxDps)}
+        </span>
         <span>Импульсов</span>
         <span>{run.pulses}</span>
-        <span>Урон от эффектов</span>
-        <span>{fmtNum(run.effectDamage)}</span>
-        <span>Время боя</span>
+        <span>Перегревов</span>
+        <span>{run.overheats}</span>
+        <span>Время</span>
         <span>{fmtTime(run.time)}</span>
       </div>
 
-      <div className="section-title">Получено (уже сохранено)</div>
+      <div className="section-title">Получено (уже на складе)</div>
       <div className="panel">
         {gained.length === 0 && run.items.length === 0 && <div className="muted small">Ничего не получено.</div>}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: run.items.length ? 8 : 0 }}>
@@ -73,14 +81,14 @@ export function ResultScreen() {
         ))}
       </div>
 
-      {dmgTypes.length > 0 && (
+      {modes.length > 0 && (
         <>
-          <div className="section-title">Урон по типам</div>
+          <div className="section-title">Урон по режимам</div>
           <div className="panel small">
-            {dmgTypes.map((t) => (
-              <div key={t} className="stat-line">
-                <span style={{ color: damageColor[t] }}>{ru.damage[t]}</span>
-                <span>{fmtNum(run.damageByType[t])}</span>
+            {modes.map((m) => (
+              <div key={m} className="stat-line">
+                <span style={{ color: modeColor(m) }}>{m === 'dot' ? 'Периодический (перегрев, отражение)' : modeConfig[m].name}</span>
+                <span>{fmtNum(run.damageByMode[m])}</span>
               </div>
             ))}
           </div>
@@ -91,9 +99,9 @@ export function ResultScreen() {
         <>
           <div className="section-title">Уничтожено по типам</div>
           <div className="panel small">
-            {(Object.entries(run.killsByKind) as [EnemyKind, number][]).map(([k, n]) => (
+            {Object.entries(run.killsByKind).map(([k, n]) => (
               <div key={k} className="stat-line">
-                <span>{enemiesConfig[k].name}</span>
+                <span>{enemyName(k)}</span>
                 <span>
                   {n} · урон {fmtNum(run.damageByEnemy[k] ?? 0)}
                 </span>
@@ -105,15 +113,83 @@ export function ResultScreen() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
         <button className="btn btn-primary btn-block" onClick={newRun}>
-          {win ? 'Пройти карту снова' : 'Повторить попытку'}
+          Восстановить и продолжить
         </button>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn grow" onClick={() => go('equipment')}>
-            Экипировка
+          <button className="btn grow" onClick={() => go('bunker')}>
+            Мой бункер
           </button>
-          <button className="btn grow" onClick={() => go('inventory')}>
-            Инвентарь
+          <button className="btn grow" onClick={() => go('tech')}>
+            Исследования
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Окно награды за победу над боссом. */
+export function BossRewardModal() {
+  const reward = useUi((s) => s.bossReward);
+  const setBossReward = useUi((s) => s.setBossReward);
+  const setScreen = useUi((s) => s.setScreen);
+  if (!reward) return null;
+  const res = RESOURCE_KEYS.filter((k) => (reward.loot.resources[k] ?? 0) > 0);
+  const next = reward.unlocked ? getLocation(reward.unlocked) : null;
+  return (
+    <div className="modal-back center">
+      <div className="dialog">
+        <h3 style={{ textAlign: 'center', color: '#5fd16a', letterSpacing: '0.1em' }}>БОСС УНИЧТОЖЕН</h3>
+        <p style={{ textAlign: 'center' }}>{reward.bossName} больше не угрожает этому району.</p>
+        {next && (
+          <div className="info-box" style={{ marginBottom: 10 }}>
+            Открыта новая локация: <b>{next.name}</b>
+          </div>
+        )}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 10, justifyContent: 'center' }}>
+          {res.map((k) => (
+            <span key={k} className="res">
+              <ResourceIcon type={k} size={16} /> +{fmtNum(reward.loot.resources[k]!)}
+            </span>
+          ))}
+        </div>
+        {reward.loot.items.map((it) => (
+          <div key={it.id} className="item-row" style={{ borderLeftColor: rarityColor[it.rarity] }}>
+            <ItemIcon category={it.category} rarity={it.rarity} size={40} />
+            <div className="grow">
+              <div className="item-name" style={{ color: rarityColor[it.rarity] }}>
+                {it.name}
+              </div>
+              <div className="item-sub">{ru.rarity[it.rarity]}</div>
+              {it.unique && <div className="small" style={{ color: '#ffc2cf' }}>★ {uniqueText(it.unique)}</div>}
+            </div>
+          </div>
+        ))}
+        <div className="row" style={{ marginTop: 10 }}>
+          <button className="btn btn-ghost" onClick={() => setBossReward(null)}>
+            Остаться
+          </button>
+          {next ? (
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                setBossReward(null);
+                setScreen('locations');
+              }}
+            >
+              К локациям
+            </button>
+          ) : (
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                setBossReward(null);
+                setScreen('bunker');
+              }}
+            >
+              В бункер
+            </button>
+          )}
         </div>
       </div>
     </div>

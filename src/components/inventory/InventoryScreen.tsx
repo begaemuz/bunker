@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { balanceConfig } from '../../game/config/balanceConfig';
 import { rarityIndex } from '../../game/items/ItemRarity';
 import { isEquipped } from '../../game/profile/Profile';
-import { EQUIP_CATEGORIES, RESOURCE_KEYS, type EquipCategory, type Item } from '../../game/types';
+import { EQUIP_CATEGORIES, RARITIES, RESOURCE_KEYS, SLOT_CATEGORY, type EquipCategory, type Item, type Rarity } from '../../game/types';
 import { fmtNum, ru } from '../../i18n/ru';
 import { useProfile } from '../../stores/profileStore';
 import { useUi } from '../../stores/uiStore';
@@ -11,15 +11,13 @@ import { ResourceIcon } from '../common/Icons';
 import { ItemCard } from './ItemCard';
 import { ItemRow } from './ItemRow';
 
-type Tab = 'equipment' | 'parts' | 'resources' | 'protection' | 'special' | 'history';
-type Sort = 'rarity' | 'level' | 'new';
+type Tab = 'equipment' | 'resources' | 'mods' | 'history';
+type Sort = 'rarity' | 'level' | 'tier' | 'new';
 
 const tabs: { id: Tab; label: string }[] = [
   { id: 'equipment', label: 'Оборудование' },
-  { id: 'parts', label: 'Детали' },
   { id: 'resources', label: 'Ресурсы' },
-  { id: 'protection', label: 'Защита' },
-  { id: 'special', label: 'Особые' },
+  { id: 'mods', label: 'Модификации' },
   { id: 'history', label: 'История' },
 ];
 
@@ -27,29 +25,33 @@ export function InventoryScreen() {
   const profile = useProfile((s) => s.profile)!;
   const selected = useUi((s) => s.selectedItemId);
   const selectItem = useUi((s) => s.selectItem);
+  const equipTarget = useUi((s) => s.equipTarget);
   const [tab, setTab] = useState<Tab>('equipment');
-  const [cat, setCat] = useState<EquipCategory | 'all'>('all');
+  const [cat, setCat] = useState<EquipCategory | 'all'>(equipTarget ? SLOT_CATEGORY[equipTarget] : 'all');
+  const [rar, setRar] = useState<Rarity | 'all'>('all');
   const [sort, setSort] = useState<Sort>('rarity');
+  const [hideEquipped, setHideEquipped] = useState(false);
 
   const items = useMemo(() => {
     let list = Object.values(profile.items);
     if (cat !== 'all') list = list.filter((i) => i.category === cat);
+    if (rar !== 'all') list = list.filter((i) => i.rarity === rar);
+    if (hideEquipped) list = list.filter((i) => !isEquipped(profile, i.id));
     const cmp: Record<Sort, (a: Item, b: Item) => number> = {
-      rarity: (a, b) => rarityIndex(b.rarity) - rarityIndex(a.rarity) || b.level - a.level || b.obtainedAt - a.obtainedAt,
+      rarity: (a, b) => rarityIndex(b.rarity) - rarityIndex(a.rarity) || b.tier - a.tier || b.level - a.level,
       level: (a, b) => b.level - a.level || rarityIndex(b.rarity) - rarityIndex(a.rarity),
+      tier: (a, b) => b.tier - a.tier || rarityIndex(b.rarity) - rarityIndex(a.rarity),
       new: (a, b) => b.obtainedAt - a.obtainedAt,
     };
     return list.sort(cmp[sort]);
-  }, [profile.items, cat, sort]);
-
-  const total = Object.keys(profile.items).length;
+  }, [profile, cat, rar, sort, hideEquipped]);
 
   return (
     <div className="screen">
       <div className="screen-header">
-        <h2 className="grow">Инвентарь</h2>
+        <h2 className="grow">Склад</h2>
         <span className="small muted">
-          {total} / {balanceConfig.inventoryLimit}
+          {Object.keys(profile.items).length} / {balanceConfig.inventoryLimit}
         </span>
       </div>
       <div className="tabs">
@@ -62,39 +64,46 @@ export function InventoryScreen() {
 
       {tab === 'equipment' && (
         <>
+          {equipTarget && (
+            <div className="info-box" style={{ margin: '8px 10px 0' }}>
+              Выберите оборудование для слота «{ru.slot[equipTarget]}»
+            </div>
+          )}
           <div className="toolbar">
             <select className="select" value={cat} onChange={(e) => setCat(e.target.value as EquipCategory | 'all')}>
-              <option value="all">Все категории</option>
+              <option value="all">Все типы</option>
               {EQUIP_CATEGORIES.map((c) => (
                 <option key={c} value={c}>
-                  {ru.categoryPlural[c]}
+                  {ru.category[c]}
+                </option>
+              ))}
+            </select>
+            <select className="select" value={rar} onChange={(e) => setRar(e.target.value as Rarity | 'all')}>
+              <option value="all">Любая редкость</option>
+              {RARITIES.map((r) => (
+                <option key={r} value={r}>
+                  {ru.rarity[r]}
                 </option>
               ))}
             </select>
             <select className="select" value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
               <option value="rarity">По редкости</option>
+              <option value="tier">По тех. уровню</option>
               <option value="level">По уровню</option>
               <option value="new">Сначала новые</option>
             </select>
+            <button className={`tab${hideEquipped ? ' on' : ''}`} onClick={() => setHideEquipped(!hideEquipped)}>
+              Скрыть установленное
+            </button>
           </div>
           <div className="screen-body" style={{ paddingTop: 0 }}>
             {items.length === 0 ? (
-              <div className="empty">Нет оборудования этой категории. Оно выпадает с роботов и боссов.</div>
+              <div className="empty">Ничего не найдено. Оборудование выпадает с роботов и боссов.</div>
             ) : (
               items.map((it) => <ItemRow key={it.id} item={it} equipped={isEquipped(profile, it.id)} onClick={() => selectItem(it.id)} />)
             )}
           </div>
         </>
-      )}
-
-      {tab === 'parts' && (
-        <div className="screen-body">
-          <div className="empty">
-            Деталей пока нет.
-            <br />
-            Детали устанавливаются в слоты оборудования и усиливают его. Количество слотов видно в карточке предмета.
-          </div>
-        </div>
       )}
 
       {tab === 'resources' && (
@@ -103,37 +112,21 @@ export function InventoryScreen() {
             <div key={k} className="panel" style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 6 }}>
               <ResourceIcon type={k} size={28} />
               <div className="grow">
-                <div style={{ fontWeight: 600 }}>{ru.resource[k]}</div>
+                <div style={{ fontWeight: 800 }}>{ru.resource[k]}</div>
                 <div className="small muted">{ru.resourceHint[k]}</div>
               </div>
-              <div style={{ fontWeight: 700, fontSize: 16 }}>{fmtNum(profile.resources[k])}</div>
+              <div style={{ fontWeight: 900, fontSize: 16 }}>{fmtNum(profile.resources[k])}</div>
             </div>
           ))}
         </div>
       )}
 
-      {tab === 'protection' && (
-        <div className="screen-body">
-          <div className="panel" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <ResourceIcon type="stabilizers" size={32} />
-            <div className="grow">
-              <div style={{ fontWeight: 600 }}>Стабилизатор улучшения</div>
-              <div className="small muted">
-                Гарантированно предотвращает уничтожение предмета при неудачном улучшении. Не повышает шанс успеха,
-                расходуется при каждой попытке.
-              </div>
-            </div>
-            <div style={{ fontWeight: 700, fontSize: 18 }}>×{profile.resources.stabilizers}</div>
-          </div>
-        </div>
-      )}
-
-      {tab === 'special' && (
+      {tab === 'mods' && (
         <div className="screen-body">
           <div className="empty">
-            Особых предметов пока нет.
+            Модификаций пока нет.
             <br />
-            Сюда попадут ключи расширения слотов и уникальные детали боссов.
+            Они устанавливаются в слоты оборудования (видны в карточке предмета) и объединяются по три одинаковых.
           </div>
         </div>
       )}
@@ -153,8 +146,8 @@ export function InventoryScreen() {
                     {h.detail ? ` · ${h.detail}` : ''}
                   </span>
                 </span>
-                <span className={h.action === 'obtained' ? 'pos' : 'muted'}>
-                  {h.action === 'obtained' ? 'получен' : h.action === 'sold' ? 'продан' : 'разобран'}
+                <span className={h.action === 'obtained' || h.action === 'upgraded' ? 'pos' : h.action === 'destroyed' ? 'neg' : 'muted'}>
+                  {{ obtained: 'получено', sold: 'продано', scrapped: 'разобрано', upgraded: 'улучшено', destroyed: 'уничтожено' }[h.action]}
                 </span>
               </div>
             ))

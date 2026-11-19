@@ -1,0 +1,285 @@
+import { drops, type EnemyDef } from './enemiesConfig';
+
+export interface BossLook {
+  /** Число граней корпуса. */
+  sides: number;
+  hull: string;
+  core: string;
+  /** Количество орудий. */
+  guns: number;
+  spikes: boolean;
+}
+
+export interface BossDef extends EnemyDef {
+  id: string;
+  title: string;
+  look: BossLook;
+  /** Количество обычного оборудования в награду [мин, макс]. */
+  itemCount: [number, number];
+  /** Уникальные предметы и шанс каждого (настраивается для босса). */
+  uniques: { template: string; chance: number }[];
+  /** Шанс выдать пропуск вызова босса. */
+  passChance: number;
+}
+
+const B = (b: BossDef) => b;
+
+export const bossesConfig: Record<string, BossDef> = {
+  colossus: B({
+    id: 'colossus',
+    name: 'Колосс-01',
+    title: 'Штурмовая платформа городских кварталов',
+    hp: 3000,
+    armor: 25,
+    speed: 12,
+    damage: 30,
+    attackInterval: 1.5,
+    range: 0,
+    attack: 'kinetic',
+    resist: { emp: 0.15 },
+    electronic: true,
+    heavyFrame: true,
+    size: 38,
+    xp: 400,
+    drops: drops({
+      coins: [400, 600],
+      scrap: { chance: 1, amount: [25, 40] },
+      techParts: { chance: 1, amount: [10, 16] },
+      blueprints: { chance: 1, amount: [2, 3] },
+      energyCores: { chance: 1, amount: [1, 2] },
+    }),
+    abilities: [
+      { type: 'blast', damage: 45, interval: 3.5, attack: 'energy' },
+      { type: 'summon', kind: 'light', count: 4, interval: 11 },
+      { type: 'shield', percent: 0.18, regenDelay: 6, regenRate: 0.03 },
+      { type: 'selfRepair', percentPerSec: 0.006, belowHp: 0.5 },
+    ],
+    look: { sides: 8, hull: '#25282c', core: '#ff2a2a', guns: 2, spikes: false },
+    itemCount: [1, 2],
+    uniques: [
+      { template: 'u_silencer', chance: 0.12 },
+      { template: 'u_firststrike', chance: 0.1 },
+    ],
+    passChance: 0.3,
+  }),
+  smith: B({
+    id: 'smith',
+    name: 'Кузнец',
+    title: 'Сборочный комплекс промышленной зоны',
+    hp: 22000,
+    armor: 55,
+    speed: 10,
+    damage: 45,
+    attackInterval: 1.6,
+    range: 0,
+    attack: 'kinetic',
+    resist: { emp: 0.25, vibration: 0.1 },
+    electronic: false,
+    heavyFrame: true,
+    size: 42,
+    xp: 900,
+    drops: drops({
+      coins: [900, 1300],
+      scrap: { chance: 1, amount: [50, 80] },
+      techParts: { chance: 1, amount: [20, 30] },
+      blueprints: { chance: 1, amount: [3, 5] },
+      energyCores: { chance: 1, amount: [2, 3] },
+    }),
+    abilities: [
+      { type: 'summon', kind: 'heavy', count: 2, interval: 14 },
+      { type: 'armorUp', interval: 16, duration: 6, armor: 60 },
+      { type: 'blast', damage: 70, interval: 4, attack: 'explosive' },
+    ],
+    look: { sides: 6, hull: '#3a2c22', core: '#ff8a1a', guns: 4, spikes: true },
+    itemCount: [1, 2],
+    uniques: [
+      { template: 'u_twins', chance: 0.1 },
+      { template: 'u_reflector', chance: 0.1 },
+    ],
+    passChance: 0.3,
+  }),
+  worm: B({
+    id: 'worm',
+    name: 'Песчаный червь',
+    title: 'Буровая машина пустошей',
+    hp: 50000,
+    armor: 40,
+    speed: 16,
+    damage: 60,
+    attackInterval: 1.4,
+    range: 0,
+    attack: 'kinetic',
+    resist: { thermal: 0.35 },
+    electronic: false,
+    heavyFrame: true,
+    size: 40,
+    xp: 1700,
+    drops: drops({
+      coins: [1700, 2400],
+      scrap: { chance: 1, amount: [90, 130] },
+      techParts: { chance: 1, amount: [35, 50] },
+      blueprints: { chance: 1, amount: [4, 6] },
+      energyCores: { chance: 1, amount: [3, 4] },
+    }),
+    abilities: [
+      { type: 'heatWave', interval: 9, heat: 35 },
+      { type: 'summon', kind: 'kamikaze', count: 4, interval: 10 },
+      { type: 'selfRepair', percentPerSec: 0.01, belowHp: 0.35 },
+    ],
+    look: { sides: 12, hull: '#4a3a24', core: '#ffcc33', guns: 0, spikes: true },
+    itemCount: [1, 3],
+    uniques: [
+      { template: 'u_dune', chance: 0.1 },
+      { template: 'u_scorch', chance: 0.09 },
+    ],
+    passChance: 0.3,
+  }),
+  icebreaker: B({
+    id: 'icebreaker',
+    name: 'Ледокол',
+    title: 'Тяжёлый вездеход северных баз',
+    hp: 110000,
+    armor: 70,
+    speed: 11,
+    damage: 80,
+    attackInterval: 1.8,
+    range: 0,
+    attack: 'kinetic',
+    resist: { vibration: 0.3, emp: 0.2 },
+    electronic: false,
+    heavyFrame: true,
+    size: 44,
+    xp: 3000,
+    drops: drops({
+      coins: [3000, 4200],
+      scrap: { chance: 1, amount: [150, 220] },
+      techParts: { chance: 1, amount: [60, 85] },
+      blueprints: { chance: 1, amount: [5, 8] },
+      energyCores: { chance: 1, amount: [4, 6] },
+    }),
+    abilities: [
+      { type: 'shield', percent: 0.25, regenDelay: 5, regenRate: 0.05 },
+      { type: 'jamCoil', interval: 15, duration: 5 },
+      { type: 'summon', kind: 'armored', count: 1, interval: 15 },
+    ],
+    look: { sides: 5, hull: '#2a3540', core: '#9fe6ff', guns: 2, spikes: false },
+    itemCount: [2, 3],
+    uniques: [
+      { template: 'u_recuperator', chance: 0.09 },
+      { template: 'u_quake', chance: 0.09 },
+    ],
+    passChance: 0.3,
+  }),
+  isotope: B({
+    id: 'isotope',
+    name: 'Изотоп',
+    title: 'Заражённый страж радиоактивной зоны',
+    hp: 220000,
+    armor: 45,
+    speed: 13,
+    damage: 95,
+    attackInterval: 1.5,
+    range: 0,
+    attack: 'energy',
+    resist: { overload: 0.25, thermal: 0.2 },
+    electronic: true,
+    heavyFrame: false,
+    size: 40,
+    xp: 5000,
+    drops: drops({
+      coins: [5000, 7000],
+      scrap: { chance: 1, amount: [220, 300] },
+      techParts: { chance: 1, amount: [90, 120] },
+      blueprints: { chance: 1, amount: [7, 10] },
+      energyCores: { chance: 1, amount: [6, 9] },
+    }),
+    abilities: [
+      { type: 'shield', percent: 0.5, regenDelay: 3, regenRate: 0.08 },
+      { type: 'suppress', interval: 18, duration: 4, rateFactor: 0.6 },
+      { type: 'summon', kind: 'shielded', count: 2, interval: 12 },
+    ],
+    look: { sides: 7, hull: '#22301e', core: '#a6ff4d', guns: 3, spikes: true },
+    itemCount: [2, 3],
+    uniques: [
+      { template: 'u_marker', chance: 0.08 },
+      { template: 'u_breaker', chance: 0.08 },
+    ],
+    passChance: 0.3,
+  }),
+  prototype: B({
+    id: 'prototype',
+    name: 'Прототип-Х',
+    title: 'Экспериментальная машина научного комплекса',
+    hp: 420000,
+    armor: 60,
+    speed: 18,
+    damage: 110,
+    attackInterval: 1.2,
+    range: 0,
+    attack: 'energy',
+    resist: { emp: 0.3, radio: 0.3, highVoltage: 0.15 },
+    electronic: true,
+    heavyFrame: false,
+    size: 36,
+    xp: 8000,
+    drops: drops({
+      coins: [8000, 11000],
+      scrap: { chance: 1, amount: [300, 420] },
+      techParts: { chance: 1, amount: [130, 170] },
+      blueprints: { chance: 1, amount: [9, 13] },
+      energyCores: { chance: 1, amount: [8, 12] },
+    }),
+    abilities: [
+      { type: 'jamCoil', interval: 12, duration: 4 },
+      { type: 'heatWave', interval: 10, heat: 40 },
+      { type: 'blast', damage: 140, interval: 4, attack: 'energy' },
+      { type: 'shield', percent: 0.3, regenDelay: 4, regenRate: 0.06 },
+    ],
+    look: { sides: 3, hull: '#2c2236', core: '#d24dff', guns: 3, spikes: false },
+    itemCount: [2, 3],
+    uniques: [
+      { template: 'u_lightning', chance: 0.08 },
+      { template: 'u_prototype_cap', chance: 0.08 },
+    ],
+    passChance: 0.3,
+  }),
+  core: B({
+    id: 'core',
+    name: 'Ядро ИИ',
+    title: 'Сердце главного производственного комплекса',
+    hp: 800000,
+    armor: 80,
+    speed: 8,
+    damage: 140,
+    attackInterval: 1.5,
+    range: 0,
+    attack: 'energy',
+    resist: { emp: 0.3, overload: 0.2, thermal: 0.2, vibration: 0.2 },
+    electronic: true,
+    heavyFrame: true,
+    size: 48,
+    xp: 14000,
+    drops: drops({
+      coins: [14000, 20000],
+      scrap: { chance: 1, amount: [500, 700] },
+      techParts: { chance: 1, amount: [200, 260] },
+      blueprints: { chance: 1, amount: [12, 18] },
+      energyCores: { chance: 1, amount: [12, 18] },
+    }),
+    abilities: [
+      { type: 'shield', percent: 0.4, regenDelay: 4, regenRate: 0.05 },
+      { type: 'summon', kind: 'shielded', count: 2, interval: 12 },
+      { type: 'summon', kind: 'armored', count: 1, interval: 16 },
+      { type: 'suppress', interval: 20, duration: 5, rateFactor: 0.55 },
+      { type: 'jamCoil', interval: 14, duration: 5 },
+      { type: 'blast', damage: 180, interval: 4.5, attack: 'energy' },
+    ],
+    look: { sides: 10, hull: '#1a1d22', core: '#ff3355', guns: 6, spikes: true },
+    itemCount: [3, 4],
+    uniques: [
+      { template: 'u_core_gen', chance: 0.07 },
+      { template: 'u_core_sensor', chance: 0.07 },
+    ],
+    passChance: 0.3,
+  }),
+};

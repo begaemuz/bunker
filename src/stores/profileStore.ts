@@ -1,134 +1,191 @@
 import { create } from 'zustand';
 import type { Loot } from '../game/economy/DropSystem';
+import { tryUpgrade, type UpgradeOutcome } from '../game/items/ItemUpgrade';
 import {
+  addGroupKill,
   addItems,
   addResources,
   addXp,
+  consumeSummon,
   createNewProfile,
+  ensureMinimumKit,
   equipItem,
+  registerBossKill,
+  restoreSummon,
   sellItem,
+  setCurrentLocation,
   unequipItem,
   type GlobalStats,
   type Profile,
 } from '../game/profile/Profile';
-import type { EquipCategory } from '../game/types';
+import { research } from '../game/progression/TechnologyTree';
+import type { Item, SlotId } from '../game/types';
 import { clearProfile, loadProfile, saveBackupSync, saveProfile } from '../services/storage';
 
 interface ProfileState {
   profile: Profile | null;
   loaded: boolean;
-  /** Увеличивается при каждом изменении экипировки/уровня — движок пересчитывает характеристики. */
+  /** Растёт при любом изменении, влияющем на характеристики комплекса. */
   statsVersion: number;
   init: () => Promise<void>;
   applyLoot: (loot: Loot, xp: number) => number;
+  addGroup: (locationId: number) => void;
+  summon: (locationId: number, usePass: boolean) => boolean;
+  refundSummon: (locationId: number, usedPass: boolean) => void;
+  bossVictory: (locationId: number, loot: Loot) => number | null;
   addStats: (delta: Partial<GlobalStats>) => void;
-  setMapProgress: (mapId: number, wave: number, bossKilled: boolean) => void;
-  equip: (itemId: string, category: EquipCategory, slot?: number) => string | null;
+  equip: (itemId: string, slot: SlotId) => string | null;
   unequip: (itemId: string) => void;
   sell: (itemId: string) => { coins: number; error?: string };
+  upgrade: (itemId: string, useStabilizer: boolean) => { outcome?: UpgradeOutcome; error?: string; granted: Item[] };
+  research: (techId: string) => string | null;
+  setLocation: (id: number) => void;
   reset: () => Promise<void>;
   saveNow: () => Promise<void>;
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
-function scheduleSave(get: () => ProfileState): void {
+function scheduleSave(get: () => ProfileState, immediate = false): void {
   if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
+  const run = () => {
     saveTimer = null;
     const p = get().profile;
     if (p) void saveProfile(p);
-  }, 300);
+  };
+  if (immediate) run();
+  else saveTimer = setTimeout(run, 300);
 }
 
-export const useProfile = create<ProfileState>((set, get) => ({
-  profile: null,
-  loaded: false,
-  statsVersion: 0,
+export const useProfile = create<ProfileState>((set, get) => {
+  /** Изменение профиля с автосохранением. */
+  const commit = (profile: Profile, statsChanged = false, immediate = false) => {
+    set((s) => ({ profile, statsVersion: statsChanged ? s.statsVersion + 1 : s.statsVersion }));
+    scheduleSave(get, immediate);
+  };
 
-  init: async () => {
-    if (get().loaded) return;
-    const loaded = await loadProfile();
-    const profile = loaded ?? createNewProfile();
-    set({ profile, loaded: true });
-    if (!loaded) void saveProfile(profile);
-    installLifecycleSaves(get);
-  },
+  return {
+    profile: null,
+    loaded: false,
+    statsVersion: 0,
 
-  applyLoot: (loot, xp) => {
-    let p = get().profile;
-    if (!p) return 0;
-    p = addResources(p, loot.resources);
-    if (loot.items.length) p = addItems(p, loot.items).profile;
-    const lv = addXp(p, xp);
-    p = lv.profile;
-    p = { ...p, stats: { ...p.stats, robotsKilled: p.stats.robotsKilled + 1 } };
-    set((s) => ({ profile: p, statsVersion: lv.levelsGained > 0 ? s.statsVersion + 1 : s.statsVersion }));
-    // Сохраняем сразу после получения предмета; ресурсы — пачкой.
-    scheduleSave(get);
-    return lv.levelsGained;
-  },
+    init: async () => {
+      if (get().loaded) return;
+      const loaded = await loadProfile();
+      const profile = ensureMinimumKit(loaded ?? createNewProfile()).profile;
+      set({ profile, loaded: true });
+      void saveProfile(profile);
+      installLifecycleSaves(get);
+    },
 
-  addStats: (delta) => {
-    const p = get().profile;
-    if (!p) return;
-    const stats = { ...p.stats };
-    for (const [k, v] of Object.entries(delta) as [keyof GlobalStats, number][]) stats[k] += v;
-    set({ profile: { ...p, stats } });
-    scheduleSave(get);
-  },
+    applyLoot: (loot, xp) => {
+      let p = get().profile;
+      if (!p) return 0;
+      p = addResources(p, loot.resources);
+      if (loot.items.length) p = addItems(p, loot.items).profile;
+      const lv = addXp(p, xp);
+      p = { ...lv.profile, stats: { ...lv.profile.stats, robotsKilled: lv.profile.stats.robotsKilled + 1 } };
+      commit(p, lv.levelsGained > 0, loot.items.length > 0);
+      return lv.levelsGained;
+    },
 
-  setMapProgress: (mapId, wave, bossKilled) => {
-    const p = get().profile;
-    if (!p) return;
-    const maps = {
-      ...p.maps,
-      bestWave: { ...p.maps.bestWave, [mapId]: Math.max(p.maps.bestWave[mapId] ?? 0, wave) },
-      bossKills: { ...p.maps.bossKills, [mapId]: (p.maps.bossKills[mapId] ?? 0) + (bossKilled ? 1 : 0) },
-    };
-    set({ profile: { ...p, maps } });
-    scheduleSave(get);
-  },
+    addGroup: (locationId) => {
+      const p = get().profile;
+      if (p) commit(addGroupKill(p, locationId));
+    },
 
-  equip: (itemId, category, slot) => {
-    const p = get().profile;
-    if (!p) return 'not_loaded';
-    const r = equipItem(p, itemId, category, slot);
-    if (r.error) return r.error;
-    set((s) => ({ profile: r.profile, statsVersion: s.statsVersion + 1 }));
-    scheduleSave(get);
-    return null;
-  },
+    summon: (locationId, usePass) => {
+      const p = get().profile;
+      if (!p) return false;
+      const q = consumeSummon(p, locationId, usePass);
+      if (!q) return false;
+      commit(q, false, true);
+      return true;
+    },
 
-  unequip: (itemId) => {
-    const p = get().profile;
-    if (!p) return;
-    set((s) => ({ profile: unequipItem(p, itemId), statsVersion: s.statsVersion + 1 }));
-    scheduleSave(get);
-  },
+    refundSummon: (locationId, usedPass) => {
+      const p = get().profile;
+      if (p) commit(restoreSummon(p, locationId, usedPass), false, true);
+    },
 
-  sell: (itemId) => {
-    const p = get().profile;
-    if (!p) return { coins: 0, error: 'not_loaded' };
-    const r = sellItem(p, itemId);
-    if (r.error) return { coins: 0, error: r.error };
-    set({ profile: r.profile });
-    scheduleSave(get);
-    return { coins: r.coins };
-  },
+    bossVictory: (locationId, loot) => {
+      let p = get().profile;
+      if (!p) return null;
+      p = addResources(p, loot.resources);
+      p = addItems(p, loot.items).profile;
+      const r = registerBossKill(p, locationId);
+      commit(r.profile, false, true);
+      return r.unlocked;
+    },
 
-  reset: async () => {
-    await clearProfile();
-    const profile = createNewProfile();
-    set((s) => ({ profile, statsVersion: s.statsVersion + 1 }));
-    await saveProfile(profile);
-  },
+    addStats: (delta) => {
+      const p = get().profile;
+      if (!p) return;
+      const stats = { ...p.stats };
+      for (const [k, v] of Object.entries(delta) as [keyof GlobalStats, number][]) stats[k] += v;
+      commit({ ...p, stats });
+    },
 
-  saveNow: async () => {
-    const p = get().profile;
-    if (p) await saveProfile(p);
-  },
-}));
+    equip: (itemId, slot) => {
+      const p = get().profile;
+      if (!p) return 'not_loaded';
+      const r = equipItem(p, itemId, slot);
+      if (r.error) return r.error;
+      commit(r.profile, true, true);
+      return null;
+    },
+
+    unequip: (itemId) => {
+      const p = get().profile;
+      if (p) commit(unequipItem(p, itemId), true, true);
+    },
+
+    sell: (itemId) => {
+      const p = get().profile;
+      if (!p) return { coins: 0, error: 'not_loaded' };
+      const r = sellItem(p, itemId);
+      if (r.error) return { coins: 0, error: r.error };
+      commit(r.profile, false, true);
+      return { coins: r.coins };
+    },
+
+    upgrade: (itemId, useStabilizer) => {
+      const p = get().profile;
+      if (!p) return { error: 'not_loaded', granted: [] };
+      const r = tryUpgrade(p, itemId, useStabilizer);
+      if (r.error) return { error: r.error, granted: [] };
+      const kit = ensureMinimumKit(r.profile);
+      commit(kit.profile, true, true);
+      return { outcome: r.outcome, granted: kit.granted };
+    },
+
+    research: (techId) => {
+      const p = get().profile;
+      if (!p) return 'not_loaded';
+      const r = research(p, techId);
+      if (r.error) return r.error;
+      commit(r.profile, true, true);
+      return null;
+    },
+
+    setLocation: (id) => {
+      const p = get().profile;
+      if (p) commit(setCurrentLocation(p, id), false, true);
+    },
+
+    reset: async () => {
+      await clearProfile();
+      const profile = createNewProfile();
+      set((s) => ({ profile, statsVersion: s.statsVersion + 1 }));
+      await saveProfile(profile);
+    },
+
+    saveNow: async () => {
+      const p = get().profile;
+      if (p) await saveProfile(p);
+    },
+  };
+});
 
 let lifecycleInstalled = false;
 function installLifecycleSaves(get: () => ProfileState): void {
@@ -144,7 +201,6 @@ function installLifecycleSaves(get: () => ProfileState): void {
     if (document.hidden) flush();
   });
   window.addEventListener('pagehide', flush);
-  // Периодическое автосохранение.
   setInterval(() => {
     const p = get().profile;
     if (p) void saveProfile(p);

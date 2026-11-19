@@ -1,21 +1,21 @@
 import { balanceConfig } from '../config/balanceConfig';
-import { eliteConfig, enemiesConfig, type EnemyAbility, type EnemyDef, type EnemyKind } from '../config/enemiesConfig';
-import type { DamageType } from '../types';
+import { bossesConfig } from '../config/bossesConfig';
+import { eliteConfig, robotsConfig, type EnemyAbility, type EnemyDef, type EnemyKind } from '../config/enemiesConfig';
+import type { AttackType, CoilMode } from '../types';
 import { random } from '../rng';
 
 export interface EnemyStatus {
+  stunT: number;
   slowT: number;
   slowP: number;
-  freezeT: number;
-  stunT: number;
   burnT: number;
   burnDps: number;
-  shockT: number;
-  shockP: number;
-  corrosionT: number;
-  corrosionP: number;
+  jamT: number;
+  shieldBreakT: number;
   armorBreakT: number;
   armorBreakP: number;
+  armorUpT: number;
+  armorUpP: number;
 }
 
 export interface Enemy {
@@ -26,10 +26,10 @@ export interface Enemy {
   elite: boolean;
   isBoss: boolean;
   isMiniboss: boolean;
-  wave: number;
+  /** Группа, с которой робот пришёл (для прогресса до босса). */
+  groupId: number;
   x: number;
   y: number;
-  /** Смещение траектории, чтобы роботы не шли одной линией. */
   laneOffset: number;
   hp: number;
   maxHp: number;
@@ -37,14 +37,15 @@ export interface Enemy {
   maxShield: number;
   shieldDelay: number;
   armor: number;
-  /** Бонус брони от аур поддержки (пересчитывается). */
   auraArmor: number;
   speed: number;
   damage: number;
   attackTimer: number;
   range: number;
-  damageType: DamageType;
-  resist: Partial<Record<DamageType, number>>;
+  attack: AttackType;
+  resist: Partial<Record<CoilMode, number>>;
+  electronic: boolean;
+  heavyFrame: boolean;
   size: number;
   xp: number;
   dropMult: number;
@@ -52,62 +53,61 @@ export interface Enemy {
   abilities: EnemyAbility[];
   abilityTimers: number[];
   status: EnemyStatus;
-  /** Визуальное: вспышка попадания, фаза анимации. */
+  /** Время в зоне обнаружения сенсоров; цель опознана, когда превысит порог. */
+  scanT: number;
+  identified: boolean;
   hitFlash: number;
   anim: number;
   attacking: boolean;
-  /** Урон за текущий импульс (для одного числа над роботом). */
   pendingDamage: number;
   pendingCrit: boolean;
 }
 
 export function emptyStatus(): EnemyStatus {
   return {
+    stunT: 0,
     slowT: 0,
     slowP: 0,
-    freezeT: 0,
-    stunT: 0,
     burnT: 0,
     burnDps: 0,
-    shockT: 0,
-    shockP: 0,
-    corrosionT: 0,
-    corrosionP: 0,
+    jamT: 0,
+    shieldBreakT: 0,
     armorBreakT: 0,
     armorBreakP: 0,
+    armorUpT: 0,
+    armorUpP: 0,
   };
 }
 
 export interface ScalingContext {
-  wave: number;
-  mapDifficulty: number;
+  tier: number;
+  /** Рост угрозы на локации (0..threatMax). */
+  threat: number;
 }
 
-export function waveHpMult(wave: number): number {
-  const w = balanceConfig.waves;
-  const n = wave - 1;
-  return 1 + w.hpLinear * n + w.hpQuad * n * n;
+export function tierHpMult(tier: number): number {
+  return Math.pow(balanceConfig.scaling.hpPerTier, tier - 1);
 }
 
-export function waveRewardMult(wave: number): number {
-  return 1 + balanceConfig.waves.rewardPerWave * (wave - 1);
+export function getEnemyDef(kind: EnemyKind): EnemyDef {
+  if (kind.startsWith('boss:')) return bossesConfig[kind.slice(5)];
+  return robotsConfig[kind as keyof typeof robotsConfig];
 }
 
 let nextId = 1;
 
-/** Создаёт робота с учётом волны, карты и элитности. */
-export function createEnemy(kind: EnemyKind, ctx: ScalingContext, elite: boolean, x: number, y: number): Enemy {
-  const def = enemiesConfig[kind];
-  const w = balanceConfig.waves;
-  const n = ctx.wave - 1;
-  const d = ctx.mapDifficulty;
-  const isBoss = kind === 'boss';
+/** Создаёт противника с учётом уровня локации, угрозы и элитности. */
+export function createEnemy(kind: EnemyKind, ctx: ScalingContext, elite: boolean, x: number, y: number, groupId = 0): Enemy {
+  const def = getEnemyDef(kind);
+  const s = balanceConfig.scaling;
+  const isBoss = kind.startsWith('boss:');
   const isMiniboss = kind === 'miniboss';
-  // Боссы масштабируются мягче — их базовые значения уже рассчитаны на свою волну.
-  const hpMult = (isBoss ? 1 : waveHpMult(ctx.wave)) * d * (elite ? eliteConfig.hpMult : 1);
-  const dmgMult = (isBoss ? 1 : 1 + w.damagePerWave * n) * d * (elite ? eliteConfig.damageMult : 1);
-  const armor = def.armor + (isBoss ? 0 : w.armorPerWave * n) + (elite ? eliteConfig.armorAdd : 0);
-  const speedMult = (isBoss ? 1 : 1 + w.speedPerWave * n) * (elite ? eliteConfig.speedMult : 1);
+  const t = ctx.tier - 1;
+  // Боссы заданы под свою локацию и не масштабируются.
+  const hpMult = isBoss ? 1 : tierHpMult(ctx.tier) * (1 + s.threatHp * ctx.threat) * (elite ? eliteConfig.hpMult : 1);
+  const dmgMult = isBoss ? 1 : Math.pow(s.damagePerTier, t) * (1 + s.threatDamage * ctx.threat) * (elite ? eliteConfig.damageMult : 1);
+  const armor = def.armor + (isBoss ? 0 : s.armorPerTier * t) + (elite ? eliteConfig.armorAdd : 0);
+  const rewardMult = isBoss ? 1 : Math.pow(s.rewardPerTier, t) * (1 + ctx.threat * 0.5);
 
   const abilities = [...def.abilities];
   if (elite) abilities.push(eliteConfig.shield);
@@ -124,7 +124,7 @@ export function createEnemy(kind: EnemyKind, ctx: ScalingContext, elite: boolean
     elite,
     isBoss,
     isMiniboss,
-    wave: ctx.wave,
+    groupId,
     x,
     y,
     laneOffset: (random() - 0.5) * 2,
@@ -135,19 +135,23 @@ export function createEnemy(kind: EnemyKind, ctx: ScalingContext, elite: boolean
     shieldDelay: 0,
     armor,
     auraArmor: 0,
-    speed: def.speed * speedMult,
+    speed: def.speed * (elite ? eliteConfig.speedMult : 1),
     damage: def.damage * dmgMult,
     attackTimer: def.attackInterval * random(),
     range: def.range,
-    damageType: def.damageType,
+    attack: def.attack,
     resist: def.resist,
+    electronic: def.electronic,
+    heavyFrame: def.heavyFrame,
     size: def.size * (elite ? 1.2 : 1),
-    xp: def.xp * (elite ? eliteConfig.xpMult : 1) * waveRewardMult(ctx.wave),
+    xp: def.xp * (elite ? eliteConfig.xpMult : 1) * rewardMult,
     dropMult: elite ? eliteConfig.dropMult : 1,
-    coinMult: (elite ? eliteConfig.coinMult : 1) * waveRewardMult(ctx.wave) * d,
+    coinMult: (elite ? eliteConfig.coinMult : 1) * rewardMult,
     abilities,
     abilityTimers: abilities.map((a) => ('interval' in a ? a.interval * (0.5 + random() * 0.5) : 0)),
     status: emptyStatus(),
+    scanT: 0,
+    identified: false,
     hitFlash: 0,
     anim: random() * 10,
     attacking: false,

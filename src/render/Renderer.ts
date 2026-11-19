@@ -1,5 +1,6 @@
 import { gameConfig } from '../game/config/gameConfig';
-import type { MapDef } from '../game/config/mapsConfig';
+import type { LocationDef } from '../game/config/locationsConfig';
+import { modeConfig } from '../game/config/gameConfig';
 import type { GameEngine } from '../game/engine/GameEngine';
 import { rarityColor } from '../ui/theme';
 import { getSprite, clearSpriteCache } from './sprites';
@@ -18,7 +19,7 @@ export class Renderer {
 
   constructor(
     private canvas: HTMLCanvasElement,
-    private map: MapDef,
+    private map: LocationDef,
   ) {
     this.ctx = canvas.getContext('2d', { alpha: false })!;
   }
@@ -48,7 +49,7 @@ export class Renderer {
     const p = this.map.palette;
     const g = c.createRadialGradient(this.w / 2, this.h / 2, 0, this.w / 2, this.h / 2, Math.max(this.w, this.h) * 0.7);
     g.addColorStop(0, p.groundAlt);
-    g.addColorStop(1, '#0b0c0e');
+    g.addColorStop(1, p.fog);
     c.fillStyle = g;
     c.fillRect(0, 0, this.w, this.h);
 
@@ -123,6 +124,7 @@ export class Renderer {
       }
       c.stroke();
     }
+    this.drawBiome(c, rnd, cx, cy, s);
     // Виньетка
     const v = c.createRadialGradient(cx, cy, Math.min(this.w, this.h) * 0.35, cx, cy, Math.max(this.w, this.h) * 0.75);
     v.addColorStop(0, 'rgba(0,0,0,0)');
@@ -130,6 +132,101 @@ export class Renderer {
     c.fillStyle = v;
     c.fillRect(0, 0, this.w, this.h);
     return cv;
+  }
+
+  /** Особые декорации каждой локации. */
+  private drawBiome(c: CanvasRenderingContext2D, rnd: () => number, cx: number, cy: number, s: number): void {
+    const far = (x: number, y: number) => Math.hypot(x - cx, y - cy) > 170 * s;
+    switch (this.map.id) {
+      case 2: // трубы и резервуары
+        c.strokeStyle = 'rgba(90,60,30,0.55)';
+        c.lineWidth = 7 * s;
+        for (let i = 0; i < 5; i++) {
+          const y = rnd() * this.h;
+          c.beginPath();
+          c.moveTo(0, y);
+          c.lineTo(this.w, y + (rnd() - 0.5) * 80 * s);
+          c.stroke();
+        }
+        for (let i = 0; i < 8; i++) {
+          const x = rnd() * this.w;
+          const y = rnd() * this.h;
+          if (!far(x, y)) continue;
+          c.fillStyle = 'rgba(70,55,40,0.8)';
+          c.beginPath();
+          c.arc(x, y, (14 + rnd() * 16) * s, 0, Math.PI * 2);
+          c.fill();
+          c.strokeStyle = 'rgba(0,0,0,0.5)';
+          c.lineWidth = 2;
+          c.stroke();
+        }
+        break;
+      case 3: // барханы
+        c.strokeStyle = 'rgba(120,95,55,0.35)';
+        c.lineWidth = 3 * s;
+        for (let i = 0; i < 14; i++) {
+          const y = rnd() * this.h;
+          c.beginPath();
+          c.moveTo(0, y);
+          c.bezierCurveTo(this.w * 0.3, y - 30 * s, this.w * 0.6, y + 30 * s, this.w, y);
+          c.stroke();
+        }
+        break;
+      case 4: // снег
+        for (let i = 0; i < 40; i++) {
+          c.fillStyle = `rgba(220,235,245,${0.05 + rnd() * 0.12})`;
+          c.beginPath();
+          c.arc(rnd() * this.w, rnd() * this.h, (6 + rnd() * 24) * s, 0, Math.PI * 2);
+          c.fill();
+        }
+        break;
+      case 5: // радиоактивные лужи
+        for (let i = 0; i < 12; i++) {
+          const x = rnd() * this.w;
+          const y = rnd() * this.h;
+          if (!far(x, y)) continue;
+          const gr = c.createRadialGradient(x, y, 0, x, y, 26 * s);
+          gr.addColorStop(0, 'rgba(166,255,77,0.35)');
+          gr.addColorStop(1, 'rgba(166,255,77,0)');
+          c.fillStyle = gr;
+          c.fillRect(x - 30 * s, y - 30 * s, 60 * s, 60 * s);
+        }
+        break;
+      case 6: // плитка лабораторий
+        c.strokeStyle = 'rgba(140,120,180,0.08)';
+        c.lineWidth = 1;
+        for (let x = 0; x < this.w; x += 28 * s) {
+          c.beginPath();
+          c.moveTo(x, 0);
+          c.lineTo(x, this.h);
+          c.stroke();
+        }
+        for (let y = 0; y < this.h; y += 28 * s) {
+          c.beginPath();
+          c.moveTo(0, y);
+          c.lineTo(this.w, y);
+          c.stroke();
+        }
+        break;
+      case 7: // светящиеся кабели комплекса ИИ
+        c.strokeStyle = 'rgba(255,50,80,0.25)';
+        c.lineWidth = 2 * s;
+        for (let i = 0; i < 10; i++) {
+          let x = rnd() * this.w;
+          let y = rnd() * this.h;
+          c.beginPath();
+          c.moveTo(x, y);
+          for (let k = 0; k < 4; k++) {
+            if (rnd() < 0.5) x += (rnd() - 0.5) * 160 * s;
+            else y += (rnd() - 0.5) * 160 * s;
+            c.lineTo(x, y);
+          }
+          c.stroke();
+        }
+        break;
+      default:
+        break;
+    }
   }
 
   render(engine: GameEngine, frameDt: number): void {
@@ -157,21 +254,32 @@ export class Renderer {
 
   private drawRadius(e: GameEngine): void {
     const c = this.ctx;
-    const r = e.stats.radius;
     const supp = e.bunker.suppressT > 0;
-    const g = c.createRadialGradient(0, 0, gameConfig.bunkerBodyRadius, 0, 0, r);
-    g.addColorStop(0, supp ? 'rgba(176,77,255,0.10)' : 'rgba(63,200,255,0.10)');
-    g.addColorStop(1, supp ? 'rgba(176,77,255,0.02)' : 'rgba(63,200,255,0.02)');
-    c.fillStyle = g;
-    c.beginPath();
-    c.arc(0, 0, r, 0, Math.PI * 2);
-    c.fill();
-    c.strokeStyle = supp ? 'rgba(176,77,255,0.5)' : 'rgba(63,200,255,0.35)';
-    c.lineWidth = 1.2;
-    c.setLineDash([6, 6]);
-    c.lineDashOffset = -this.time * 12;
-    c.stroke();
-    c.setLineDash([]);
+    e.stats.coils.forEach((coil, i) => {
+      const col = supp ? '#b04dff' : modeConfig[coil.mode].color;
+      const r = coil.radius;
+      c.globalAlpha = 0.08;
+      c.fillStyle = col;
+      c.beginPath();
+      c.arc(0, 0, r, 0, Math.PI * 2);
+      c.fill();
+      c.globalAlpha = 0.45;
+      c.strokeStyle = col;
+      c.lineWidth = 1.2;
+      c.setLineDash([6, 6]);
+      c.lineDashOffset = (i ? 1 : -1) * this.time * 12;
+      c.stroke();
+      c.setLineDash([]);
+      c.globalAlpha = 1;
+    });
+    // Зона обнаружения сенсоров
+    if (e.stats.detectRange > 0) {
+      c.strokeStyle = 'rgba(95,224,138,0.12)';
+      c.lineWidth = 1;
+      c.beginPath();
+      c.arc(0, 0, e.stats.detectRange, 0, Math.PI * 2);
+      c.stroke();
+    }
   }
 
   private drawBunker(e: GameEngine): void {
@@ -207,8 +315,8 @@ export class Renderer {
       c.fill();
     }
     // Энергоядро: светится сильнее перед импульсом.
-    const interval = 1 / Math.max(0.05, e.stats.pulseRate * e.bunker.suppressFactor);
-    const charge = Math.min(1, e.bunker.pulseTimer / interval);
+    const charge = e.stats.capacity > 0 ? Math.min(1, e.bunker.energy / e.stats.capacity) : 0;
+    const heat = e.stats.heatCap > 0 ? Math.min(1, e.bunker.heat / e.stats.heatCap) : 0;
     const core = c.createRadialGradient(0, 0, 0, 0, 0, R * 0.5);
     const supp = e.bunker.suppressT > 0;
     core.addColorStop(0, '#e8fbff');
@@ -220,6 +328,15 @@ export class Renderer {
     c.arc(0, 0, R * 0.5, 0, Math.PI * 2);
     c.fill();
     c.globalAlpha = 1;
+    // Нагрев: красное свечение корпуса, при перегреве — мигание.
+    if (heat > 0.4 || e.bunker.overheated) {
+      const a = e.bunker.overheated ? 0.35 + 0.25 * Math.sin(this.time * 14) : (heat - 0.4) * 0.6;
+      c.strokeStyle = `rgba(255,90,40,${a})`;
+      c.lineWidth = 4;
+      c.beginPath();
+      c.arc(0, 0, R + 3, 0, Math.PI * 2);
+      c.stroke();
+    }
     if (e.bunker.hitFlash > 0) {
       c.fillStyle = `rgba(255,60,40,${e.bunker.hitFlash * 2.5})`;
       c.beginPath();
@@ -234,14 +351,16 @@ export class Renderer {
     for (const r of e.visuals.rings) {
       const k = r.t / r.maxT;
       const rad = R0 + (r.radius - R0) * Math.min(1, k * 1.4);
-      c.strokeStyle = r.crit ? `rgba(255,215,90,${1 - k})` : `rgba(120,220,255,${(1 - k) * (r.weak ? 0.6 : 1)})`;
+      c.globalAlpha = 1 - k;
+      c.strokeStyle = r.crit ? '#ffd75a' : r.color;
       c.lineWidth = (r.crit ? 5 : 3) * (1 - k * 0.6);
       c.beginPath();
       c.arc(0, 0, rad, 0, Math.PI * 2);
       c.stroke();
-      c.strokeStyle = `rgba(63,200,255,${(1 - k) * 0.25})`;
+      c.globalAlpha = (1 - k) * 0.25;
       c.lineWidth = 10 * (1 - k);
       c.stroke();
+      c.globalAlpha = 1;
     }
   }
 
@@ -269,9 +388,9 @@ export class Renderer {
       c.restore();
 
       const st = en.status;
-      if (st.freezeT > 0 || st.slowT > 0) {
-        c.strokeStyle = st.freezeT > 0 ? 'rgba(200,240,255,0.9)' : 'rgba(120,200,255,0.6)';
-        c.lineWidth = st.freezeT > 0 ? 3 : 1.5;
+      if (st.slowT > 0) {
+        c.strokeStyle = 'rgba(224,178,58,0.6)';
+        c.lineWidth = 1.5;
         c.beginPath();
         c.arc(en.x, en.y, en.size + 3, 0, Math.PI * 2);
         c.stroke();
@@ -289,7 +408,7 @@ export class Renderer {
           c.fillRect(en.x + Math.cos(a) * en.size - 1.5, en.y - en.size - 6 + Math.sin(a) * 3, 3, 3);
         }
       }
-      if (st.shockT > 0 && Math.random() < 0.3) {
+      if (st.shieldBreakT > 0 && Math.random() < 0.3) {
         c.strokeStyle = '#9fe8ff';
         c.lineWidth = 1;
         c.beginPath();
@@ -298,7 +417,7 @@ export class Renderer {
         c.lineTo(en.x + en.size, en.y + 2);
         c.stroke();
       }
-      if (st.corrosionT > 0 || st.armorBreakT > 0) {
+      if (st.armorBreakT > 0) {
         c.fillStyle = 'rgba(166,255,77,0.5)';
         c.fillRect(en.x - en.size * 0.6, en.y + en.size * 0.6, en.size * 1.2, 2);
       }
@@ -315,6 +434,24 @@ export class Renderer {
         c.beginPath();
         c.arc(en.x, en.y, en.size + 4, 0, Math.PI * 2);
         c.stroke();
+      }
+      // Цель опознана сенсорами
+      if (en.identified) {
+        const r = en.size + 6;
+        const l = 4;
+        c.strokeStyle = 'rgba(95,224,138,0.8)';
+        c.lineWidth = 1.2;
+        c.beginPath();
+        for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+          c.moveTo(en.x + sx * r, en.y + sy * (r - l));
+          c.lineTo(en.x + sx * r, en.y + sy * r);
+          c.lineTo(en.x + sx * (r - l), en.y + sy * r);
+        }
+        c.stroke();
+      }
+      if (st.jamT > 0) {
+        c.fillStyle = 'rgba(95,224,138,0.7)';
+        c.fillRect(en.x - 4, en.y - en.size - 10, 8, 2);
       }
       // Полоса HP (боссу — в интерфейсе)
       if (!en.isBoss && (en.hp < en.maxHp || en.elite || en.isMiniboss)) {

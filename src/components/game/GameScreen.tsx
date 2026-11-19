@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
-import { getMap } from '../../game/config/mapsConfig';
-import { gameConfig } from '../../game/config/gameConfig';
-import { xpForLevel } from '../../game/profile/Profile';
+import { useEffect, useRef } from 'react';
+import { gameConfig, modeConfig } from '../../game/config/gameConfig';
+import { getLocation } from '../../game/config/locationsConfig';
+import { canSummonBoss, locationProgress, xpForLevel } from '../../game/profile/Profile';
 import { GameSession } from '../../game/session';
 import { fmtNum } from '../../i18n/ru';
 import { unlockAudio } from '../../services/sound';
 import { useProfile } from '../../stores/profileStore';
-import { useUi } from '../../stores/uiStore';
+import { useUi, type CoilHud } from '../../stores/uiStore';
 import { colors, rarityColor } from '../../ui/theme';
 import { Bar } from '../common/Common';
 import { ResourceIcon, UiIcon } from '../common/Icons';
@@ -21,7 +21,6 @@ export function GameScreen() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const runId = useUi((s) => s.runId);
 
-  // Одна сессия на бой. Новый runId — новый бой.
   useEffect(() => {
     const canvas = canvasRef.current!;
     const wrap = wrapRef.current!;
@@ -53,34 +52,31 @@ export function GameScreen() {
 }
 
 function TopBar() {
-  const hud = useUi((s) => s.hud);
   const profile = useProfile((s) => s.profile)!;
   const speed = useUi((s) => s.settings.speed);
   const setSpeed = useUi((s) => s.setSpeed);
   const paused = useUi((s) => s.paused);
   const setPaused = useUi((s) => s.setPaused);
-  const map = getMap(profile.maps.selected);
-  const wave = hud?.wave ?? 0;
-  const bossWave = hud?.bossWave ?? map.wavesBeforeBoss + 1;
-  const isBoss = wave >= bossWave;
+  const setScreen = useUi((s) => s.setScreen);
+  const loc = getLocation(profile.locations.current);
   const r = profile.resources;
+  const lvl = profile.bunker.level;
 
   return (
     <div className="topbar">
       <div className="topbar-row">
         <div className="grow">
-          <div className="map-title">
-            Карта {map.id} · {map.name}
+          <div className="loc-title">
+            Локация {loc.id} · {loc.name}
           </div>
-          <div className="wave-title">
-            {isBoss ? 'БОСС' : `Волна ${Math.max(1, wave)} / ${bossWave - 1}`}
-            <span className="wave-sub">
-              {' '}
-              {isBoss ? '' : `· до босса ${Math.max(0, bossWave - Math.max(1, wave))}`}
-            </span>
+          <div className="lvl-line">
+            <span className="lvl-badge">УР {lvl}</span>
+            <div className="grow">
+              <Bar value={profile.bunker.xp} max={xpForLevel(lvl)} color={colors.xp} thin />
+            </div>
           </div>
         </div>
-        <div className="speed-group">
+        <div className="seg">
           {gameConfig.speeds.map((s) => (
             <button key={s} className={speed === s ? 'on' : ''} onClick={() => setSpeed(s)}>
               x{s}
@@ -88,29 +84,58 @@ function TopBar() {
           ))}
         </div>
         <button className="btn icon-btn" onClick={() => setPaused(!paused)} aria-label="Пауза">
-          <UiIcon kind={paused ? 'play' : 'pause'} />
+          <UiIcon kind={paused ? 'play' : 'pause'} size={18} />
+        </button>
+        <button className="btn icon-btn" onClick={() => setScreen('menu')} aria-label="Меню">
+          <UiIcon kind="menu" size={18} />
         </button>
       </div>
       <div className="res-strip">
-        <span className="res">
-          <ResourceIcon type="coins" /> {fmtNum(r.coins)}
-        </span>
-        <span className="res">
-          <ResourceIcon type="techParts" /> {fmtNum(r.techParts)}
-        </span>
-        <span className="res">
-          <ResourceIcon type="scrap" /> {fmtNum(r.scrap)}
-        </span>
-        <span className="res">
-          <ResourceIcon type="energyCores" /> {fmtNum(r.energyCores)}
-        </span>
-        <span className="res">
-          <ResourceIcon type="crystals" /> {fmtNum(r.crystals)}
-        </span>
-        <span className="res">
-          <ResourceIcon type="stabilizers" /> {fmtNum(r.stabilizers)}
-        </span>
+        {(['coins', 'scrap', 'techParts', 'blueprints', 'energyCores', 'stabilizers', 'bossPasses'] as const).map((k) => (
+          <span key={k} className="res">
+            <ResourceIcon type={k} /> {fmtNum(r[k])}
+          </span>
+        ))}
       </div>
+    </div>
+  );
+}
+
+function BossProgress() {
+  const profile = useProfile((s) => s.profile)!;
+  const hud = useUi((s) => s.hud);
+  const toast = useUi((s) => s.toast);
+  const loc = getLocation(profile.locations.current);
+  const prog = locationProgress(profile, loc.id);
+  const ready = canSummonBoss(profile, loc.id);
+  const passes = profile.resources.bossPasses;
+  if (!hud || hud.mode === 'boss' || hud.state !== 'running') return null;
+
+  const summon = (usePass: boolean) => {
+    const ok = getActiveSession()?.summonBoss(usePass);
+    if (!ok) toast('Сейчас вызвать босса нельзя', 'bad');
+  };
+
+  return (
+    <div className="boss-progress">
+      <div className="boss-card">
+        <div className="t">
+          <span>До босса</span>
+          <span>
+            Уничтожено <b>{prog.groups}</b> / {loc.groupsForBoss} групп
+          </span>
+        </div>
+        <Bar value={prog.groups} max={loc.groupsForBoss} color={ready ? '#5fd16a' : '#d9772e'} thin />
+      </div>
+      {ready ? (
+        <button className="btn btn-gold btn-pulse" onClick={() => summon(false)}>
+          <UiIcon kind="skull" size={18} /> Вызвать босса
+        </button>
+      ) : passes > 0 ? (
+        <button className="btn btn-danger btn-sm" onClick={() => summon(true)}>
+          <ResourceIcon type="bossPasses" /> Пропуск <span className="badge">{passes}</span>
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -118,19 +143,7 @@ function TopBar() {
 function FieldOverlay() {
   const hud = useUi((s) => s.hud);
   const paused = useUi((s) => s.paused);
-  const [banner, setBanner] = useState<string | null>(null);
-  const lastWave = useRef(0);
-
-  useEffect(() => {
-    if (!hud) return;
-    if (hud.wave !== lastWave.current && hud.phase === 'spawning') {
-      lastWave.current = hud.wave;
-      setBanner(hud.wave >= hud.bossWave ? 'БОСС' : `ВОЛНА ${hud.wave}`);
-      const t = setTimeout(() => setBanner(null), 1400);
-      return () => clearTimeout(t);
-    }
-  }, [hud]);
-
+  const showDrops = !!hud && hud.recentDrops.length > 0;
   if (!hud) return null;
   return (
     <>
@@ -139,7 +152,7 @@ function FieldOverlay() {
           DPS <b>{fmtNum(hud.dps)}</b>
         </span>
         <span className="chip">
-          Роботов <b>{hud.alive}</b> · уничтожено <b>{hud.kills}</b>
+          Угроза <b style={{ color: hud.threat > 0.4 ? '#ff6b5a' : undefined }}>{Math.round(hud.threat * 100)}%</b> · уничтожено <b>{hud.kills}</b>
         </span>
       </div>
       {hud.boss && (
@@ -154,74 +167,97 @@ function FieldOverlay() {
           />
         </div>
       )}
-      {banner && <div className="wave-banner" style={{ fontSize: 28 }}>{banner}</div>}
-      {!banner && hud.phase === 'break' && hud.wave > 0 && hud.state === 'running' && (
-        <div className="wave-banner" style={{ fontSize: 14, color: '#8a949c', textShadow: 'none' }}>
-          Ремонт… следующая волна через {Math.ceil(hud.breakLeft)}
-        </div>
-      )}
       {paused && (
-        <div className="wave-banner" style={{ fontSize: 24, color: '#eef2f5' }}>
+        <div className="banner" style={{ fontSize: 26, color: '#eef2f5' }}>
           ПАУЗА
         </div>
       )}
-      {hud.suppressed && (
-        <div className="wave-banner" style={{ top: '62%', fontSize: 12, color: '#b04dff' }}>
-          ЭМ-ПОДАВЛЕНИЕ: частота импульсов снижена
+      {hud.overheated && !paused && (
+        <div className="banner" style={{ top: '30%', fontSize: 14, color: '#ff7a3d', textShadow: '0 0 10px rgba(255,120,60,0.7)' }}>
+          ПЕРЕГРЕВ — КАТУШКИ ОСТЫВАЮТ
         </div>
       )}
-      <div className="drops">
-        {hud.recentDrops.slice(0, 3).map((it) => (
-          <div key={it.id} className="drop-pill" style={{ borderLeftColor: rarityColor[it.rarity], color: rarityColor[it.rarity] }}>
-            {it.name}
-          </div>
-        ))}
-      </div>
+      {hud.suppressed && (
+        <div className="banner" style={{ top: '62%', fontSize: 12, color: '#b04dff' }}>
+          ЭМ-ПОДАВЛЕНИЕ: частота снижена
+        </div>
+      )}
+      {showDrops && (
+        <div className="drops" style={{ bottom: hud.mode === 'boss' ? 8 : 64 }}>
+          {hud.recentDrops.slice(0, 3).map((it) => (
+            <div key={it.id} className="drop-pill" style={{ borderLeftColor: rarityColor[it.rarity], color: rarityColor[it.rarity] }}>
+              {it.name}
+            </div>
+          ))}
+        </div>
+      )}
+      <BossProgress />
     </>
+  );
+}
+
+function blockedText(c: CoilHud): string {
+  switch (c.blocked) {
+    case 'energy':
+      return 'нет энергии';
+    case 'heat':
+      return 'перегрев';
+    case 'jammed':
+      return 'заглушена';
+    case 'target':
+      return 'ждёт цель';
+    default:
+      return c.charge >= 1 ? 'готова' : 'заряд';
+  }
+}
+
+function CoilPill({ c, label }: { c: CoilHud | null; label: string }) {
+  if (!c)
+    return (
+      <div className="coil-pill">
+        <span className="mode muted">{label}</span>
+        <span className="st">не установлена</span>
+      </div>
+    );
+  const col = modeConfig[c.mode].color;
+  const bad = c.blocked === 'energy' || c.blocked === 'heat' || c.blocked === 'jammed';
+  return (
+    <div className="coil-pill" style={{ borderColor: bad ? '#7a2a20' : undefined }}>
+      <span className="mode" style={{ color: col }}>
+        {modeConfig[c.mode].short}
+      </span>
+      <div className="grow">
+        <Bar value={c.charge} max={1} color={col} thin />
+      </div>
+      <span className="st" style={{ color: bad ? '#ff8a7a' : undefined }}>
+        {blockedText(c)}
+      </span>
+    </div>
   );
 }
 
 function BottomHud() {
   const hud = useUi((s) => s.hud);
-  const bunker = useProfile((s) => s.profile!.bunker);
-  const runCoins = hud?.runCoins ?? 0;
-  const xpNeed = xpForLevel(bunker.level);
-  const lowEnergy = hud && hud.efficiency < 1;
+  const low = hud ? hud.hp / hud.maxHp < 0.3 : false;
   return (
     <div className="bottom-hud">
-      <div className="hud-row">
-        <span className="lvl-badge">УР {bunker.level}</span>
-        <div className="grow">
-          <Bar value={bunker.xp} max={xpNeed} color={colors.xp} thin />
-        </div>
-        <span>
-          <ResourceIcon type="coins" size={11} /> +{fmtNum(runCoins)} за бой
-        </span>
-      </div>
-      <Bar
-        value={hud?.hp ?? 1}
-        max={hud?.maxHp ?? 1}
-        color={hud && hud.hp / hud.maxHp < 0.3 ? '#ff2a1a' : colors.hp}
-        label={hud ? `HP ${Math.ceil(hud.hp)} / ${hud.maxHp}` : ''}
-      />
+      <Bar value={hud?.hp ?? 1} max={hud?.maxHp ?? 1} color={low ? '#ff2a1a' : colors.hp} label={hud ? `ПРОЧНОСТЬ ${Math.ceil(hud.hp)} / ${hud.maxHp}` : ''} />
       {hud && (
         <div className="hud-row">
-          <svg width="12" height="14" viewBox="0 0 12 14" aria-label="Энергия">
-            <path d="M7 0L1 8h4l-1 6 6-8H6z" fill={lowEnergy ? '#ff5a4a' : colors.energy} />
-          </svg>
+          <span style={{ color: colors.energy, fontWeight: 800 }}>ЭН</span>
           <div className="grow">
-            <Bar value={hud.battery} max={hud.batteryCap} color={lowEnergy ? '#ff5a4a' : colors.energy} thin />
+            <Bar value={hud.energy} max={hud.capacity} color={colors.energy} mid />
           </div>
-          <span>
-            {hud.energyBalance >= 0 ? '+' : ''}
-            {hud.energyBalance.toFixed(1)}/с
-            {lowEnergy && <b style={{ color: '#ff5a4a' }}> · модули {Math.round(hud.efficiency * 100)}%</b>}
-          </span>
+          <span style={{ color: hud.overheated ? '#ff5a4a' : colors.heat, fontWeight: 800 }}>ТЕП</span>
+          <div className="grow">
+            <Bar value={hud.heat} max={hud.heatCap} color={hud.overheated ? '#ff2a1a' : colors.heat} mid />
+          </div>
         </div>
       )}
-      {hud && hud.recentDrops.length === 0 && hud.kills === 0 && hud.wave <= 1 && (
-        <div className="small muted" style={{ textAlign: 'center' }}>
-          Бункер атакует сам. Оборудование выпадает с роботов — ставьте его в разделе «Экипировка».
+      {hud && (
+        <div className="coil-pills">
+          <CoilPill c={hud.coils[0]} label="К1" />
+          <CoilPill c={hud.coils[1]} label="К2" />
         </div>
       )}
     </div>

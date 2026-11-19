@@ -1,10 +1,11 @@
 import { create } from 'zustand';
-import type { Item } from '../game/types';
-import type { EngineState, RunStats } from '../game/engine/GameEngine';
+import type { Loot } from '../game/economy/DropSystem';
+import type { EngineMode, EngineState, RunStats } from '../game/engine/GameEngine';
+import type { CoilMode, Item, SlotId } from '../game/types';
 import { loadSettings, saveSettings, type Settings } from '../services/storage';
 import { setSoundEnabled } from '../services/sound';
 
-export type Screen = 'game' | 'inventory' | 'equipment' | 'menu';
+export type Screen = 'game' | 'bunker' | 'inventory' | 'tech' | 'locations' | 'menu';
 
 export interface Toast {
   id: number;
@@ -12,58 +13,71 @@ export interface Toast {
   tone: 'info' | 'good' | 'bad' | 'rare';
 }
 
+export interface CoilHud {
+  name: string;
+  mode: CoilMode;
+  /** Готовность импульса 0..1. */
+  charge: number;
+  blocked: 'energy' | 'heat' | 'jammed' | 'target' | null;
+}
+
 export interface HudSnapshot {
   hp: number;
   maxHp: number;
-  wave: number;
-  bossWave: number;
-  phase: 'break' | 'spawning' | 'clearing';
-  breakLeft: number;
+  energy: number;
+  capacity: number;
+  heat: number;
+  heatCap: number;
+  overheated: boolean;
+  coils: (CoilHud | null)[];
   dps: number;
   kills: number;
+  alive: number;
   runCoins: number;
-  battery: number;
-  batteryCap: number;
-  energyBalance: number;
-  efficiency: number;
+  threat: number;
+  mode: EngineMode;
   boss: { name: string; hp: number; maxHp: number; shield: number; maxShield: number } | null;
   suppressed: boolean;
   recentDrops: Item[];
   state: EngineState;
-  alive: number;
 }
 
 export interface RunResult {
-  outcome: 'victory' | 'defeat';
-  mapId: number;
-  wave: number;
+  locationId: number;
+  duringBoss: boolean;
   run: RunStats;
+}
+
+export interface BossReward {
+  locationId: number;
+  bossName: string;
+  loot: Loot;
+  unlocked: number | null;
 }
 
 interface UiState {
   screen: Screen;
   paused: boolean;
-  menuOpen: boolean;
   settings: Settings;
   selectedItemId: string | null;
-  /** Если открыто из слота экипировки — какой слот заменить. */
-  equipTarget: { category: Item['category']; slot: number } | null;
+  /** Слот, для которого выбирается оборудование. */
+  equipTarget: SlotId | null;
   hud: HudSnapshot | null;
   result: RunResult | null;
+  bossReward: BossReward | null;
   toasts: Toast[];
-  /** Счётчик новых боёв — GameScreen пересоздаёт сессию. */
   runId: number;
 
   setScreen: (s: Screen) => void;
   setPaused: (p: boolean) => void;
-  setMenu: (o: boolean) => void;
   setSpeed: (s: number) => void;
   toggleDamageNumbers: () => void;
   toggleSound: () => void;
   selectItem: (id: string | null) => void;
-  setEquipTarget: (t: UiState['equipTarget']) => void;
+  setEquipTarget: (t: SlotId | null) => void;
   setHud: (h: HudSnapshot) => void;
   setResult: (r: RunResult | null) => void;
+  setBossReward: (r: BossReward | null) => void;
   toast: (text: string, tone?: Toast['tone']) => void;
   dismissToast: (id: number) => void;
   newRun: () => void;
@@ -74,18 +88,17 @@ let toastId = 1;
 export const useUi = create<UiState>((set, get) => ({
   screen: 'game',
   paused: false,
-  menuOpen: false,
   settings: loadSettings(),
   selectedItemId: null,
   equipTarget: null,
   hud: null,
   result: null,
+  bossReward: null,
   toasts: [],
   runId: 1,
 
   setScreen: (screen) => set({ screen, selectedItemId: null, equipTarget: screen === 'inventory' ? get().equipTarget : null }),
   setPaused: (paused) => set({ paused }),
-  setMenu: (menuOpen) => set({ menuOpen }),
   setSpeed: (speed) => {
     const settings = { ...get().settings, speed };
     saveSettings(settings);
@@ -106,11 +119,12 @@ export const useUi = create<UiState>((set, get) => ({
   setEquipTarget: (equipTarget) => set({ equipTarget }),
   setHud: (hud) => set({ hud }),
   setResult: (result) => set({ result }),
+  setBossReward: (bossReward) => set({ bossReward }),
   toast: (text, tone = 'info') => {
     const id = toastId++;
-    set({ toasts: [...get().toasts.slice(-3), { id, text, tone }] });
+    set({ toasts: [...get().toasts.slice(-2), { id, text, tone }] });
     setTimeout(() => get().dismissToast(id), 2600);
   },
   dismissToast: (id) => set({ toasts: get().toasts.filter((t) => t.id !== id) }),
-  newRun: () => set({ runId: get().runId + 1, result: null, paused: false, menuOpen: false, screen: 'game' }),
+  newRun: () => set({ runId: get().runId + 1, result: null, paused: false, screen: 'game' }),
 }));

@@ -8,6 +8,7 @@ export function Bar({
   label,
   shield,
   thin,
+  mid,
 }: {
   value: number;
   max: number;
@@ -15,11 +16,12 @@ export function Bar({
   label?: ReactNode;
   shield?: number;
   thin?: boolean;
+  mid?: boolean;
 }) {
   const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
   const sh = shield && max > 0 ? Math.min(100, (shield / max) * 100) : 0;
   return (
-    <div className={`bar${thin ? ' thin' : ''}`}>
+    <div className={`bar${thin ? ' thin' : mid ? ' mid' : ''}`}>
       <div className="bar-fill" style={{ width: `${pct}%`, background: color }} />
       {sh > 0 && <div className="bar-shield" style={{ width: `${sh}%` }} />}
       {label !== undefined && <div className="bar-label">{label}</div>}

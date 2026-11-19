@@ -1,76 +1,79 @@
-import type { Rarity } from '../types';
+import type { Rarity, Resources } from '../types';
 
 /** Все коэффициенты баланса собраны здесь. */
 export const balanceConfig = {
-  /** Шансы редкости обычного выпадения (сумма = 1). */
-  rarityChances: {
-    common: 0.55,
-    uncommon: 0.25,
-    rare: 0.13,
-    epic: 0.055,
-    legendary: 0.015,
-  } as Record<Rarity, number>,
-  /** Таблица редкости мини-босса (без обычных). */
-  minibossRarityChances: {
-    common: 0,
-    uncommon: 0.6,
-    rare: 0.28,
-    epic: 0.1,
-    legendary: 0.02,
-  } as Record<Rarity, number>,
-  /** Гарантированная награда босса — редкий и выше. */
-  bossRarityChances: {
-    common: 0,
-    uncommon: 0,
-    rare: 0.7,
-    epic: 0.24,
-    legendary: 0.06,
-  } as Record<Rarity, number>,
-  /** Дополнительные предметы с босса. */
-  bossExtraItems: [1, 2] as [number, number],
-
-  /** Множитель базовых характеристик по редкости. */
+  /** Множитель характеристик по редкости. */
   rarityStatMult: {
     common: 1,
-    uncommon: 1.25,
-    rare: 1.6,
-    epic: 2.1,
-    legendary: 2.8,
+    uncommon: 1.2,
+    rare: 1.45,
+    epic: 1.8,
+    legendary: 2.25,
+    unique: 2.4,
   } as Record<Rarity, number>,
-  /** Количество дополнительных свойств [мин, макс]. */
+  /** Энергопотребление и нагрев растут медленнее силы. */
+  rarityCostMult: {
+    common: 1,
+    uncommon: 1.08,
+    rare: 1.18,
+    epic: 1.3,
+    legendary: 1.45,
+    unique: 1.35,
+  } as Record<Rarity, number>,
   rarityExtraCount: {
     common: [0, 0],
     uncommon: [1, 1],
     rare: [1, 2],
     epic: [2, 3],
     legendary: [3, 3],
+    unique: [2, 3],
   } as Record<Rarity, [number, number]>,
-  /** Количество слотов деталей [мин, макс]. */
   raritySlots: {
     common: [0, 1],
     uncommon: [0, 2],
     rare: [1, 2],
     epic: [1, 3],
     legendary: [2, 4],
+    unique: [3, 4],
   } as Record<Rarity, [number, number]>,
-  /** Шанс, что отдельный слот заблокирован. */
   lockedSlotChance: 0.3,
-  /** Энергопотребление растёт с редкостью медленнее силы. */
-  rarityEnergyMult: {
-    common: 1,
-    uncommon: 1.12,
-    rare: 1.3,
-    epic: 1.5,
-    legendary: 1.75,
-  } as Record<Rarity, number>,
+
+  /** Рост характеристик с технологическим уровнем находки (локации). */
+  tier: {
+    statPerTier: 0.4,
+    coilPowerPerTier: 0.45,
+    costPerTier: 0.18,
+  },
 
   item: {
     startMaxLevel: 10,
-    /** Прирост базовых характеристик за уровень. */
-    statPerLevel: 0.12,
+    /** Прирост основных характеристик за уровень улучшения. */
+    statPerLevel: 0.1,
+    /** Уровень оборудования не может превышать уровень бункера + это значение. */
+    levelOverBunker: 2,
   },
 
-  /** Цена продажи: база × множитель редкости × (1 + 0.25 × (уровень−1)). */
+  /** Улучшение оборудования. */
+  upgrade: {
+    /** Стоимость = база × (1 + уровень)^exp × множитель редкости × (1 + 0.5 × (tier − 1)). */
+    base: { coins: 40, scrap: 6, techParts: 2 } as Partial<Resources>,
+    exponent: 1.6,
+    rarityMult: {
+      common: 1,
+      uncommon: 1.4,
+      rare: 2,
+      epic: 3,
+      legendary: 4.5,
+      unique: 5,
+    } as Record<Rarity, number>,
+    /** С 7-го уровня нужны энергоядра. */
+    coresFromLevel: 7,
+    coresPerLevel: 1,
+    /** Шанс успеха перехода с уровня N на N+1 (индекс = N−1). */
+    successChance: [0.95, 0.9, 0.85, 0.8, 0.75, 0.65, 0.55, 0.45, 0.35, 0.3, 0.25, 0.2, 0.18, 0.15],
+    minChance: 0.12,
+  },
+
   sell: {
     base: 15,
     rarityMult: {
@@ -79,40 +82,54 @@ export const balanceConfig = {
       rare: 7,
       epic: 20,
       legendary: 60,
+      unique: 120,
     } as Record<Rarity, number>,
     perLevel: 0.25,
-    /** Редкости, перед продажей которых нужно отдельное предупреждение. */
+    perTier: 0.6,
     warnFrom: 'rare' as Rarity,
   },
 
-  /** Опыт бункера. */
+  /** Опыт и уровень бункера. Уровень не даёт прямых бонусов — он открывает возможности. */
   xp: {
     base: 40,
-    exponent: 1.5,
-    perLevel: { damagePct: 0.06, hpPct: 0.05 },
-    maxLevel: 100,
+    exponent: 1.75,
+    maxLevel: 60,
   },
 
-  /** Масштабирование волн. */
-  waves: {
-    baseCount: 6,
-    countPerWave: 2.4,
-    hpLinear: 0.1,
-    hpQuad: 0.008,
-    damagePerWave: 0.07,
-    armorPerWave: 2,
-    speedPerWave: 0.012,
-    eliteBase: 0.02,
-    elitePerWave: 0.012,
-    spawnIntervalBase: 1.15,
-    spawnIntervalPerWave: 0.05,
-    spawnIntervalMin: 0.32,
-    /** Награды тоже растут с волной. */
-    rewardPerWave: 0.08,
+  /**
+   * Снижение наград за слабых противников: если уровень бункера выше
+   * levelCap локации, опыт и монеты падают на step за уровень (не ниже min).
+   */
+  rewardDecay: { step: 0.12, min: 0.15 },
+
+  /** Непрерывное появление роботов. */
+  spawn: {
+    groupInterval: 5.5,
+    groupSizeMin: 3,
+    groupSizeMax: 5,
+    maxAliveBase: 10,
+    maxAlivePerTier: 2,
+    /** Рост «угрозы» за уничтоженную группу и её предел. */
+    threatPerGroup: 0.005,
+    threatMax: 0.8,
+    eliteBase: 0.03,
+    elitePerThreat: 0.12,
+    firstGroupDelay: 1.2,
   },
 
+  /** Масштабирование роботов по технологическому уровню локации. */
+  scaling: {
+    hpPerTier: 1.75,
+    damagePerTier: 1.35,
+    armorPerTier: 12,
+    rewardPerTier: 1.6,
+    /** Угроза добавляет к HP и урону. */
+    threatHp: 0.8,
+    threatDamage: 0.5,
+  },
+
+  /** Ремонт бункера после уничтожения группы (доля макс. прочности). */
+  groupRepair: 0.05,
   /** Максимум оборудования в инвентаре; лишнее превращается в металлолом. */
   inventoryLimit: 300,
 };
-
-export type BalanceConfig = typeof balanceConfig;

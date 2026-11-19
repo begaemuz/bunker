@@ -4,11 +4,11 @@ import { rarityColor } from '../../ui/theme';
 // Все игровые иконки — SVG. Цвет и свечение задают редкость.
 
 export function CategoryGlyph({ category, color, size = 26 }: { category: EquipCategory; color: string; size?: number }) {
-  const common = { width: size, height: size, viewBox: '0 0 32 32', fill: 'none', stroke: color, strokeWidth: 2, strokeLinejoin: 'round' as const };
+  const p = { width: size, height: size, viewBox: '0 0 32 32', fill: 'none', stroke: color, strokeWidth: 2, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const };
   switch (category) {
     case 'generator':
       return (
-        <svg {...common}>
+        <svg {...p}>
           <rect x="5" y="9" width="22" height="16" rx="2" />
           <path d="M9 9V6h5v3M18 9V6h5v3" />
           <path d="M17 12l-4 6h5l-3 5" stroke="#ffd24a" />
@@ -16,33 +16,57 @@ export function CategoryGlyph({ category, color, size = 26 }: { category: EquipC
       );
     case 'coil':
       return (
-        <svg {...common}>
-          <path d="M8 6h16M8 26h16" />
-          <path d="M10 8c6 0 6 3 0 3s-6 3 0 3 6 3 0 3-6 3 0 3 6 3 0 3" transform="translate(6 0)" />
-          <circle cx="16" cy="16" r="2" fill={color} />
+        <svg {...p}>
+          <path d="M8 5h16M8 27h16" />
+          <path d="M16 7c6 0 6 3 0 3s-6 3 0 3 6 3 0 3-6 3 0 3 6 3 0 3" />
+          <path d="M3 13l3 3-3 3M29 13l-3 3 3 3" strokeWidth="1.5" />
         </svg>
       );
     case 'capacitor':
       return (
-        <svg {...common}>
+        <svg {...p}>
           <path d="M4 16h8M20 16h8" />
           <path d="M12 7v18M20 7v18" strokeWidth="3" />
           <path d="M23 9h4M25 7v4" strokeWidth="1.5" />
         </svg>
       );
-    case 'reactor':
+    case 'converter':
       return (
-        <svg {...common}>
-          <circle cx="16" cy="16" r="11" />
-          <circle cx="16" cy="16" r="3" fill={color} />
-          <path d="M16 13l-3-7a10 10 0 0 1 6 0zM18.6 17.5l7 2.5a10 10 0 0 1-3 5.2zM13.4 17.5l-4.1 6.2a10 10 0 0 1-3-5.2z" fill={color} fillOpacity="0.5" />
+        <svg {...p}>
+          <circle cx="11" cy="16" r="6" />
+          <circle cx="21" cy="16" r="6" />
+          <path d="M2 16h3M27 16h3" />
+        </svg>
+      );
+    case 'cooling':
+      return (
+        <svg {...p}>
+          <path d="M16 3v26M5 9.5l22 13M27 9.5l-22 13" />
+          <path d="M13 5l3 3 3-3M13 27l3-3 3 3" strokeWidth="1.5" />
+        </svg>
+      );
+    case 'sensor':
+      return (
+        <svg {...p}>
+          <path d="M6 26a14 14 0 0 1 0-20" />
+          <path d="M11 22a8 8 0 0 1 0-12" />
+          <circle cx="17" cy="16" r="3" fill={color} />
+          <path d="M17 16l11-7" />
+        </svg>
+      );
+    case 'shield':
+      return (
+        <svg {...p}>
+          <path d="M16 3l11 4v8c0 7-5 12-11 14C10 27 5 22 5 15V7z" />
+          <path d="M11 15l4 4 7-7" />
         </svg>
       );
   }
 }
 
-export function ItemIcon({ category, rarity, level, size = 42 }: { category: EquipCategory; rarity: Rarity; level?: number; size?: number }) {
+export function ItemIcon({ category, rarity, level, size = 44 }: { category: EquipCategory; rarity: Rarity; level?: number; size?: number }) {
   const col = rarityColor[rarity];
+  const strong = rarity === 'legendary' || rarity === 'epic' || rarity === 'unique';
   return (
     <div
       className="item-icon"
@@ -50,7 +74,7 @@ export function ItemIcon({ category, rarity, level, size = 42 }: { category: Equ
         width: size,
         height: size,
         borderColor: col,
-        boxShadow: rarity === 'legendary' || rarity === 'epic' ? `0 0 10px ${col}55, inset 0 0 12px ${col}33` : `inset 0 0 8px ${col}22`,
+        boxShadow: strong ? `0 0 12px ${col}66, inset 0 0 14px ${col}33` : `inset 0 0 8px ${col}22`,
       }}
     >
       <CategoryGlyph category={category} color={col} size={Math.round(size * 0.62)} />
@@ -61,11 +85,13 @@ export function ItemIcon({ category, rarity, level, size = 42 }: { category: Equ
 
 const resColors: Record<ResourceKey, string> = {
   coins: '#e0b23a',
+  scrap: '#9aa4ad',
   techParts: '#6fd3ff',
+  blueprints: '#4d8dff',
   energyCores: '#b46bff',
   crystals: '#4dffd2',
-  scrap: '#9aa4ad',
   stabilizers: '#5fd16a',
+  bossPasses: '#ff4d6a',
 };
 
 export function ResourceIcon({ type, size = 14 }: { type: ResourceKey; size?: number }) {
@@ -84,6 +110,13 @@ export function ResourceIcon({ type, size = 14 }: { type: ResourceKey; size?: nu
         <svg {...p}>
           <path d="M8 1.5l1.4 2.2 2.5-.6.3 2.6 2.3 1.2-1.4 2.2 1 2.4-2.5.6-.6 2.5-2.4-1-2.2 1.4-1.2-2.3-2.6-.3.6-2.5L1.5 8l2.2-1.4-.6-2.5 2.6-.3L6.6 1.5z" fill={c} />
           <circle cx="8" cy="8" r="2.2" fill="#0d0f12" />
+        </svg>
+      );
+    case 'blueprints':
+      return (
+        <svg {...p}>
+          <rect x="2" y="2" width="12" height="12" rx="1.5" fill={c} />
+          <path d="M4 5h8M4 8h5M4 11h7" stroke="#cfe0ff" strokeWidth="1" />
         </svg>
       );
     case 'energyCores':
@@ -113,12 +146,20 @@ export function ResourceIcon({ type, size = 14 }: { type: ResourceKey; size?: nu
           <path d="M5 8l2 2 4-4" stroke="#0d0f12" strokeWidth="1.6" fill="none" />
         </svg>
       );
+    case 'bossPasses':
+      return (
+        <svg {...p}>
+          <rect x="1.5" y="3.5" width="13" height="9" rx="1.5" fill={c} />
+          <circle cx="5.5" cy="8" r="2" fill="#2a0810" />
+          <path d="M9 6.5h4M9 9.5h3" stroke="#2a0810" strokeWidth="1.2" />
+        </svg>
+      );
   }
 }
 
-type NavKind = 'battle' | 'inventory' | 'equipment' | 'menu' | 'pause' | 'play' | 'close' | 'back';
+type UiKind = 'battle' | 'bunker' | 'inventory' | 'tech' | 'map' | 'menu' | 'pause' | 'play' | 'close' | 'skull' | 'lock' | 'up';
 
-export function UiIcon({ kind, size = 22 }: { kind: NavKind; size?: number }) {
+export function UiIcon({ kind, size = 22 }: { kind: UiKind; size?: number }) {
   const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   switch (kind) {
     case 'battle':
@@ -129,6 +170,14 @@ export function UiIcon({ kind, size = 22 }: { kind: NavKind; size?: number }) {
           <path d="M12 1v3M12 20v3M1 12h3M20 12h3" />
         </svg>
       );
+    case 'bunker':
+      return (
+        <svg {...p}>
+          <path d="M3 20h18M5 20v-7a7 7 0 0 1 14 0v7" />
+          <path d="M9 20v-4h6v4" />
+          <path d="M12 3v3M7 5l1.5 2M17 5l-1.5 2" />
+        </svg>
+      );
     case 'inventory':
       return (
         <svg {...p}>
@@ -136,17 +185,25 @@ export function UiIcon({ kind, size = 22 }: { kind: NavKind; size?: number }) {
           <path d="M8 7V4h8v3M3 12h18M10 12v2h4v-2" />
         </svg>
       );
-    case 'equipment':
+    case 'tech':
       return (
         <svg {...p}>
-          <path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z" />
-          <path d="M13 7l-3 5h4l-3 5" />
+          <path d="M9 3h6M10 3v6L5 18a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3L14 9V3" />
+          <path d="M7.5 14h9" />
+        </svg>
+      );
+    case 'map':
+      return (
+        <svg {...p}>
+          <path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z" />
+          <path d="M9 3v15M15 6v15" />
         </svg>
       );
     case 'menu':
       return (
         <svg {...p}>
-          <path d="M4 6h16M4 12h16M4 18h16" />
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" />
         </svg>
       );
     case 'pause':
@@ -167,10 +224,26 @@ export function UiIcon({ kind, size = 22 }: { kind: NavKind; size?: number }) {
           <path d="M6 6l12 12M18 6L6 18" />
         </svg>
       );
-    case 'back':
+    case 'skull':
       return (
         <svg {...p}>
-          <path d="M15 5l-7 7 7 7" />
+          <path d="M12 3a8 8 0 0 0-5 14v3h10v-3a8 8 0 0 0-5-14z" />
+          <circle cx="9" cy="11" r="1.6" fill="currentColor" />
+          <circle cx="15" cy="11" r="1.6" fill="currentColor" />
+          <path d="M10 20v-2M14 20v-2" />
+        </svg>
+      );
+    case 'lock':
+      return (
+        <svg {...p}>
+          <rect x="5" y="11" width="14" height="10" rx="2" />
+          <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+        </svg>
+      );
+    case 'up':
+      return (
+        <svg {...p}>
+          <path d="M12 19V5M6 11l6-6 6 6" />
         </svg>
       );
   }
