@@ -183,6 +183,7 @@ export function BunkerScreen() {
   const [massSell, setMassSell] = useState(false);
   const [massFuse, setMassFuse] = useState(false);
   const [cons, setCons] = useState<ConsumableKey | null>(null);
+  const [kind, setKind] = useState<'all' | 'gear' | 'cons'>('all');
   const freeParts = Object.values(profile.parts).filter((p) => !p.installedIn).length;
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -307,6 +308,21 @@ export function BunkerScreen() {
                 ]}
               />
             </div>
+            {!forSlot && (
+              <div className="seg kind-tabs">
+                {(
+                  [
+                    ['all', 'Все'],
+                    ['gear', 'Оборудование'],
+                    ['cons', 'Чертежи и др.'],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button key={id} className={kind === id ? 'on' : ''} onClick={() => setKind(id)}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
             {forSlot && equipTarget && (
               <div className="info-box" style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span className="grow">Подходит для слота «{ru.slot[equipTarget]}»</span>
@@ -315,12 +331,14 @@ export function BunkerScreen() {
                 </button>
               </div>
             )}
-            {!forSlot && CONSUMABLES.some((k) => profile.resources[k] > 0) && (
+            {!forSlot && kind !== 'gear' && CONSUMABLES.some((k) => profile.resources[k] > 0) && (
               <div className="item-grid" style={{ marginBottom: 7 }}>
                 <ConsumableTiles onOpen={setCons} />
               </div>
             )}
-            {items.length === 0 ? (
+            {kind === 'cons' && !forSlot ? (
+              !CONSUMABLES.some((k) => profile.resources[k] > 0) && <div className="empty">Чертежи, ключи, стабилизаторы, энергоядра и пропуски выпадают с роботов и боссов.</div>
+            ) : items.length === 0 ? (
               <div className="empty">{forSlot ? 'Для этого слота на складе ничего нет. Оборудование выпадает с роботов и боссов.' : 'Здесь появится оборудование, выпавшее с роботов и боссов.'}</div>
             ) : (
               <div className="item-grid">

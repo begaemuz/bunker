@@ -13,6 +13,8 @@ import { getSprite, clearSpriteCache, SPRITE_FOOT, SPRITE_W } from './sprites';
 export const TILT = 0.56;
 /** Визуальное увеличение роботов относительно хитбокса. */
 const VIS = 1.35;
+/** Визуальный размер бункера относительно его хитбокса. */
+const BUNKER_VIS = 1.15;
 
 // Старые WebView без roundRect: рисуем обычный прямоугольник.
 if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
@@ -378,165 +380,261 @@ export class Renderer {
     }
   }
 
+  /** Подсветка земли под бункером: голубое сияние и тонкие кольца. */
   private drawBunkerBase(e: GameEngine): void {
     const c = this.ctx;
-    const R = gameConfig.bunkerBodyRadius;
-    c.fillStyle = 'rgba(0,0,0,0.5)';
-    this.ring(3, 5, R * 1.55);
+    const R = gameConfig.bunkerBodyRadius * BUNKER_VIS;
+    const supp = e.bunker.suppressT > 0;
+    const col = supp ? '176,77,255' : '70,190,255';
+    const charge = e.stats.capacity > 0 ? Math.min(1, e.bunker.energy / e.stats.capacity) : 0;
+    c.save();
+    c.scale(1, TILT);
+    const g = c.createRadialGradient(0, 0, R * 0.6, 0, 0, R * 2.6);
+    g.addColorStop(0, `rgba(${col},${0.28 + charge * 0.12})`);
+    g.addColorStop(1, `rgba(${col},0)`);
+    c.fillStyle = g;
+    c.beginPath();
+    c.arc(0, 0, R * 2.6, 0, Math.PI * 2);
     c.fill();
-    c.fillStyle = '#34383c';
-    this.ring(0, 0, R * 1.45);
-    c.fill();
-    c.strokeStyle = '#15181a';
-    c.lineWidth = 2;
-    c.stroke();
-    c.lineWidth = R * 0.1;
-    c.strokeStyle = '#f2a93b';
-    c.setLineDash([R * 0.2, R * 0.2]);
-    this.ring(0, 0, R * 1.33);
-    c.stroke();
-    c.setLineDash([]);
-    if (e.bunker.hitFlash > 0) {
-      c.fillStyle = `rgba(255,60,40,${e.bunker.hitFlash * 1.5})`;
-      this.ring(0, 0, R * 1.45);
-      c.fill();
+    c.restore();
+    c.globalCompositeOperation = 'lighter';
+    for (const [k, a] of [
+      [1.75, 0.35],
+      [2.15, 0.22],
+    ] as const) {
+      c.strokeStyle = `rgba(${col},${a})`;
+      c.lineWidth = 1.2;
+      this.ring(0, 0, R * k);
+      c.stroke();
     }
+    c.globalCompositeOperation = 'source-over';
+    // тень сооружения
+    c.fillStyle = 'rgba(0,0,0,0.45)';
+    this.ring(R * 0.12, R * 0.18, R * 1.45);
+    c.fill();
   }
 
-  /** Купол бункера с катушками-башнями. */
+  /** Восьмигранный ярус: видимые грани + крыша. */
+  private prism(r: number, base: number, h: number, rgb: [number, number, number], face?: (x1: number, y1: number, x2: number, y2: number, top: number, bottom: number, mid: number) => void): void {
+    const c = this.ctx;
+    const n = 8;
+    const pts = Array.from({ length: n }, (_, i) => {
+      const a = (i / n) * Math.PI * 2 + Math.PI / n;
+      return [Math.cos(a) * r, Math.sin(a) * r * TILT, a] as const;
+    });
+    const faces: { i: number; mid: number }[] = [];
+    for (let i = 0; i < n; i++) {
+      const mid = (i / n) * Math.PI * 2 + (Math.PI * 2) / n;
+      if (Math.sin(mid) > -0.05) faces.push({ i, mid });
+    }
+    faces.sort((a, b) => Math.sin(a.mid) - Math.sin(b.mid));
+    const light = (mid: number) => 0.55 + 0.4 * Math.cos(mid - Math.PI * 0.75);
+    for (const f of faces) {
+      const p1 = pts[f.i];
+      const p2 = pts[(f.i + 1) % n];
+      const k = light(f.mid);
+      c.fillStyle = `rgb(${rgb[0] * k | 0},${rgb[1] * k | 0},${rgb[2] * k | 0})`;
+      c.strokeStyle = 'rgba(10,12,14,0.85)';
+      c.lineWidth = 1;
+      c.beginPath();
+      c.moveTo(p1[0], p1[1] - base);
+      c.lineTo(p2[0], p2[1] - base);
+      c.lineTo(p2[0], p2[1] - base - h);
+      c.lineTo(p1[0], p1[1] - base - h);
+      c.closePath();
+      c.fill();
+      c.stroke();
+      face?.(p1[0], p1[1], p2[0], p2[1], base + h, base, f.mid);
+    }
+    // крыша
+    c.fillStyle = `rgb(${Math.min(255, rgb[0] * 1.18) | 0},${Math.min(255, rgb[1] * 1.18) | 0},${Math.min(255, rgb[2] * 1.18) | 0})`;
+    c.beginPath();
+    pts.forEach(([x, y], i) => (i ? c.lineTo(x, y - base - h) : c.moveTo(x, y - base - h)));
+    c.closePath();
+    c.fill();
+    c.strokeStyle = 'rgba(10,12,14,0.85)';
+    c.stroke();
+    c.strokeStyle = 'rgba(255,255,255,0.12)';
+    c.beginPath();
+    c.moveTo(pts[4][0], pts[4][1] - base - h);
+    c.lineTo(pts[5][0], pts[5][1] - base - h);
+    c.lineTo(pts[6][0], pts[6][1] - base - h);
+    c.stroke();
+  }
+
+  /** Бункер-крепость: ярусы из стальных плит, светящиеся окна и шпиль-излучатель. */
   private drawBunker(e: GameEngine): void {
     const c = this.ctx;
-    const R = gameConfig.bunkerBodyRadius;
-    const W = R * 1.15;
-    const H = R * 1.25;
+    const R = gameConfig.bunkerBodyRadius * BUNKER_VIS;
     const charge = e.stats.capacity > 0 ? Math.min(1, e.bunker.energy / e.stats.capacity) : 0;
     const heat = e.stats.heatCap > 0 ? Math.min(1, e.bunker.heat / e.stats.heatCap) : 0;
     const supp = e.bunker.suppressT > 0;
+    const glow = supp ? '#c27bff' : '#5fd2ff';
+    const pulse = 0.65 + 0.35 * Math.sin(this.time * 3);
 
-    // нижний обод
-    c.fillStyle = '#2a2e31';
-    c.beginPath();
-    c.ellipse(0, 0, W, W * TILT, 0, 0, Math.PI);
-    c.fill();
-    // купол
-    const dg = c.createLinearGradient(-W, -H, W, 0);
-    dg.addColorStop(0, '#9a9e9d');
-    dg.addColorStop(0.5, '#62676a');
-    dg.addColorStop(1, '#33373a');
-    c.fillStyle = dg;
-    c.strokeStyle = '#141618';
-    c.lineWidth = 2;
-    c.beginPath();
-    c.ellipse(0, 0, W, H, 0, Math.PI, Math.PI * 2);
-    c.ellipse(0, 0, W, W * TILT * 0.6, 0, 0, Math.PI);
-    c.fill();
-    c.stroke();
-    // блик и швы
-    c.strokeStyle = 'rgba(255,255,255,0.18)';
-    c.lineWidth = 2;
-    c.beginPath();
-    c.ellipse(0, 0, W * 0.8, H * 0.85, 0, Math.PI * 1.15, Math.PI * 1.45);
-    c.stroke();
-    c.strokeStyle = 'rgba(0,0,0,0.35)';
+    // светящаяся панель на грани
+    const panel = (w: number, hk: number, alpha: number) => (x1: number, y1: number, x2: number, y2: number, top: number, bottom: number, mid: number) => {
+      if (Math.sin(mid) < 0.3) return;
+      const cx = (x1 + x2) / 2;
+      const cy = (y1 + y2) / 2;
+      const hw = Math.abs(x2 - x1) * w * 0.5;
+      const ph = (top - bottom) * hk;
+      const yc = cy - (top + bottom) / 2;
+      const slope = (y2 - y1) / (x2 - x1 || 1);
+      c.save();
+      c.shadowColor = glow;
+      c.shadowBlur = 10;
+      c.globalAlpha = alpha;
+      c.fillStyle = glow;
+      c.beginPath();
+      c.moveTo(cx - hw, yc - ph / 2 - slope * hw);
+      c.lineTo(cx + hw, yc - ph / 2 + slope * hw);
+      c.lineTo(cx + hw, yc + ph / 2 + slope * hw);
+      c.lineTo(cx - hw, yc + ph / 2 - slope * hw);
+      c.closePath();
+      c.fill();
+      c.restore();
+    };
+
+    // фундамент
+    this.prism(R * 1.38, 0, R * 0.22, [70, 76, 82]);
+    // нижний ярус с вентиляционными огнями
+    this.prism(R * 1.12, R * 0.22, R * 0.5, [96, 106, 116], panel(0.55, 0.22, 0.55 + 0.4 * charge));
+    // средний ярус с окнами
+    this.prism(R * 0.82, R * 0.72, R * 0.5, [110, 120, 132], panel(0.5, 0.45, (0.6 + 0.4 * charge) * pulse));
+    // верхний ярус
+    this.prism(R * 0.48, R * 1.22, R * 0.3, [124, 134, 146], panel(0.45, 0.4, 0.8));
+
+    // гермодверь
+    c.fillStyle = '#1d2226';
+    c.strokeStyle = '#0b0d0f';
     c.lineWidth = 1;
     c.beginPath();
-    c.ellipse(0, 0, W * 0.55, H, 0, Math.PI, Math.PI * 2);
-    c.stroke();
-    // сигнальная полоса
-    c.fillStyle = '#f2a93b';
-    c.beginPath();
-    c.ellipse(0, -R * 0.08, W * 0.98, W * TILT * 0.55, 0, 0, Math.PI);
-    c.ellipse(0, -R * 0.26, W * 0.96, W * TILT * 0.5, 0, Math.PI, 0, true);
-    c.fill();
-    // гермодверь с ядром
-    c.fillStyle = '#25292c';
-    c.strokeStyle = '#111';
-    c.beginPath();
-    c.roundRect(-R * 0.36, -R * 0.82, R * 0.72, R * 0.6, R * 0.12);
+    c.roundRect(-R * 0.22, R * 1.12 * TILT - R * 0.62, R * 0.44, R * 0.42, R * 0.05);
     c.fill();
     c.stroke();
-    const core = c.createRadialGradient(0, -R * 0.52, 0, 0, -R * 0.52, R * 0.28);
-    core.addColorStop(0, '#ffffff');
-    core.addColorStop(0.4, supp ? '#b04dff' : '#3fc8ff');
-    core.addColorStop(1, 'rgba(20,80,120,0)');
-    c.globalAlpha = 0.5 + charge * 0.5;
-    c.fillStyle = core;
-    c.beginPath();
-    c.arc(0, -R * 0.52, R * 0.28, 0, Math.PI * 2);
-    c.fill();
-    c.globalAlpha = 1;
+    c.save();
+    c.shadowColor = glow;
+    c.shadowBlur = 8;
+    c.fillStyle = glow;
+    c.globalAlpha = 0.8;
+    c.fillRect(-R * 0.16, R * 1.12 * TILT - R * 0.34, R * 0.32, R * 0.05);
+    c.restore();
 
-    // башни катушек
+    // катушки-излучатели по бокам верхнего яруса
     const towers = [-0.62, 0.62];
     e.stats.coils.slice(0, 2).forEach((coil, i) => {
-      const tx = towers[i] * W;
-      const base = -H * 0.72;
+      const tx = towers[i] * R;
+      const ty = -R * 1.22 - R * 0.05;
       const col = supp ? '#b04dff' : modeConfig[coil.mode].color;
-      c.fillStyle = '#3a4046';
-      c.strokeStyle = '#121416';
-      c.lineWidth = 1.5;
-      c.fillRect(tx - R * 0.08, base - R * 0.62, R * 0.16, R * 0.62);
-      c.strokeRect(tx - R * 0.08, base - R * 0.62, R * 0.16, R * 0.62);
+      c.fillStyle = '#3d454d';
+      c.fillRect(tx - R * 0.06, ty - R * 0.5, R * 0.12, R * 0.5);
       for (let k = 0; k < 3; k++) {
         c.fillStyle = col;
-        c.globalAlpha = 0.55 + 0.45 * charge;
+        c.globalAlpha = 0.5 + 0.5 * charge;
         c.beginPath();
-        c.roundRect(tx - R * 0.16, base - R * (0.18 + k * 0.17), R * 0.32, R * 0.07, R * 0.03);
+        c.ellipse(tx, ty - R * (0.12 + k * 0.13), R * 0.13, R * 0.05, 0, 0, Math.PI * 2);
         c.fill();
       }
       c.globalAlpha = 1;
       c.save();
       c.shadowColor = col;
-      c.shadowBlur = 8 + charge * 14;
+      c.shadowBlur = 8 + charge * 12;
       c.fillStyle = col;
       c.beginPath();
-      c.arc(tx, base - R * 0.72, R * 0.15, 0, Math.PI * 2);
+      c.arc(tx, ty - R * 0.56, R * 0.09, 0, Math.PI * 2);
       c.fill();
       c.restore();
     });
-    // мачта сенсоров
-    c.strokeStyle = '#4a5157';
-    c.lineWidth = 2;
-    c.beginPath();
-    c.moveTo(0, -H);
-    c.lineTo(0, -H - R * 0.45);
-    c.stroke();
-    c.strokeStyle = e.stats.detectRange > 0 ? '#5fe08a' : '#4a5157';
-    c.beginPath();
-    c.arc(0, -H - R * 0.38, R * 0.22, Math.PI * 1.1, Math.PI * 1.9);
-    c.stroke();
 
-    if (heat > 0.4 || e.bunker.overheated) {
-      const a = e.bunker.overheated ? 0.35 + 0.25 * Math.sin(this.time * 14) : (heat - 0.4) * 0.6;
-      c.fillStyle = `rgba(255,90,40,${a * 0.6})`;
+    // центральный шпиль
+    const top = -R * 1.52;
+    const tip = -R * 2.45;
+    c.fillStyle = '#4a535c';
+    c.beginPath();
+    c.moveTo(-R * 0.13, top);
+    c.lineTo(R * 0.13, top);
+    c.lineTo(R * 0.04, tip);
+    c.lineTo(-R * 0.04, tip);
+    c.closePath();
+    c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.18)';
+    c.fillRect(-R * 0.1, top - R * 0.02, R * 0.06, (tip - top) * 0.95);
+    for (let k = 0; k < 3; k++) {
+      c.fillStyle = glow;
+      c.globalAlpha = 0.5 + 0.5 * charge;
+      c.fillRect(-R * (0.12 - k * 0.025), top - R * (0.2 + k * 0.22), R * (0.24 - k * 0.05), R * 0.05);
+    }
+    c.globalAlpha = 1;
+    c.save();
+    c.shadowColor = glow;
+    c.shadowBlur = 14 + 16 * charge;
+    c.fillStyle = '#eaffff';
+    c.beginPath();
+    c.arc(0, tip, R * (0.07 + 0.04 * charge * pulse), 0, Math.PI * 2);
+    c.fill();
+    c.restore();
+    // антенна сенсоров
+    if (e.stats.detectRange > 0) {
+      c.strokeStyle = '#8f9aa3';
+      c.lineWidth = 1.2;
       c.beginPath();
-      c.ellipse(0, 0, W, H, 0, Math.PI, Math.PI * 2);
+      c.moveTo(R * 0.3, -R * 1.5);
+      c.lineTo(R * 0.36, -R * 1.95);
+      c.stroke();
+      c.fillStyle = '#5fe08a';
+      c.beginPath();
+      c.arc(R * 0.36, -R * 1.97, R * 0.05, 0, Math.PI * 2);
       c.fill();
     }
-    if (e.bunker.hitFlash > 0) {
-      c.fillStyle = `rgba(255,60,40,${e.bunker.hitFlash * 2.5})`;
+
+    // перегрев и попадания — подсветка силуэта
+    const tint = (rgba: string) => {
+      c.save();
+      c.globalCompositeOperation = 'lighter';
+      c.fillStyle = rgba;
       c.beginPath();
-      c.ellipse(0, 0, W, H, 0, Math.PI, Math.PI * 2);
+      c.ellipse(0, -R * 0.75, R * 1.3, R * 1.0, 0, 0, Math.PI * 2);
       c.fill();
-    }
+      c.restore();
+    };
+    if (heat > 0.4 || e.bunker.overheated) tint(`rgba(255,80,30,${e.bunker.overheated ? 0.18 + 0.12 * Math.sin(this.time * 14) : (heat - 0.4) * 0.3})`);
+    if (e.bunker.hitFlash > 0) tint(`rgba(255,50,30,${Math.min(0.5, e.bunker.hitFlash * 2)})`);
   }
 
+  /** Волна импульса: яркое светящееся кольцо по земле. */
   private drawRings(e: GameEngine): void {
     const c = this.ctx;
-    const R0 = gameConfig.bunkerBodyRadius;
+    const R0 = gameConfig.bunkerBodyRadius * BUNKER_VIS;
+    c.globalCompositeOperation = 'lighter';
     for (const r of e.visuals.rings) {
       const k = r.t / r.maxT;
       const rad = R0 + (r.radius - R0) * Math.min(1, k * 1.4);
-      c.globalAlpha = 1 - k;
-      c.strokeStyle = r.crit ? '#ffd75a' : r.color;
-      c.lineWidth = (r.crit ? 5 : 3) * (1 - k * 0.6);
+      const col = r.crit ? '#ffd75a' : r.color;
+      const fade = 1 - k;
       this.ring(0, 0, rad);
+      c.strokeStyle = col;
+      c.globalAlpha = fade * 0.25;
+      c.lineWidth = 14 * (1 - k * 0.5);
       c.stroke();
-      c.globalAlpha = (1 - k) * 0.3;
-      c.lineWidth = 12 * (1 - k);
+      c.globalAlpha = fade * 0.5;
+      c.lineWidth = 6 * (1 - k * 0.5);
       c.stroke();
-      c.globalAlpha = 1;
+      c.strokeStyle = '#ffffff';
+      c.globalAlpha = fade * 0.85;
+      c.lineWidth = r.crit ? 2.4 : 1.6;
+      c.stroke();
+      // внутреннее эхо
+      if (k < 0.7) {
+        this.ring(0, 0, rad * 0.82);
+        c.strokeStyle = col;
+        c.globalAlpha = (0.7 - k) * 0.4;
+        c.lineWidth = 2;
+        c.stroke();
+      }
     }
+    c.globalAlpha = 1;
+    c.globalCompositeOperation = 'source-over';
   }
 
   private drawBlasts(e: GameEngine): void {
@@ -675,7 +773,7 @@ export class Renderer {
   /** Точка мира → экран (стоячие координаты) с подъёмом над землёй. */
   private lift(x: number, y: number): [number, number] {
     const R = gameConfig.bunkerBodyRadius;
-    if (Math.abs(x) < 1 && Math.abs(y) < 1) return [0, -R * 1.9];
+    if (Math.abs(x) < 1 && Math.abs(y) < 1) return [0, -R * BUNKER_VIS * 2.45];
     return [x, y * TILT - 12];
   }
 

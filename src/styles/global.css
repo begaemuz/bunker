@@ -3161,3 +3161,16 @@ body,
   top: 0;
   right: 8px;
 }
+
+.kind-tabs {
+  display: flex;
+  margin-bottom: 10px;
+}
+.kind-tabs button {
+  flex: 1 1 0;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+}
