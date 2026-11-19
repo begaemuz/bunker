@@ -297,7 +297,7 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
           ) : (
             <>
               <button className="btn btn-rust" onClick={() => setConfirmSell(true)}>
-                <ResourceIcon type="coins" /> {price}
+                Продать <ResourceIcon type="coins" /> {price}
               </button>
               <button className="btn btn-primary" onClick={doEquip} style={{ flexBasis: '100%' }}>
                 {replacing ? `Заменить: ${ru.slot[slot!]}` : `Установить: ${ru.slot[slot!]}`}
