@@ -58,7 +58,9 @@ export function Select<T extends string>({
   onChange,
   title,
   className,
+  prefix,
 }: {
+  prefix?: ReactNode;
   value: T;
   options: SelectOption<T>[];
   onChange: (v: T) => void;
@@ -71,6 +73,7 @@ export function Select<T extends string>({
     <>
       <button className={`select-btn ${className ?? ''}`} onClick={() => setOpen(true)}>
         <span className="grow" style={{ color: cur?.color, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {prefix}
           {cur?.label}
         </span>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">

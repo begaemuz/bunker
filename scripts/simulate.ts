@@ -29,7 +29,7 @@ import {
 } from '../src/game/profile/Profile';
 import { effectValue, research, researchBlock, researchCost } from '../src/game/progression/TechnologyTree';
 import { buyOffer, buySpecial, claimDaily, claimQuest, claimQuestBonus, doExchange, ensureQuests, ensureShop, exchangeUsed, questProgress, refreshShop } from '../src/game/meta/Meta';
-import { addParts, fuseParts, generatePart, installPart, unlockSlot } from '../src/game/items/Parts';
+import { addParts, extractPart, fuseAll, fuseParts, generatePart, installPart, unlockSlot } from '../src/game/items/Parts';
 import { applyAutoSell } from '../src/game/economy/AutoSell';
 import { computeOfflineReward } from '../src/game/progression/offline';
 import { rewardDecay } from '../src/game/progression/rewards';
@@ -141,6 +141,13 @@ console.log('— Модификации');
     if (!r.success && left !== 0) fails = -999;
   }
   check(`Объединение 3 → 1 следующей редкости (успех ${ok}/200)`, ok > 170 && fails >= 0);
+  let ex = addResources(ins.profile, { energyCores: 10 });
+  const exr = extractPart(ex, coil.id, 0);
+  check('Модификация извлекается за энергоядра', !exr.error && exr.profile.parts[part.id].installedIn === null && exr.profile.items[coil.id].slots[0].partId === null && exr.profile.resources.energyCores < 10);
+  check('Без энергоядер извлечь нельзя', extractPart(ins.profile, coil.id, 0).error === 'resources');
+  ex = addParts(createNewProfile(), Array.from({ length: 9 }, () => generatePart('common', 'p_power')));
+  const fa = fuseAll(ex, 'common');
+  check(`Массовое объединение (${fa.success} успех, ${fa.failed} неудач)`, fa.success + fa.failed === 3);
   check('Нельзя объединить меньше трёх', fuseParts(addParts(createNewProfile(), [generatePart('common', 'p_lens')]), Object.keys(addParts(createNewProfile(), [])).length ? '' : '').error === 'count');
 }
 

@@ -51,3 +51,8 @@ export function upgradeHints(p: Profile): Map<string, UpgradeHint> {
   }
   return out;
 }
+
+/** Боевая мощь комплекса — одно число для оценки силы бункера. */
+export function combatPower(s: BunkerStats): number {
+  return Math.round(complexScore(s) * 10);
+}

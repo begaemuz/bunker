@@ -133,3 +133,60 @@ export function fuseParts(p: Profile, partId: string): { profile: Profile; resul
   };
   return { profile: q, result: res, success: true };
 }
+
+/** Цена извлечения модификации: энергоядра по редкости. */
+export function extractCost(part: Part): { energyCores: number } {
+  return { energyCores: 1 + rarityIndex(part.rarity) * 2 };
+}
+
+/** Извлекает модификацию из оборудования обратно на склад (за редкий ресурс). */
+export function extractPart(p: Profile, itemId: string, slotIndex: number): { profile: Profile; error?: 'not_found' | 'resources' } {
+  const item = p.items[itemId];
+  const partId = item?.slots[slotIndex]?.partId;
+  const part = partId ? p.parts[partId] : null;
+  if (!item || !part) return { profile: p, error: 'not_found' };
+  const cost = extractCost(part);
+  if (p.resources.energyCores < cost.energyCores) return { profile: p, error: 'resources' };
+  const slots = item.slots.map((s, i) => (i === slotIndex ? { ...s, partId: null } : s));
+  return {
+    profile: {
+      ...p,
+      resources: { ...p.resources, energyCores: p.resources.energyCores - cost.energyCores },
+      items: { ...p.items, [itemId]: { ...item, slots } },
+      parts: { ...p.parts, [part.id]: { ...part, installedIn: null } },
+    },
+  };
+}
+
+/** Сколько объединений можно сделать среди свободных деталей этой редкости. */
+export function fusableCount(p: Profile, rarity: Rarity): number {
+  if (!fusionConfig.chance[rarity]) return 0;
+  const groups = new Map<string, number>();
+  for (const x of Object.values(p.parts)) {
+    if (x.installedIn || x.rarity !== rarity) continue;
+    groups.set(x.templateId, (groups.get(x.templateId) ?? 0) + 1);
+  }
+  let n = 0;
+  for (const c of groups.values()) n += Math.floor(c / fusionConfig.count);
+  return n;
+}
+
+/** Массовое объединение всех троек выбранной редкости. */
+export function fuseAll(p: Profile, rarity: Rarity): { profile: Profile; success: number; failed: number; results: Part[] } {
+  let q = p;
+  let success = 0;
+  let failed = 0;
+  const results: Part[] = [];
+  for (let guard = 0; guard < 500; guard++) {
+    const first = Object.values(q.parts).find((x) => !x.installedIn && x.rarity === rarity && fusionGroup(q, x).length >= fusionConfig.count);
+    if (!first) break;
+    const r = fuseParts(q, first.id);
+    if (r.error) break;
+    q = r.profile;
+    if (r.success && r.result) {
+      success++;
+      results.push(r.result);
+    } else failed++;
+  }
+  return { profile: q, success, failed, results };
+}

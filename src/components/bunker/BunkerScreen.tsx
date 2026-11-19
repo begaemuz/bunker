@@ -1,13 +1,13 @@
 import { useMemo, useRef, useState } from 'react';
 import { computeBunkerStats, type BunkerStats, type Warning } from '../../game/bunker/BunkerStats';
-import { upgradeHints } from '../../game/bunker/compare';
+import { combatPower, upgradeHints } from '../../game/bunker/compare';
 import { balanceConfig } from '../../game/config/balanceConfig';
 import { modeConfig } from '../../game/config/gameConfig';
 import { rarityIndex } from '../../game/items/ItemRarity';
 import { upgradeBlock } from '../../game/items/ItemUpgrade';
 import { isEquipped, xpForLevel, type Profile } from '../../game/profile/Profile';
-import { EQUIP_CATEGORIES, RARITIES, SLOT_CATEGORY, type EquipCategory, type Item, type Rarity, type SlotId } from '../../game/types';
-import { ru } from '../../i18n/ru';
+import { RARITIES, SLOT_CATEGORY, type Item, type Rarity, type SlotId } from '../../game/types';
+import { fmtNum, ru } from '../../i18n/ru';
 import { useProfile } from '../../stores/profileStore';
 import { useUi } from '../../stores/uiStore';
 import { colors, rarityColor } from '../../ui/theme';
@@ -15,12 +15,11 @@ import { Bar } from '../common/Common';
 import { CategoryGlyph, ItemIcon, UiIcon } from '../common/Icons';
 import { ItemCard } from '../inventory/ItemCard';
 import { ItemTile } from '../inventory/ItemRow';
-import { PartCard, PartsGrid } from '../parts/Parts';
+import { MassFuseSheet, PartCard, PartsGrid } from '../parts/Parts';
+import { BunkerArt } from './BunkerArt';
 import { Select, Sheet } from '../common/Sheet';
 import { MassSellSheet } from './MassSell';
 
-const GRID: SlotId[] = ['generator', 'coil1', 'coil2', 'capacitor', 'converter', 'cooling', 'sensor', 'shield'];
-type Sort = 'better' | 'rarity' | 'tier' | 'new';
 
 function warningText(w: Warning): string {
   switch (w.kind) {
@@ -41,28 +40,25 @@ function warningText(w: Warning): string {
   }
 }
 
-function SlotTile({ slot, profile, onClick }: { slot: SlotId; profile: Profile; onClick: () => void }) {
+function SlotTile({ slot, profile, side, onClick }: { slot: SlotId; profile: Profile; side: 'l' | 'r'; onClick: () => void }) {
   const id = profile.equipment[slot];
   const it = id ? profile.items[id] : null;
   const canUp = it ? !upgradeBlock(profile, it, false) : false;
+  const col = it ? rarityColor[it.rarity] : undefined;
   return (
-    <button
-      className={`slot-tile${it ? '' : ' empty'}`}
-      style={it ? { borderColor: rarityColor[it.rarity], boxShadow: `inset 0 0 14px ${rarityColor[it.rarity]}22` } : undefined}
-      onClick={onClick}
-    >
-      {canUp && (
-        <span className="up" title="Можно улучшить">
-          <UiIcon kind="up" size={11} />
-        </span>
-      )}
-      {it ? (
-        <ItemIcon category={it.category} rarity={it.rarity} level={it.level} size={40} />
-      ) : (
-        <div className="item-icon" style={{ width: 40, height: 40, borderColor: '#2c343d', borderStyle: 'dashed' }}>
-          <CategoryGlyph category={SLOT_CATEGORY[slot]} color="#46515c" size={22} />
-        </div>
-      )}
+    <button className={`doll-slot ${side}${it ? '' : ' empty'}`} style={col ? { ['--rc' as string]: col } : undefined} onClick={onClick}>
+      <span className="doll-socket">
+        {it ? (
+          <ItemIcon category={it.category} rarity={it.rarity} level={it.level} size={44} />
+        ) : (
+          <CategoryGlyph category={SLOT_CATEGORY[slot]} color="#4a5560" size={24} />
+        )}
+        {canUp && (
+          <span className="up" title="Можно улучшить">
+            <UiIcon kind="up" size={10} />
+          </span>
+        )}
+      </span>
       <span className="sname">{ru.slotShort[slot]}</span>
     </button>
   );
@@ -169,6 +165,9 @@ function StatsSheet({ profile, stats, onClose }: { profile: Profile; stats: Bunk
   );
 }
 
+const LEFT: SlotId[] = ['coil1', 'generator', 'capacitor', 'converter'];
+const RIGHT: SlotId[] = ['coil2', 'cooling', 'sensor', 'shield'];
+
 export function BunkerScreen() {
   const profile = useProfile((s) => s.profile)!;
   const selected = useUi((s) => s.selectedItemId);
@@ -176,37 +175,29 @@ export function BunkerScreen() {
   const equipTarget = useUi((s) => s.equipTarget);
   const setEquipTarget = useUi((s) => s.setEquipTarget);
   const [showStats, setShowStats] = useState(false);
-  const [cat, setCat] = useState<EquipCategory | 'all'>('all');
-  const [rar, setRar] = useState<Rarity | 'all'>('all');
-  const [sort, setSort] = useState<Sort>('better');
   const [view, setView] = useState<'items' | 'parts'>('items');
   const [partId, setPartId] = useState<string | null>(null);
   const setAutoSell = useProfile((s) => s.setAutoSell);
   const [massSell, setMassSell] = useState(false);
+  const [massFuse, setMassFuse] = useState(false);
   const freeParts = Object.values(profile.parts).filter((p) => !p.installedIn).length;
   const listRef = useRef<HTMLDivElement>(null);
 
   const stats = useMemo(() => computeBunkerStats(profile), [profile]);
   const hints = useMemo(() => upgradeHints(profile), [profile]);
+  const power = combatPower(stats);
+  const forSlot = equipTarget && !profile.equipment[equipTarget] ? SLOT_CATEGORY[equipTarget] : null;
 
   const items = useMemo(() => {
     let list = Object.values(profile.items).filter((i) => !isEquipped(profile, i.id));
-    if (cat !== 'all') list = list.filter((i) => i.category === cat);
-    if (rar !== 'all') list = list.filter((i) => i.rarity === rar);
+    if (forSlot) list = list.filter((i) => i.category === forSlot);
     const byRarity = (a: Item, b: Item) => rarityIndex(b.rarity) - rarityIndex(a.rarity) || b.tier - a.tier || b.level - a.level;
-    const cmp: Record<Sort, (a: Item, b: Item) => number> = {
-      better: (a, b) => (hints.get(b.id)?.gain ?? -1) - (hints.get(a.id)?.gain ?? -1) || byRarity(a, b),
-      rarity: byRarity,
-      tier: (a, b) => b.tier - a.tier || byRarity(a, b),
-      new: (a, b) => b.obtainedAt - a.obtainedAt,
-    };
-    return list.sort(cmp[sort]);
-  }, [profile, cat, rar, sort, hints]);
+    return list.sort((a, b) => (hints.get(b.id)?.gain ?? -1) - (hints.get(a.id)?.gain ?? -1) || byRarity(a, b));
+  }, [profile, forSlot, hints]);
 
-  /** Показать на складе предметы для слота. */
+  /** Показать на складе предметы для пустого слота. */
   const pickFor = (slot: SlotId) => {
     setEquipTarget(slot);
-    setCat(SLOT_CATEGORY[slot]);
     setView('items');
     setTimeout(() => listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
   };
@@ -219,122 +210,122 @@ export function BunkerScreen() {
     } else pickFor(slot);
   };
 
-  const total = Object.keys(profile.items).length;
+  const stored = Object.keys(profile.items).length - Object.values(profile.equipment).filter(Boolean).length;
+  const alarm = stats.warnings.some((w) => w.kind !== 'no_sensor' && w.kind !== 'second_coil_free');
 
   return (
     <div className="screen">
       <div className="screen-header">
         <h2 className="grow">Бункер</h2>
-        <button className="btn btn-sm stats-fab" onClick={() => setShowStats(true)}>
-          Характеристики
-          {stats.warnings.some((w) => w.kind !== 'no_sensor' && w.kind !== 'second_coil_free') && <span className="nav-dot" style={{ background: '#ff7a3d', top: -2, right: -2 }} />}
-        </button>
+        <span className="power" title="Боевая мощь">
+          <UiIcon kind="bolt" size={15} /> {fmtNum(power)}
+        </span>
         <span className="lvl-badge">УР {profile.bunker.level}</span>
       </div>
       <div className="screen-body">
-        <div className="section-title" style={{ marginTop: 0 }}>
-          <span>Установлено</span>
-          <span>DPS {stats.sustainedDps.toFixed(0)} · прочность {stats.maxHp}</span>
-        </div>
-        <div className="equip-grid">
-          {GRID.map((s) => (
-            <SlotTile key={s} slot={s} profile={profile} onClick={() => openSlot(s)} />
-          ))}
+        <div className="doll">
+          <div className="doll-col">
+            {LEFT.map((s) => (
+              <SlotTile key={s} slot={s} side="l" profile={profile} onClick={() => openSlot(s)} />
+            ))}
+          </div>
+          <div className="doll-center">
+            <BunkerArt profile={profile} highlight={equipTarget} />
+          </div>
+          <div className="doll-col">
+            {RIGHT.map((s) => (
+              <SlotTile key={s} slot={s} side="r" profile={profile} onClick={() => openSlot(s)} />
+            ))}
+          </div>
         </div>
 
-        <div ref={listRef} className="seg" style={{ marginTop: 14, marginBottom: 8 }}>
-          <button className={view === 'items' ? 'on' : ''} style={{ flex: 1 }} onClick={() => setView('items')}>
-            Склад {total - Object.values(profile.equipment).filter(Boolean).length}/{balanceConfig.inventoryLimit}
-            {hints.size > 0 && <span style={{ color: '#7be38a' }}> ↑{hints.size}</span>}
+        <button className="doll-stats" onClick={() => setShowStats(true)}>
+          <span>
+            <i>Урон/с</i>
+            <b>{fmtNum(Math.round(stats.sustainedDps))}</b>
+          </span>
+          <span>
+            <i>Прочность</i>
+            <b>{fmtNum(stats.maxHp)}</b>
+          </span>
+          <span>
+            <i>Энергия</i>
+            <b>{stats.usablePower.toFixed(1)}/с</b>
+          </span>
+          <span className="more">
+            {alarm && <span className="nav-dot" style={{ background: '#ff7a3d', top: 6, right: 6 }} />}
+            Все
+            <br />
+            данные
+          </span>
+        </button>
+
+        <div ref={listRef} className="tabs storage-tabs">
+          <button className={`tab${view === 'items' ? ' on' : ''}`} onClick={() => setView('items')}>
+            Склад {stored}/{balanceConfig.inventoryLimit}
+            {hints.size > 0 && <span className="tab-up"> ↑{hints.size}</span>}
           </button>
-          <button className={view === 'parts' ? 'on' : ''} style={{ flex: 1 }} onClick={() => setView('parts')}>
+          <button className={`tab${view === 'parts' ? ' on' : ''}`} onClick={() => setView('parts')}>
             Модификации {freeParts}
           </button>
         </div>
-        {view === 'parts' && <PartsGrid onOpen={setPartId} />}
+
+        {view === 'parts' && (
+          <>
+            <div className="storage-actions">
+              <button className="btn btn-gold btn-sm grow" onClick={() => setMassFuse(true)}>
+                Массовое объединение
+              </button>
+            </div>
+            <PartsGrid onOpen={setPartId} />
+          </>
+        )}
         {view === 'items' && (
-        <>
-        <div className="toggle-row" style={{ marginBottom: 8, padding: '8px 10px', flexDirection: 'column', alignItems: 'stretch', gap: 6 }}>
-          <span className="small">
-            <b>Автопродажа</b> <span className="muted">— новое оборудование до выбранной редкости, лучшее и уникальное не продаётся</span>
-          </span>
-          <Select
-            title="Автопродажа"
-            value={profile.autoSell.maxRarity ?? 'off'}
-            onChange={(v) => setAutoSell(v === 'off' ? null : (v as Rarity))}
-            options={[
-              { value: 'off', label: 'Выкл.', hint: 'Ничего не продаётся автоматически' },
-              ...RARITIES.filter((r) => r !== 'unique').map((r) => ({
-                value: r as string,
-                label: `до «${ru.rarity[r]}»`,
-                color: rarityColor[r],
-                hint: 'Новое оборудование этой редкости и ниже продаётся сразу',
-              })),
-            ]}
-          />
-        </div>
-        {equipTarget && cat === SLOT_CATEGORY[equipTarget] && (
-          <div className="info-box" style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className="grow">Выберите оборудование для слота «{ru.slot[equipTarget]}»</span>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => {
-                setEquipTarget(null);
-                setCat('all');
-              }}
-            >
-              Все
-            </button>
-          </div>
-        )}
-        <div className="tabs" style={{ padding: '0 0 8px' }}>
-          <button className={`tab${cat === 'all' ? ' on' : ''}`} onClick={() => setCat('all')}>
-            Все
-          </button>
-          {EQUIP_CATEGORIES.map((c) => (
-            <button key={c} className={`tab${cat === c ? ' on' : ''}`} onClick={() => setCat(c)}>
-              {ru.category[c]}
-            </button>
-          ))}
-        </div>
-        <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-          <Select
-            className="grow"
-            title="Редкость"
-            value={rar}
-            onChange={(v) => setRar(v)}
-            options={[{ value: 'all' as Rarity | 'all', label: 'Любая редкость' }, ...RARITIES.map((r) => ({ value: r as Rarity | 'all', label: ru.rarity[r], color: rarityColor[r] }))]}
-          />
-          <Select
-            className="grow"
-            title="Сортировка"
-            value={sort}
-            onChange={(v) => setSort(v)}
-            options={[
-              { value: 'better', label: 'Сначала лучшие' },
-              { value: 'rarity', label: 'По редкости' },
-              { value: 'tier', label: 'По тех. уровню' },
-              { value: 'new', label: 'Сначала новые' },
-            ]}
-          />
-          <button className="btn btn-rust btn-sm" onClick={() => setMassSell(true)}>
-            Продать…
-          </button>
-        </div>
-        {items.length === 0 ? (
-          <div className="empty">Здесь появится оборудование, выпавшее с роботов и боссов.</div>
-        ) : (
-          <div className="item-grid">
-            {items.map((it) => (
-              <ItemTile key={it.id} item={it} better={hints.has(it.id)} onClick={() => selectItem(it.id)} />
-            ))}
-          </div>
-        )}
-        </>
+          <>
+            <div className="storage-actions">
+              <button className="btn btn-rust btn-sm" onClick={() => setMassSell(true)}>
+                Продать
+              </button>
+              <Select
+                className="grow"
+                title="Автопродажа"
+                prefix={<span className="muted">Автопродажа: </span>}
+                value={profile.autoSell.maxRarity ?? 'off'}
+                onChange={(v) => setAutoSell(v === 'off' ? null : (v as Rarity))}
+                options={[
+                  { value: 'off', label: 'выкл.', hint: 'Ничего не продаётся автоматически' },
+                  ...RARITIES.filter((r) => r !== 'unique').map((r) => ({
+                    value: r as string,
+                    label: `до «${ru.rarity[r]}»`,
+                    color: rarityColor[r],
+                    hint: 'Новое оборудование этой редкости и ниже продаётся сразу. Лучшее, чем установлено, и уникальное не продаётся.',
+                  })),
+                ]}
+              />
+            </div>
+            {forSlot && equipTarget && (
+              <div className="info-box" style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="grow">Подходит для слота «{ru.slot[equipTarget]}»</span>
+                <button className="btn btn-ghost btn-sm" onClick={() => setEquipTarget(null)}>
+                  Весь склад
+                </button>
+              </div>
+            )}
+            {items.length === 0 ? (
+              <div className="empty">{forSlot ? 'Для этого слота на складе ничего нет. Оборудование выпадает с роботов и боссов.' : 'Здесь появится оборудование, выпавшее с роботов и боссов.'}</div>
+            ) : (
+              <div className="item-grid">
+                {items.map((it) => (
+                  <ItemTile key={it.id} item={it} better={hints.has(it.id)} onClick={() => selectItem(it.id)} />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
       {massSell && <MassSellSheet onClose={() => setMassSell(false)} hints={hints} />}
+      {massFuse && <MassFuseSheet onClose={() => setMassFuse(false)} />}
       {partId && <PartCard partId={partId} onClose={() => setPartId(null)} />}
       {showStats && <StatsSheet profile={profile} stats={stats} onClose={() => setShowStats(false)} />}
       {selected && (

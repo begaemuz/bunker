@@ -1,4 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
+import { computeBunkerStats } from '../../game/bunker/BunkerStats';
+import { combatPower } from '../../game/bunker/compare';
 import { useQuestBadge } from '../shop/QuestsSheet';
 import { gameConfig, modeConfig } from '../../game/config/gameConfig';
 import { getLocation } from '../../game/config/locationsConfig';
@@ -63,6 +65,12 @@ function TopBar() {
   const lvl = profile.bunker.level;
   const setQuests = useUi((s) => s.setQuestsOpen);
   const badge = useQuestBadge();
+  const power = useMemo(
+    () => combatPower(computeBunkerStats(profile)),
+    // мощь зависит только от оборудования, деталей и исследований
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [profile.equipment, profile.items, profile.parts, profile.techs],
+  );
 
   return (
     <div className="topbar">
@@ -76,6 +84,9 @@ function TopBar() {
             <div className="grow">
               <Bar value={profile.bunker.xp} max={xpForLevel(lvl)} color={colors.xp} thin />
             </div>
+            <span className="power" title="Боевая мощь">
+              <UiIcon kind="bolt" size={14} /> {fmtNum(power)}
+            </span>
           </div>
         </div>
         <div className="seg">

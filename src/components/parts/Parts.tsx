@@ -1,17 +1,17 @@
 import { useMemo, useState } from 'react';
 import { fusionConfig } from '../../game/config/partsConfig';
 import { formatStatValue } from '../../game/items/statInfo';
-import { fusionChance, fusionGroup, getPartTemplate, nextRarity } from '../../game/items/Parts';
+import { extractCost, fusableCount, fusionChance, fusionGroup, getPartTemplate, nextRarity } from '../../game/items/Parts';
 import { rarityIndex } from '../../game/items/ItemRarity';
 import { slotOf } from '../../game/profile/Profile';
-import type { Item, Part } from '../../game/types';
+import { RARITIES, type Item, type Part, type Rarity } from '../../game/types';
 import { ru, statLabel } from '../../i18n/ru';
 import { sfx } from '../../services/sound';
 import { useProfile } from '../../stores/profileStore';
 import { useUi } from '../../stores/uiStore';
 import { rarityColor } from '../../ui/theme';
 import { ConfirmDialog } from '../common/Common';
-import { ItemIcon, PartGlyph } from '../common/Icons';
+import { ItemIcon, PartGlyph, ResourceIcon } from '../common/Icons';
 import { Sheet } from '../common/Sheet';
 
 export function partStatsText(p: Part): string {
@@ -220,8 +220,12 @@ export function ItemSlots({ item }: { item: Item }) {
   const profile = useProfile((s) => s.profile)!;
   const unlock = useProfile((s) => s.unlockSlot);
   const install = useProfile((s) => s.installPart);
+  const extract = useProfile((s) => s.extractPart);
   const toast = useUi((s) => s.toast);
   const [pickSlot, setPickSlot] = useState<number | null>(null);
+  const [extractSlot, setExtractSlot] = useState<number | null>(null);
+  const exPart = extractSlot !== null ? profile.parts[item.slots[extractSlot]?.partId ?? ''] : null;
+  const exCost = exPart ? extractCost(exPart).energyCores : 0;
   const fits = Object.values(profile.parts).filter((p) => !p.installedIn && getPartTemplate(p.templateId).fits.includes(item.category));
   fits.sort((a, b) => rarityIndex(b.rarity) - rarityIndex(a.rarity));
 
@@ -254,7 +258,9 @@ export function ItemSlots({ item }: { item: Item }) {
                 Открыть ключом ({profile.resources.expansionKeys})
               </button>
             ) : part ? (
-              <span className="small muted">установлена</span>
+              <button className="btn btn-sm btn-rust" onClick={() => setExtractSlot(i)}>
+                Извлечь <ResourceIcon type="energyCores" /> {extractCost(part).energyCores}
+              </button>
             ) : (
               <button className="btn btn-sm btn-primary" disabled={fits.length === 0} onClick={() => setPickSlot(pickSlot === i ? null : i)}>
                 {fits.length ? 'Вставить' : 'Нет деталей'}
@@ -296,6 +302,108 @@ export function ItemSlots({ item }: { item: Item }) {
           ))}
         </div>
       )}
+      {exPart && extractSlot !== null && (
+        <ConfirmDialog
+          title="Извлечь модификацию?"
+          text={
+            <>
+              «{exPart.name}» вернётся на склад модификаций целой. Цена: <ResourceIcon type="energyCores" /> <b>{exCost}</b> энергоядер (есть {profile.resources.energyCores}).
+            </>
+          }
+          confirmLabel="Извлечь"
+          onConfirm={() => {
+            const err = extract(item.id, extractSlot);
+            setExtractSlot(null);
+            if (err === 'resources') toast('Не хватает энергоядер', 'bad');
+            else if (err) toast('Не удалось извлечь', 'bad');
+            else {
+              sfx.item(true);
+              toast(`Извлечено: ${exPart.name}`, 'good');
+            }
+          }}
+          onCancel={() => setExtractSlot(null)}
+        />
+      )}
     </div>
+  );
+}
+
+/** Массовое объединение: выбор редкости и объединение всех троек. */
+export function MassFuseSheet({ onClose }: { onClose: () => void }) {
+  const profile = useProfile((s) => s.profile)!;
+  const fuseAll = useProfile((s) => s.fuseAll);
+  const toast = useUi((s) => s.toast);
+  const rars = RARITIES.filter((r) => fusionConfig.chance[r]);
+  const [rar, setRar] = useState<Rarity>(rars.find((r) => fusableCount(profile, r) > 0) ?? rars[0]);
+  const [confirm, setConfirm] = useState(false);
+  const n = fusableCount(profile, rar);
+  const next = nextRarity(rar);
+  const chance = Math.round(fusionChance(rar) * 100);
+  return (
+    <>
+      <Sheet
+        title="Массовое объединение"
+        onClose={onClose}
+        actions={
+          <>
+            <button className="btn btn-ghost" onClick={onClose}>
+              Закрыть
+            </button>
+            <button className="btn btn-gold btn-hazard" style={{ flex: 2 }} disabled={n === 0} onClick={() => setConfirm(true)}>
+              Объединить {n > 0 ? `×${n}` : ''}
+            </button>
+          </>
+        }
+      >
+        <div className="small muted" style={{ marginBottom: 12 }}>
+          Выберите цвет: все свободные одинаковые модификации этой редкости объединятся тройками.
+        </div>
+        <div className="rar-chips">
+          {rars.map((r) => {
+            const c = fusableCount(profile, r);
+            return (
+              <button key={r} className={`rar-chip${rar === r ? ' on' : ''}`} style={{ ['--rc' as string]: rarityColor[r] }} onClick={() => setRar(r)}>
+                <span className="gem" />
+                <span className="grow">{ru.rarity[r]}</span>
+                <b>{c > 0 ? `×${c}` : '—'}</b>
+              </button>
+            );
+          })}
+        </div>
+        {next && (
+          <div className="fuse-flow">
+            <div className="fuse-side" style={{ color: rarityColor[rar] }}>
+              <PartGlyph color={rarityColor[rar]} size={30} />
+              <span>3 × {ru.rarity[rar].toLowerCase()}</span>
+            </div>
+            <div className="fuse-arrow">
+              <span>{chance}%</span>
+            </div>
+            <div className="fuse-side" style={{ color: rarityColor[next] }}>
+              <PartGlyph color={rarityColor[next]} size={30} />
+              <span>1 × {ru.rarity[next].toLowerCase()}</span>
+            </div>
+          </div>
+        )}
+        <div className="warn-box" style={{ marginTop: 12 }}>
+          При неудаче тройка теряется. Установленные в оборудование модификации не участвуют.
+        </div>
+      </Sheet>
+      {confirm && (
+        <ConfirmDialog
+          title="Объединить всё?"
+          text={`${n} объединений: ${ru.rarity[rar].toLowerCase()} → ${next ? ru.rarity[next].toLowerCase() : ''}. Шанс каждого ${chance}%.`}
+          confirmLabel="Объединить"
+          onConfirm={() => {
+            setConfirm(false);
+            const r = fuseAll(rar);
+            if (r.success) sfx.levelUp();
+            else sfx.defeat();
+            toast(`Успешно: ${r.success}${r.failed ? ` · неудач: ${r.failed}` : ''}`, r.success ? 'rare' : 'bad');
+          }}
+          onCancel={() => setConfirm(false)}
+        />
+      )}
+    </>
   );
 }

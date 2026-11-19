@@ -8,7 +8,7 @@ import { sfx } from '../../services/sound';
 import { useProfile } from '../../stores/profileStore';
 import { useUi } from '../../stores/uiStore';
 import { rarityColor } from '../../ui/theme';
-import { CategoryGlyph, PartGlyph, ResourceIcon } from '../common/Icons';
+import { CategoryGlyph, PartGlyph, ResourceIcon, UiIcon } from '../common/Icons';
 import { Sheet } from '../common/Sheet';
 import { shortStats } from '../inventory/ItemRow';
 import { partStatsText } from '../parts/Parts';
@@ -35,28 +35,82 @@ function offerTitle(o: Offer): { name: string; color: string; sub: string } {
   return { name: k ? `${ru.resource[k]} ×${o.give![k]}` : 'Ресурсы', color: '#eef2f5', sub: 'Набор ресурсов' };
 }
 
-function OfferCard({ o, onOpen }: { o: Offer; onOpen: () => void }) {
+function OfferCard({ o, section, onOpen }: { o: Offer; section: 'regular' | 'rare'; onOpen: () => void }) {
+  const profile = useProfile((s) => s.profile)!;
+  const buy = useProfile((s) => s.buy);
+  const toast = useUi((s) => s.toast);
   const t = offerTitle(o);
   const k = RESOURCE_KEYS.find((x) => o.give?.[x]);
+  const afford = canAfford(profile, o.price);
   return (
-    <button className={`shop-card${o.sold ? ' sold' : ''}`} style={{ borderColor: o.sold ? undefined : t.color }} onClick={onOpen} disabled={o.sold}>
-      <div style={{ display: 'grid', placeItems: 'center', height: 54 }}>
-        {o.item ? (
-          <CategoryGlyph category={o.item.category} color={t.color} size={38} />
-        ) : o.part ? (
-          <PartGlyph color={t.color} size={36} />
-        ) : k ? (
-          <ResourceIcon type={k} size={34} />
-        ) : null}
+    <div className={`ware${o.sold ? ' sold' : ''}`} style={{ ['--rc' as string]: t.color }}>
+      <button className="ware-look" onClick={onOpen} disabled={o.sold}>
+        <span className="ware-stand">
+          {o.item ? (
+            <CategoryGlyph category={o.item.category} color={t.color} size={44} />
+          ) : o.part ? (
+            <PartGlyph color={t.color} size={42} />
+          ) : k ? (
+            <ResourceIcon type={k} size={40} />
+          ) : null}
+          {o.item && <span className="ware-tier">Т{o.item.tier}</span>}
+        </span>
+        <span className="ware-name">{t.name}</span>
+        <span className="ware-sub">{t.sub}</span>
+      </button>
+      {o.sold ? (
+        <div className="ware-stamp">Продано</div>
+      ) : (
+        <button
+          className={`ware-price${afford ? '' : ' lack'}`}
+          disabled={!afford}
+          onClick={() => {
+            const err = buy(section, o.id);
+            if (err) toast('Не хватает ресурсов', 'bad');
+            else {
+              sfx.item(true);
+              toast(`Куплено: ${t.name}`, 'good');
+            }
+          }}
+        >
+          <Price price={o.price} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Вывеска торговца: навес, ящики, фонарь. */
+function TraderSign({ left, onRefresh, cost, can }: { left: string; onRefresh: () => void; cost: number; can: boolean }) {
+  return (
+    <div className="trader">
+      <svg className="trader-art" viewBox="0 0 120 90" aria-hidden>
+        <path d="M6 22h108l-8 16H14z" fill="#b4532a" />
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <path key={i} d={`M${6 + i * 18} 22h9l-1.3 16h-9z`} fill="#f2a93b" />
+        ))}
+        <path d="M14 38q6 6 12 0q6 6 12 0q6 6 12 0q6 6 12 0q6 6 12 0q6 6 12 0q6 6 12 0q6 6 12 0" fill="#8c3a14" />
+        <rect x="16" y="38" width="4" height="48" fill="#3a3027" />
+        <rect x="100" y="38" width="4" height="48" fill="#3a3027" />
+        <rect x="26" y="60" width="28" height="24" fill="#5a4630" stroke="#2a2016" strokeWidth="2" />
+        <path d="M26 72h28M40 60v24" stroke="#2a2016" strokeWidth="2" />
+        <rect x="58" y="68" width="22" height="16" fill="#46515c" stroke="#1d2328" strokeWidth="2" />
+        <circle cx="69" cy="76" r="3" fill="#46d4ff" />
+        <rect x="84" y="56" width="14" height="28" rx="3" fill="#2f363c" stroke="#1d2328" strokeWidth="2" />
+        <circle cx="91" cy="64" r="2.5" fill="#f2a93b">
+          <animate attributeName="opacity" values="1;0.4;1" dur="1.8s" repeatCount="indefinite" />
+        </circle>
+        <path d="M60 4v14M52 18h16" stroke="#3a3027" strokeWidth="2" />
+        <circle cx="60" cy="10" r="4" fill="#ffd27a" opacity="0.9" />
+      </svg>
+      <div className="trader-text">
+        <div className="trader-name">Караван торговца</div>
+        <div className="small muted">Новый товар через {left}</div>
+        <button className="btn btn-sm" disabled={!can} onClick={onRefresh}>
+          <UiIcon kind="refresh" size={14} /> Обновить · <ResourceIcon type="coins" /> {fmtNum(cost)}
+        </button>
       </div>
-      <div className="tile-name" style={{ color: t.color, fontSize: 10 }}>
-        {t.name}
-      </div>
-      <div className="small muted" style={{ textAlign: 'center', fontSize: 9 }}>
-        {t.sub}
-      </div>
-      {o.sold ? <div className="small" style={{ textAlign: 'center', fontWeight: 900 }}>КУПЛЕНО</div> : <Price price={o.price} />}
-    </button>
+    </div>
   );
 }
 
@@ -76,7 +130,8 @@ function OfferSheet({ o, section, onClose }: { o: Offer; section: 'regular' | 'r
             Закрыть
           </button>
           <button
-            className="btn btn-gold"
+            className="btn btn-gold btn-hazard"
+            style={{ flex: 2 }}
             disabled={!canAfford(profile, o.price) || o.sold}
             onClick={() => {
               const err = buy(section, o.id);
@@ -151,8 +206,8 @@ export function ShopScreen() {
       <div className="tabs">
         {(
           [
-            ['regular', 'Магазин'],
-            ['rare', 'Редкие детали'],
+            ['regular', 'Товары'],
+            ['rare', 'Детали'],
             ['special', 'Кристаллы'],
             ['exchange', 'Обмен'],
           ] as [Tab, string][]
@@ -173,38 +228,35 @@ export function ShopScreen() {
 
         {(tab === 'regular' || tab === 'rare') && (
           <>
-            <div className="toggle-row" style={{ marginBottom: 10 }}>
-              <span className="small">
-                Новый ассортимент через <b>{fmtLeft(left)}</b>
-              </span>
-              <button
-                className="btn btn-sm"
-                disabled={!canAfford(profile, refreshCost)}
-                onClick={() => {
-                  if (refresh()) toast('Ассортимент обновлён', 'good');
-                }}
-              >
-                Обновить · <ResourceIcon type="coins" /> {fmtNum(refreshCost.coins!)}
-              </button>
-            </div>
-            <div className="shop-grid">
+            <TraderSign
+              left={fmtLeft(left)}
+              cost={refreshCost.coins!}
+              can={canAfford(profile, refreshCost)}
+              onRefresh={() => {
+                if (refresh()) toast('Ассортимент обновлён', 'good');
+              }}
+            />
+            <div className="ware-grid">
               {profile.shop[tab].map((o) => (
-                <OfferCard key={o.id} o={o} onOpen={() => setOpen({ o, section: tab })} />
+                <OfferCard key={o.id} o={o} section={tab} onOpen={() => setOpen({ o, section: tab })} />
               ))}
             </div>
           </>
         )}
 
         {tab === 'special' && (
-          <div className="menu-list">
+          <div className="deal-list">
             {shopConfig.special.map((o) => (
-              <div key={o.id} className="panel" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <div key={o.id} className="deal">
+                <span className="deal-gem">
+                  <ResourceIcon type="crystals" size={30} />
+                </span>
                 <div className="grow">
-                  <div style={{ fontWeight: 900 }}>{o.title}</div>
+                  <div className="deal-title">{o.title}</div>
                   <div className="small muted">{o.description}</div>
                 </div>
                 <button
-                  className="btn btn-sm btn-gold"
+                  className="btn btn-sm btn-primary"
                   disabled={!canAfford(profile, o.price)}
                   onClick={() => {
                     const res = buySpecial(o.id);
@@ -226,22 +278,30 @@ export function ShopScreen() {
         )}
 
         {tab === 'exchange' && (
-          <div className="menu-list">
+          <div className="deal-list">
             {exchangeConfig.map((x) => {
               const used = exchangeUsed(profile, x.id);
               const ok = used < x.dailyLimit && r[x.from] >= x.give;
               return (
-                <div key={x.id} className="panel" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <div className="grow">
-                    <div style={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <ResourceIcon type={x.from} size={16} /> {fmtNum(x.give)} → <ResourceIcon type={x.to} size={16} /> {fmtNum(x.get)}
-                    </div>
-                    <div className="small muted">
-                      {ru.resource[x.from]} → {ru.resource[x.to]} · сегодня {used}/{x.dailyLimit}
-                    </div>
+                <div key={x.id} className="swap">
+                  <div className="swap-side">
+                    <ResourceIcon type={x.from} size={26} />
+                    <b>{fmtNum(x.give)}</b>
+                    <span>{ru.resource[x.from]}</span>
+                  </div>
+                  <div className="swap-mid">
+                    <svg width="34" height="20" viewBox="0 0 34 20" aria-hidden>
+                      <path d="M2 10h28M22 3l8 7-8 7" fill="none" stroke="#f2a93b" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span className="swap-left">сегодня {used}/{x.dailyLimit}</span>
+                  </div>
+                  <div className="swap-side">
+                    <ResourceIcon type={x.to} size={26} />
+                    <b>{fmtNum(x.get)}</b>
+                    <span>{ru.resource[x.to]}</span>
                   </div>
                   <button
-                    className="btn btn-sm btn-primary"
+                    className="btn btn-sm btn-primary swap-btn"
                     disabled={!ok}
                     onClick={() => {
                       const err = exchange(x.id);
@@ -249,13 +309,13 @@ export function ShopScreen() {
                       else sfx.click();
                     }}
                   >
-                    Обменять
+                    {used >= x.dailyLimit ? 'Лимит' : 'Обменять'}
                   </button>
                 </div>
               );
             })}
             <div className="small muted" style={{ textAlign: 'center' }}>
-              Курсы с комиссией и дневными лимитами, обмен туда-обратно всегда в убыток.
+              Курсы с комиссией и дневными лимитами: обмен туда-обратно всегда в убыток.
             </div>
           </div>
         )}

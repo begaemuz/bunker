@@ -176,7 +176,7 @@ export function ResourceIcon({ type, size = 14 }: { type: ResourceKey; size?: nu
   }
 }
 
-type UiKind = 'shop' | 'gift' | 'battle' | 'bunker' | 'inventory' | 'tech' | 'map' | 'menu' | 'pause' | 'play' | 'close' | 'skull' | 'lock' | 'up';
+type UiKind = 'shop' | 'gift' | 'battle' | 'bunker' | 'inventory' | 'tech' | 'map' | 'menu' | 'pause' | 'play' | 'close' | 'skull' | 'lock' | 'up' | 'bolt' | 'refresh';
 
 export function UiIcon({ kind, size = 22 }: { kind: UiKind; size?: number }) {
   const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -278,6 +278,18 @@ export function UiIcon({ kind, size = 22 }: { kind: UiKind; size?: number }) {
       return (
         <svg {...p}>
           <path d="M12 19V5M6 11l6-6 6 6" />
+        </svg>
+      );
+    case 'bolt':
+      return (
+        <svg {...p} fill="currentColor" stroke="none">
+          <path d="M13.5 2 4 14h6.5L9 22l10-13h-6.8z" />
+        </svg>
+      );
+    case 'refresh':
+      return (
+        <svg {...p}>
+          <path d="M20 11a8 8 0 0 0-14.3-4.9L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16M20 20v-4h-4" />
         </svg>
       );
   }

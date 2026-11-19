@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { applyAutoSell } from '../game/economy/AutoSell';
 import type { Loot } from '../game/economy/DropSystem';
 import { tryUpgrade, type UpgradeOutcome } from '../game/items/ItemUpgrade';
-import { addParts, fuseParts, installPart, unlockSlot, type InstallError } from '../game/items/Parts';
+import { addParts, extractPart, fuseAll, fuseParts, installPart, unlockSlot, type InstallError } from '../game/items/Parts';
 import {
   addGroupKill,
   addItems,
@@ -77,6 +77,8 @@ interface ProfileState {
   unlockSlot: (itemId: string, slot: number) => boolean;
   fuse: (partId: string) => { success?: boolean; result?: Part; error?: string };
   scrapPart: (partId: string) => number;
+  extractPart: (itemId: string, slot: number) => string | null;
+  fuseAll: (rarity: Rarity) => { success: number; failed: number; results: Part[] };
   setRates: (r: OfflineRates) => void;
   touch: () => void;
   checkOffline: () => void;
@@ -379,6 +381,23 @@ export const useProfile = create<ProfileState>((set, get) => {
       if (r.error) return { error: r.error };
       commit(r.profile, false, true);
       return { success: r.success, result: r.result };
+    },
+
+    extractPart: (itemId, slot) => {
+      const p = get().profile;
+      if (!p) return 'not_loaded';
+      const r = extractPart(p, itemId, slot);
+      if (r.error) return r.error;
+      commit(r.profile, true, true);
+      return null;
+    },
+
+    fuseAll: (rarity) => {
+      const p = get().profile;
+      if (!p) return { success: 0, failed: 0, results: [] };
+      const r = fuseAll(p, rarity);
+      commit(r.profile, false, true);
+      return { success: r.success, failed: r.failed, results: r.results };
     },
 
     scrapPart: (partId) => {
