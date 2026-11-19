@@ -29,6 +29,16 @@ export const ru = {
     sensor: 'Сенсоры',
     shield: 'Защитный контур',
   } as Record<SlotId, string>,
+  slotShort: {
+    generator: 'Генератор',
+    coil1: 'Катушка 1',
+    coil2: 'Катушка 2',
+    capacitor: 'Конденсат.',
+    converter: 'Преобраз.',
+    cooling: 'Охлаждение',
+    sensor: 'Сенсоры',
+    shield: 'Защита',
+  } as Record<SlotId, string>,
   slotHint: {
     generator: 'Производит энергию для всех систем',
     coil1: 'Основное средство поражения',

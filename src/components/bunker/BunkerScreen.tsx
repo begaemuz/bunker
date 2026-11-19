@@ -60,7 +60,7 @@ function SlotTile({ slot, profile, onClick }: { slot: SlotId; profile: Profile; 
           <CategoryGlyph category={SLOT_CATEGORY[slot]} color="#46515c" size={22} />
         </div>
       )}
-      <span className="sname">{ru.slot[slot]}</span>
+      <span className="sname">{ru.slotShort[slot]}</span>
     </button>
   );
 }
