@@ -8,8 +8,14 @@ import { migrate } from './migrations';
 const DB_NAME = 'bunker-last-signal';
 const DB_VERSION = 1;
 const STORE = 'saves';
-const KEY = 'profile';
-const BACKUP_KEY = 'bls-profile-backup';
+let KEY = 'profile';
+let BACKUP_KEY = 'bls-profile-backup';
+
+/** Отдельное сохранение для каждого аккаунта Telegram на устройстве. */
+export function setStorageUser(tgId: number | null): void {
+  KEY = tgId ? `profile:${tgId}` : 'profile';
+  BACKUP_KEY = tgId ? `bls-profile-backup:${tgId}` : 'bls-profile-backup';
+}
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -31,6 +37,7 @@ function openDb(): Promise<IDBDatabase> {
   return dbPromise;
 }
 
+/** Сырые данные сохранения (для сравнения с облачной копией). */
 export async function loadProfile(): Promise<Profile | null> {
   try {
     const db = await openDb();
@@ -104,6 +111,22 @@ export interface Settings {
 }
 const SETTINGS_KEY = 'bls-settings';
 const defaultSettings: Settings = { speed: 1, showDamageNumbers: true, soundOn: true };
+
+export function introSeen(): boolean {
+  try {
+    return localStorage.getItem('bls-intro') === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function setIntroSeen(): void {
+  try {
+    localStorage.setItem('bls-intro', '1');
+  } catch {
+    /* ignore */
+  }
+}
 
 export function loadSettings(): Settings {
   try {

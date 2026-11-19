@@ -1316,3 +1316,171 @@ button {
   top: 10px;
   right: 10px;
 }
+
+/* ═════════════ Вступление ═════════════ */
+.intro {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: #030405;
+  overflow: hidden;
+}
+.intro-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  pointer-events: none;
+}
+.intro-slide.on {
+  opacity: 1;
+  pointer-events: auto;
+}
+.intro-art {
+  position: absolute;
+  inset: 0 0 32% 0;
+  overflow: hidden;
+}
+.intro-art svg {
+  width: 100%;
+  height: 100%;
+}
+.intro-slide.on .intro-art svg {
+  animation: kenburns 7s ease-out forwards;
+}
+.intro-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(3, 4, 5, 0) 55%, #030405 100%);
+}
+.intro-text {
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  bottom: calc(150px + var(--safe-bottom));
+}
+.intro-slide.on .intro-text {
+  animation: introText 0.9s ease-out both;
+}
+.intro-kicker {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: #ff5a4a;
+}
+.intro-text h1 {
+  margin: 6px 0 10px;
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  text-transform: uppercase;
+  text-shadow: 0 0 18px rgba(255, 60, 60, 0.35);
+}
+.intro-text p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #c5cdd3;
+}
+.intro-bottom {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: calc(22px + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.intro-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.intro-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: #2c343d;
+  transition: width 0.3s, background 0.3s;
+}
+.intro-dots span.on {
+  width: 26px;
+  background: #3fc8ff;
+  box-shadow: 0 0 8px #3fc8ff;
+}
+@keyframes kenburns {
+  from {
+    transform: scale(1.12);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@keyframes introText {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+.spin-slow {
+  animation: spin 40s linear infinite;
+  transform-origin: 200px 110px;
+}
+.pulse-glow {
+  animation: glow 1.6s ease-in-out infinite;
+}
+.march {
+  animation: march 6s linear infinite;
+}
+.zap {
+  animation: zap 0.9s steps(2) infinite;
+}
+.radar {
+  animation: spin 3s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes glow {
+  50% {
+    opacity: 0.35;
+  }
+}
+@keyframes march {
+  from {
+    transform: translateX(-30px);
+  }
+  to {
+    transform: translateX(30px);
+  }
+}
+@keyframes zap {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Профиль Telegram */
+.tg-card {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.tg-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #229ed9;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  font-size: 18px;
+  color: #fff;
+  flex: none;
+}

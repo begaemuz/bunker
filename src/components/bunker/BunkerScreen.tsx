@@ -15,6 +15,7 @@ import { Bar } from '../common/Common';
 import { CategoryGlyph, ItemIcon, UiIcon } from '../common/Icons';
 import { ItemCard } from '../inventory/ItemCard';
 import { ItemTile } from '../inventory/ItemRow';
+import { PartCard, PartsGrid } from '../parts/Parts';
 
 const GRID: SlotId[] = ['generator', 'coil1', 'coil2', 'capacitor', 'converter', 'cooling', 'sensor', 'shield'];
 type Sort = 'better' | 'rarity' | 'tier' | 'new';
@@ -184,6 +185,10 @@ export function BunkerScreen() {
   const [cat, setCat] = useState<EquipCategory | 'all'>('all');
   const [rar, setRar] = useState<Rarity | 'all'>('all');
   const [sort, setSort] = useState<Sort>('better');
+  const [view, setView] = useState<'items' | 'parts'>('items');
+  const [partId, setPartId] = useState<string | null>(null);
+  const setAutoSell = useProfile((s) => s.setAutoSell);
+  const freeParts = Object.values(profile.parts).filter((p) => !p.installedIn).length;
   const listRef = useRef<HTMLDivElement>(null);
 
   const stats = useMemo(() => computeBunkerStats(profile), [profile]);
@@ -207,6 +212,7 @@ export function BunkerScreen() {
   const pickFor = (slot: SlotId) => {
     setEquipTarget(slot);
     setCat(SLOT_CATEGORY[slot]);
+    setView('items');
     setTimeout(() => listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
   };
 
@@ -241,11 +247,36 @@ export function BunkerScreen() {
           ))}
         </div>
 
-        <div ref={listRef} className="section-title">
-          <span>Склад{hints.size > 0 ? ` · лучше установленного: ${hints.size}` : ''}</span>
-          <span>
-            {total} / {balanceConfig.inventoryLimit}
+        <div ref={listRef} className="seg" style={{ marginTop: 14, marginBottom: 8 }}>
+          <button className={view === 'items' ? 'on' : ''} style={{ flex: 1 }} onClick={() => setView('items')}>
+            Склад {total - Object.values(profile.equipment).filter(Boolean).length}/{balanceConfig.inventoryLimit}
+            {hints.size > 0 && <span style={{ color: '#7be38a' }}> ↑{hints.size}</span>}
+          </button>
+          <button className={view === 'parts' ? 'on' : ''} style={{ flex: 1 }} onClick={() => setView('parts')}>
+            Модификации {freeParts}
+          </button>
+        </div>
+        {view === 'parts' && <PartsGrid onOpen={setPartId} />}
+        {view === 'items' && (
+        <>
+        <div className="toggle-row" style={{ marginBottom: 8, padding: '6px 10px' }}>
+          <span className="small">
+            <b>Автопродажа</b>
+            <br />
+            <span className="muted">новое оборудование до выбранной редкости (лучшее и уникальное не продаётся)</span>
           </span>
+          <select
+            className="select"
+            value={profile.autoSell.maxRarity ?? 'off'}
+            onChange={(e) => setAutoSell(e.target.value === 'off' ? null : (e.target.value as Rarity))}
+          >
+            <option value="off">Выкл.</option>
+            {RARITIES.filter((r) => r !== 'unique').map((r) => (
+              <option key={r} value={r}>
+                до «{ru.rarity[r]}»
+              </option>
+            ))}
+          </select>
         </div>
         {equipTarget && cat === SLOT_CATEGORY[equipTarget] && (
           <div className="info-box" style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -296,8 +327,11 @@ export function BunkerScreen() {
             ))}
           </div>
         )}
+        </>
+        )}
       </div>
 
+      {partId && <PartCard partId={partId} onClose={() => setPartId(null)} />}
       {showStats && <StatsSheet profile={profile} stats={stats} onClose={() => setShowStats(false)} />}
       {selected && (
         <ItemCard

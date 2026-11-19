@@ -38,3 +38,21 @@ jobs:
           git add index.html
           git commit -q -m "Build ${GITHUB_SHA::7}"
           git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  # Публикация на GitHub Pages (нужно включить Pages в настройках репозитория).
+  pages:
+    needs: build
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

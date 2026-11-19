@@ -64,6 +64,17 @@ export function CategoryGlyph({ category, color, size = 26 }: { category: EquipC
   }
 }
 
+/** Иконка модификации (детали). */
+export function PartGlyph({ color, size = 26 }: { color: string; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round">
+      <rect x="8" y="8" width="16" height="16" rx="2" />
+      <rect x="12" y="12" width="8" height="8" rx="1" fill={color} fillOpacity="0.35" />
+      <path d="M12 8V4M16 8V4M20 8V4M12 28v-4M16 28v-4M20 28v-4M8 12H4M8 16H4M8 20H4M28 12h-4M28 16h-4M28 20h-4" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
 export function ItemIcon({ category, rarity, level, size = 44 }: { category: EquipCategory; rarity: Rarity; level?: number; size?: number }) {
   const col = rarityColor[rarity];
   const strong = rarity === 'legendary' || rarity === 'epic' || rarity === 'unique';
@@ -92,6 +103,7 @@ const resColors: Record<ResourceKey, string> = {
   crystals: '#4dffd2',
   stabilizers: '#5fd16a',
   bossPasses: '#ff4d6a',
+  expansionKeys: '#f2b53a',
 };
 
 export function ResourceIcon({ type, size = 14 }: { type: ResourceKey; size?: number }) {
@@ -144,6 +156,13 @@ export function ResourceIcon({ type, size = 14 }: { type: ResourceKey; size?: nu
         <svg {...p}>
           <path d="M8 1l6 2.5v4C14 11 11 14 8 15 5 14 2 11 2 7.5v-4z" fill={c} stroke="#1f5a24" />
           <path d="M5 8l2 2 4-4" stroke="#0d0f12" strokeWidth="1.6" fill="none" />
+        </svg>
+      );
+    case 'expansionKeys':
+      return (
+        <svg {...p}>
+          <circle cx="5" cy="8" r="3.5" fill="none" stroke={c} strokeWidth="2" />
+          <path d="M8.5 8H15M12 8v3M14.5 8v2" stroke={c} strokeWidth="2" strokeLinecap="round" />
         </svg>
       );
     case 'bossPasses':

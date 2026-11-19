@@ -67,6 +67,8 @@ interface UiState {
   bossReward: BossReward | null;
   toasts: Toast[];
   runId: number;
+  introOpen: boolean;
+  setIntroOpen: (o: boolean) => void;
 
   setScreen: (s: Screen) => void;
   setPaused: (p: boolean) => void;
@@ -96,6 +98,8 @@ export const useUi = create<UiState>((set, get) => ({
   bossReward: null,
   toasts: [],
   runId: 1,
+  introOpen: false,
+  setIntroOpen: (introOpen) => set({ introOpen }),
 
   setScreen: (screen) => set({ screen, selectedItemId: null, equipTarget: null }),
   setPaused: (paused) => set({ paused }),

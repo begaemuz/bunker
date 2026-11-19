@@ -43,6 +43,7 @@ export const RESOURCE_KEYS = [
   'crystals',
   'stabilizers',
   'bossPasses',
+  'expansionKeys',
 ] as const;
 export type ResourceKey = (typeof RESOURCE_KEYS)[number];
 export type Resources = Record<ResourceKey, number>;
@@ -157,3 +158,15 @@ export interface Item {
 }
 
 export type EquipmentLayout = Record<SlotId, string | null>;
+
+/** Модификация (деталь), устанавливаемая в слот оборудования. */
+export interface Part {
+  id: string;
+  templateId: string;
+  name: string;
+  rarity: Rarity;
+  stats: StatMod[];
+  /** ID оборудования, в которое деталь установлена навсегда. */
+  installedIn: string | null;
+  obtainedAt: number;
+}

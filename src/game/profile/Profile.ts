@@ -3,18 +3,20 @@ import { starterKit } from '../config/itemsConfig';
 import { getLocation, locationsConfig } from '../config/locationsConfig';
 import { generateItem, sellPrice } from '../items/ItemGenerator';
 import { isAtLeast } from '../items/ItemRarity';
+import { dropItemParts } from '../items/Parts';
 import {
   RESOURCE_KEYS,
   SLOT_CATEGORY,
   SLOT_IDS,
   type EquipmentLayout,
   type Item,
+  type Part,
   type Rarity,
   type Resources,
   type SlotId,
 } from '../types';
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 export interface GlobalStats {
   robotsKilled: number;
@@ -54,6 +56,18 @@ export interface LocationProgress {
   totalGroups: number;
 }
 
+/** Средние темпы добычи за последний бой — для начисления офлайн-прогресса. */
+export interface OfflineRates {
+  location: number;
+  /** Всё — в единицах за секунду боя. */
+  resources: Partial<Resources>;
+  xp: number;
+  kills: number;
+  groups: number;
+  items: number;
+  parts: number;
+}
+
 export interface Profile {
   version: number;
   createdAt: number;
@@ -70,6 +84,12 @@ export interface Profile {
   };
   stats: GlobalStats;
   history: HistoryEntry[];
+  parts: Record<string, Part>;
+  /** Автопродажа нового оборудования до указанной редкости включительно. */
+  autoSell: { maxRarity: Rarity | null };
+  offline: { lastSeen: number; rates: OfflineRates | null };
+  /** Игрок Telegram, к которому привязан прогресс. */
+  tgUserId: number | null;
 }
 
 export function emptyResources(): Resources {
@@ -130,6 +150,10 @@ export function createNewProfile(): Profile {
     locations: { current: 1, unlocked: [1], progress: { 1: emptyLocationProgress() } },
     stats: emptyStats(),
     history: [],
+    parts: {},
+    autoSell: { maxRarity: null },
+    offline: { lastSeen: now, rates: null },
+    tgUserId: null,
   };
 }
 
@@ -255,11 +279,12 @@ export function sellItem(p: Profile, itemId: string): { profile: Profile; coins:
   if (!item) return { profile: p, coins: 0, error: 'not_found' };
   if (isEquipped(p, itemId)) return { profile: p, coins: 0, error: 'equipped' };
   const coins = sellPrice(item);
-  const items = { ...p.items };
+  const base = dropItemParts(p, itemId);
+  const items = { ...base.items };
   delete items[itemId];
   return {
     profile: {
-      ...p,
+      ...base,
       items,
       resources: { ...p.resources, coins: p.resources.coins + coins },
       stats: { ...p.stats, itemsSold: p.stats.itemsSold + 1 },

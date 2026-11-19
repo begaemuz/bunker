@@ -22,6 +22,9 @@ export function MenuScreen() {
   const newRun = useUi((s) => s.newRun);
   const reset = useProfile((s) => s.reset);
   const profile = useProfile((s) => s.profile)!;
+  const tg = useProfile((s) => s.tg);
+  const cloud = useProfile((s) => s.cloud);
+  const setIntroOpen = useUi((s) => s.setIntroOpen);
   const stats = profile.stats;
   const [confirm, setConfirm] = useState<'surrender' | 'reset' | null>(null);
 
@@ -41,6 +44,7 @@ export function MenuScreen() {
     ['Изучено уровней технологий', stats.techsResearched],
     ['Использовано пропусков', stats.bossPassesUsed],
     ['Повреждений бункера', stats.defeats],
+    ['Модификаций на складе', Object.values(profile.parts).filter((p) => !p.installedIn).length],
   ];
 
   return (
@@ -49,6 +53,23 @@ export function MenuScreen() {
         <h2 className="grow">Меню</h2>
       </div>
       <div className="screen-body">
+        <div className="panel tg-card" style={{ marginBottom: 10 }}>
+          {tg?.photo_url ? (
+            <img className="tg-avatar" src={tg.photo_url} alt="" />
+          ) : (
+            <div className="tg-avatar" style={{ background: tg ? '#229ed9' : '#3a434c' }}>
+              {tg ? tg.first_name.slice(0, 1) : '?'}
+            </div>
+          )}
+          <div className="grow">
+            <div style={{ fontWeight: 900 }}>{tg ? [tg.first_name, tg.last_name].filter(Boolean).join(' ') : 'Гость'}</div>
+            <div className="small muted">
+              {tg
+                ? `Вход через Telegram${tg.username ? ` · @${tg.username}` : ''}${cloud ? ' · прогресс в облаке Telegram' : ''}`
+                : 'Прогресс сохраняется на этом устройстве. В Telegram вход выполняется автоматически.'}
+            </div>
+          </div>
+        </div>
         <div className="menu-list">
           <button className="btn btn-primary btn-block" onClick={() => setScreen('game')}>
             Вернуться в бой
@@ -91,6 +112,10 @@ export function MenuScreen() {
             </Fragment>
           ))}
         </div>
+
+        <button className="btn btn-ghost btn-block" style={{ marginTop: 8 }} onClick={() => setIntroOpen(true)}>
+          Посмотреть вступление
+        </button>
 
         <div className="section-title">История оборудования</div>
         <div className="panel">

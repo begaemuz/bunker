@@ -58,6 +58,7 @@ export const ru = {
     crystals: 'Кристаллы',
     stabilizers: 'Стабилизаторы',
     bossPasses: 'Пропуски вызова',
+    expansionKeys: 'Ключи расширения',
   } as Record<ResourceKey, string>,
   resourceHint: {
     coins: 'Основная валюта: улучшения и исследования.',
@@ -68,6 +69,7 @@ export const ru = {
     crystals: 'Особая валюта. Пригодится в специальном магазине.',
     stabilizers: 'Защищают оборудование от уничтожения при неудачном улучшении.',
     bossPasses: 'Позволяют вызвать босса без уничтожения групп.',
+    expansionKeys: 'Открывают заблокированный слот модификации в оборудовании.',
   } as Record<ResourceKey, string>,
   attack: {
     kinetic: 'Кинетические',

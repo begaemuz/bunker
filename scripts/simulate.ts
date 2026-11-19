@@ -24,8 +24,12 @@ import {
   registerBossKill,
   sellItem,
   setCurrentLocation,
+  unequipItem,
 } from '../src/game/profile/Profile';
 import { research, researchBlock } from '../src/game/progression/TechnologyTree';
+import { addParts, fuseParts, generatePart, installPart, unlockSlot } from '../src/game/items/Parts';
+import { applyAutoSell } from '../src/game/economy/AutoSell';
+import { computeOfflineReward } from '../src/game/progression/offline';
 import { rewardDecay } from '../src/game/progression/rewards';
 import { migrate } from '../src/services/migrations';
 import { setSeed } from '../src/game/rng';
@@ -100,6 +104,61 @@ console.log('— Подсказка «лучше установленного»'
   check('Слабый генератор не отмечен', !hints.has(bad.id));
   check('Предмет в пустой слот отмечен', hints.get(shield.id)?.slot === 'shield');
   check('Установленные предметы не отмечаются', !hints.has(p.equipment.generator!));
+}
+
+console.log('— Модификации');
+{
+  let p = createNewProfile();
+  const coil = generateItem({ templateId: 'coil_emp', rarity: 'legendary', tier: 1, source: { kind: 'start' } });
+  coil.slots = [{ locked: false, partId: null }, { locked: true, partId: null }];
+  p = addItems(p, [coil]).profile;
+  p = equipItem(p, coil.id, 'coil1').profile;
+  const part = generatePart('rare', 'p_power');
+  p = addParts(p, [part]);
+  const before = computeBunkerStats(p).coils[0].power;
+  check('Модификация не ставится в неподходящий тип', installPart(addParts(p, [generatePart('common', 'p_plate')]), Object.keys(addParts(p, [])).length ? part.id : part.id, p.equipment.generator!, 0).error !== undefined);
+  check('Нельзя вставить в заблокированный слот', installPart(p, part.id, coil.id, 1).error === 'locked');
+  const ins = installPart(p, part.id, coil.id, 0);
+  check('Модификация устанавливается в свободный слот', !ins.error);
+  check('Модификация влияет на характеристики', computeBunkerStats(ins.profile).coils[0].power > before);
+  check('Без ключа слот не открыть', unlockSlot(ins.profile, coil.id, 1) === null);
+  const withKey = addResources(ins.profile, { expansionKeys: 1 });
+  check('Ключ открывает слот', unlockSlot(withKey, coil.id, 1)?.items[coil.id].slots[1].locked === false);
+  const sold = sellItem(unequipItem(ins.profile, coil.id), coil.id);
+  check('Детали теряются вместе с оборудованием', !sold.profile.parts[part.id]);
+  let q = createNewProfile();
+  q = addParts(q, [generatePart('common', 'p_lens'), generatePart('common', 'p_lens'), generatePart('common', 'p_lens')]);
+  let ok = 0;
+  let fails = 0;
+  for (let i = 0; i < 200; i++) {
+    const r = fuseParts(q, Object.keys(q.parts)[0]);
+    if (r.success) ok++;
+    else fails++;
+    const left = Object.keys(r.profile.parts).length;
+    if (r.success && !(left === 1 && r.result?.rarity === 'uncommon')) ok = -999;
+    if (!r.success && left !== 0) fails = -999;
+  }
+  check(`Объединение 3 → 1 следующей редкости (успех ${ok}/200)`, ok > 170 && fails >= 0);
+  check('Нельзя объединить меньше трёх', fuseParts(addParts(createNewProfile(), [generatePart('common', 'p_lens')]), Object.keys(addParts(createNewProfile(), [])).length ? '' : '').error === 'count');
+}
+
+console.log('— Автопродажа и офлайн');
+{
+  let p = { ...createNewProfile(), autoSell: { maxRarity: 'uncommon' as const } };
+  const junk = generateItem({ templateId: 'gen_diesel', rarity: 'common', tier: 1, source: { kind: 'start' } });
+  junk.baseStats = [{ stat: 'genPower', value: 3 }];
+  const rare = generateItem({ templateId: 'gen_diesel', rarity: 'rare', tier: 1, source: { kind: 'start' } });
+  const free = generateItem({ templateId: 'sh_armor', rarity: 'common', tier: 1, source: { kind: 'start' } });
+  const r = applyAutoSell(p, [junk, rare, free]);
+  check('Слабое обычное продаётся автоматически', r.sold.some((x) => x.id === junk.id) && r.coins > 0);
+  check('Редкость выше порога не продаётся', r.keep.some((x) => x.id === rare.id));
+  check('Предмет для пустого слота не продаётся', r.keep.some((x) => x.id === free.id));
+  p = { ...p, offline: { lastSeen: Date.now() - 2 * 3600 * 1000, rates: { location: 1, resources: { coins: 2, scrap: 0.5 }, xp: 1, kills: 0.5, groups: 0.1, items: 0.01, parts: 0.002 } } };
+  const off = computeOfflineReward(p)!;
+  check(`Офлайн-награда за 2 часа (${off.resources.coins} монет, ${off.items.length} предметов)`, !!off && off.resources.coins! > 6000 && off.items.length > 10);
+  const capped = computeOfflineReward({ ...p, offline: { ...p.offline, lastSeen: Date.now() - 100 * 3600 * 1000 } })!;
+  check('Офлайн ограничен 8 часами', Math.round(capped.seconds) === 8 * 3600);
+  check('Короткое отсутствие не даёт награды', computeOfflineReward({ ...p, offline: { ...p.offline, lastSeen: Date.now() - 10_000 } }) === null);
 }
 
 console.log('— Технологии и уровень');
@@ -214,6 +273,7 @@ console.log('— Сохранения');
   check('Миграция: реактор стал генератором и остался установлен', m.items.b?.category === 'generator' && m.equipment.generator === 'b');
   check('Миграция: победа над боссом открыла 2-ю локацию', m.locations.unlocked.includes(2));
   check('Миграция: стоит катушка №1', m.equipment.coil1 === 'a');
+  check('Миграция v2 → v4: модификации и автопродажа', !!m.parts && m.autoSell.maxRarity === null && m.resources.expansionKeys === 0);
 }
 
 // ─────────────── Прогон баланса ───────────────

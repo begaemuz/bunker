@@ -15,6 +15,7 @@ import { rarityColor } from '../../ui/theme';
 import { ConfirmDialog } from '../common/Common';
 import { ItemIcon, ResourceIcon, UiIcon } from '../common/Icons';
 import { UpgradeDialog } from './UpgradeDialog';
+import { ItemSlots } from '../parts/Parts';
 
 function sourceText(s: ItemSource): string {
   switch (s.kind) {
@@ -216,18 +217,7 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
             <span>Слоты модификаций</span>
             <span>{item.slots.length}</span>
           </div>
-          {item.slots.length === 0 ? (
-            <div className="muted small">Нет слотов для модификаций.</div>
-          ) : (
-            <div className="stat-list">
-              {item.slots.map((s, i) => (
-                <div className="stat-line" key={i}>
-                  <span>Слот {i + 1}</span>
-                  <span className="muted">{s.locked ? 'Заблокирован (ключ расширения)' : s.partId ? 'Модификация установлена' : 'Свободен'}</span>
-                </div>
-              ))}
-            </div>
-          )}
+          <ItemSlots item={item} />
 
           {!equippedSlot && fits.length > 1 && (
             <>
@@ -316,7 +306,14 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
               <span style={{ color: col }}>{item.name}</span> будет продано за {price} монет. Отменить нельзя.
             </>
           }
-          warning={needsSellWarning(item) ? `Это ${ru.rarity[item.rarity].toLowerCase()} оборудование. Такое выпадает редко.` : undefined}
+          warning={
+            [
+              needsSellWarning(item) ? `Это ${ru.rarity[item.rarity].toLowerCase()} оборудование. Такое выпадает редко.` : '',
+              item.slots.some((x) => x.partId) ? 'Установленные модификации будут потеряны.' : '',
+            ]
+              .filter(Boolean)
+              .join(' ') || undefined
+          }
           confirmLabel="Продать"
           danger
           onConfirm={doSell}

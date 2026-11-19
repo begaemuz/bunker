@@ -5,6 +5,7 @@ import { COIL_MODES, RESOURCE_KEYS } from '../../game/types';
 import { modeConfig } from '../../game/config/gameConfig';
 import { fmtNum, ru, uniqueText } from '../../i18n/ru';
 import { useUi } from '../../stores/uiStore';
+import { useProfile } from '../../stores/profileStore';
 import { modeColor, rarityColor } from '../../ui/theme';
 import { ItemIcon, ResourceIcon } from '../common/Icons';
 
@@ -58,6 +59,8 @@ export function ResultScreen() {
         </span>
         <span>Импульсов</span>
         <span>{run.pulses}</span>
+        <span>Модификаций найдено</span>
+        <span>{run.parts}</span>
         <span>Перегревов</span>
         <span>{run.overheats}</span>
         <span>Время</span>
@@ -153,6 +156,11 @@ export function BossRewardModal() {
             </span>
           ))}
         </div>
+        {reward.loot.parts.length > 0 && (
+          <div className="small" style={{ textAlign: 'center', marginBottom: 8, color: '#e6d1ff' }}>
+            Модификации: {reward.loot.parts.map((p) => `${p.name} (${ru.rarity[p.rarity].toLowerCase()})`).join(', ')}
+          </div>
+        )}
         {reward.loot.items.map((it) => (
           <div key={it.id} className="item-row" style={{ borderLeftColor: rarityColor[it.rarity] }}>
             <ItemIcon category={it.category} rarity={it.rarity} size={40} />
@@ -191,6 +199,63 @@ export function BossRewardModal() {
             </button>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function fmtAway(sec: number): string {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  return h > 0 ? `${h} ч ${m} мин` : `${m} мин`;
+}
+
+/** Окно награды за время отсутствия. */
+export function OfflineRewardModal() {
+  const reward = useProfile((s) => s.offlineReward);
+  const claim = useProfile((s) => s.claimOffline);
+  const toast = useUi((s) => s.toast);
+  if (!reward) return null;
+  const res = RESOURCE_KEYS.filter((k) => (reward.resources[k] ?? 0) > 0);
+  return (
+    <div className="modal-back center">
+      <div className="dialog">
+        <h3 style={{ textAlign: 'center', color: '#3fc8ff', letterSpacing: '0.08em' }}>ПОКА ВАС НЕ БЫЛО</h3>
+        <p style={{ textAlign: 'center' }}>
+          Бункер держал оборону {fmtAway(reward.seconds)} ({getLocation(reward.location).name}).
+          <br />
+          <span className="small muted">Без присмотра комплекс работает на 50% эффективности, максимум 8 часов.</span>
+        </p>
+        <div className="panel kv" style={{ marginBottom: 10 }}>
+          <span>Уничтожено роботов</span>
+          <span>{fmtNum(reward.kills)}</span>
+          <span>Уничтожено групп</span>
+          <span>{fmtNum(reward.groups)}</span>
+          <span>Опыт</span>
+          <span>+{fmtNum(reward.xp)}</span>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 10, justifyContent: 'center' }}>
+          {res.map((k) => (
+            <span key={k} className="res">
+              <ResourceIcon type={k} size={16} /> +{fmtNum(reward.resources[k]!)}
+            </span>
+          ))}
+        </div>
+        {(reward.items.length > 0 || reward.parts.length > 0) && (
+          <div className="small muted" style={{ textAlign: 'center', marginBottom: 10 }}>
+            Оборудование: {reward.items.length} · модификации: {reward.parts.length}
+          </div>
+        )}
+        <button
+          className="btn btn-gold btn-block"
+          onClick={() => {
+            const r = claim();
+            if (r.sold > 0) toast(`Автопродажа: ${r.sold} шт.`, 'info');
+            if (r.levels > 0) toast(`Уровень бункера ${useProfile.getState().profile!.bunker.level}`, 'good');
+          }}
+        >
+          Забрать
+        </button>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { gameConfig, modeConfig } from '../config/gameConfig';
 import { coilProps, itemModifiers } from '../items/ItemGenerator';
+import { partMods } from '../items/Parts';
 import { equippedItems, type Profile } from '../profile/Profile';
 import { techStatMods } from '../progression/TechnologyTree';
 import {
@@ -115,7 +116,7 @@ export function computeBunkerStats(profile: Profile, layoutOverride?: EquipmentL
   const add = (k: StatKey, v: number) => sums.set(k, (sums.get(k) ?? 0) + v);
   let itemConversion = 0;
   for (const it of items) {
-    for (const m of itemModifiers(it)) {
+    for (const m of [...itemModifiers(it), ...partMods(p, it.id)]) {
       if (m.stat === 'conversion') itemConversion = Math.max(itemConversion, m.value);
       else add(m.stat, m.value);
     }

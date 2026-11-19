@@ -96,6 +96,15 @@ function v2to3(s: AnySave): AnySave {
 const migrations: Record<number, (s: AnySave) => AnySave> = {
   1: (s) => ({ ...s, history: Array.isArray(s.history) ? s.history : [], version: 2 }),
   2: v2to3,
+  // v3 → v4: модификации, автопродажа, офлайн-прогресс, привязка к Telegram.
+  3: (s) => ({
+    ...s,
+    parts: {},
+    autoSell: { maxRarity: null },
+    offline: { lastSeen: Date.now(), rates: null },
+    tgUserId: null,
+    version: 4,
+  }),
 };
 
 /** Приводит сохранение любой версии к текущей и заполняет пропуски. */
@@ -122,5 +131,9 @@ export function migrate(raw: unknown): Profile {
     items: p.items ?? {},
     history: p.history ?? [],
     bunker: p.bunker ?? base.bunker,
+    parts: p.parts ?? {},
+    autoSell: p.autoSell ?? base.autoSell,
+    offline: p.offline ?? base.offline,
+    tgUserId: p.tgUserId ?? null,
   };
 }

@@ -12,7 +12,9 @@ import { Toasts } from '../components/common/Common';
 import { UiIcon } from '../components/common/Icons';
 import { GameScreen } from '../components/game/GameScreen';
 import { MenuScreen } from '../components/game/MenuScreen';
-import { BossRewardModal, ResultScreen } from '../components/game/ResultScreen';
+import { BossRewardModal, OfflineRewardModal, ResultScreen } from '../components/game/ResultScreen';
+import { Intro } from '../components/intro/Intro';
+import { introSeen } from '../services/storage';
 import { LocationsScreen } from '../components/locations/LocationsScreen';
 import { TechScreen } from '../components/tech/TechScreen';
 
@@ -39,6 +41,12 @@ export function App() {
 
 function Main() {
   const screen = useUi((s) => s.screen);
+  const introOpen = useUi((s) => s.introOpen);
+  const setIntroOpen = useUi((s) => s.setIntroOpen);
+  useEffect(() => {
+    const p = useProfile.getState().profile!;
+    if (!introSeen() && p.stats.robotsKilled < 5) setIntroOpen(true);
+  }, [setIntroOpen]);
   const setScreen = useUi((s) => s.setScreen);
   const result = useUi((s) => s.result);
   const profile = useProfile((s) => s.profile)!;
@@ -62,9 +70,11 @@ function Main() {
         {screen === 'menu' && <MenuScreen />}
         {result && <ResultScreen />}
         <BossRewardModal />
+        {!introOpen && <OfflineRewardModal />}
         <Toasts />
       </div>
-      {!result && (
+      {introOpen && <Intro onDone={() => setIntroOpen(false)} />}
+      {!result && !introOpen && (
         <nav className="nav">
           {navItems.map((n) => (
             <button key={n.id} className={screen === n.id ? 'on' : ''} onClick={() => setScreen(n.id)}>

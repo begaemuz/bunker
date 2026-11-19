@@ -2,6 +2,7 @@ import { balanceConfig } from '../config/balanceConfig';
 import { canAfford, pushHistory, spend, unequipItem, type Profile } from '../profile/Profile';
 import { techMeta } from '../progression/TechnologyTree';
 import { chance } from '../rng';
+import { dropItemParts } from './Parts';
 import { RESOURCE_KEYS, type Item, type Resources } from '../types';
 
 /** Максимальный уровень с учётом технологий. */
@@ -83,7 +84,7 @@ export function tryUpgrade(
       outcome: 'failed_protected',
     };
   }
-  q = unequipItem(q, itemId);
+  q = dropItemParts(unequipItem(q, itemId), itemId);
   const items = { ...q.items };
   delete items[itemId];
   return {

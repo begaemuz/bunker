@@ -6,22 +6,25 @@ import { GameEngine, type GameEvent } from './engine/GameEngine';
 import { GameLoop } from './engine/GameLoop';
 import { isAtLeast } from './items/ItemRarity';
 import { canSummonBoss } from './profile/Profile';
+import { ratesFromRun } from './progression/offline';
 import { rewardDecay } from './progression/rewards';
 import { Renderer } from '../render/Renderer';
 import { useProfile } from '../stores/profileStore';
 import { useUi } from '../stores/uiStore';
 import { ru } from '../i18n/ru';
 import { sfx } from '../services/sound';
+import { haptic } from '../services/telegram';
 
 /**
  * Связка движка, цикла, отрисовки и хранилищ. Одна сессия — один заход
- * на локацию. React только создаёт/уничтожает её и читает снимок HUD.
+ * на локацию. Бой продолжается, пока игрок открывает другие разделы.
  */
 export class GameSession {
   readonly engine: GameEngine;
   private loop: GameLoop;
   private renderer: Renderer;
   private hudTimer = 0;
+  private ratesTimer = 30;
   private unsubs: (() => void)[] = [];
   private committed = { time: 0, damageDealt: 0, damageTaken: 0 };
   private finished = false;
@@ -43,11 +46,17 @@ export class GameSession {
     this.loop = new GameLoop(
       (dt) => this.engine.update(dt),
       (fdt) => {
-        this.renderer.render(this.engine, fdt);
+        // Пока открыт другой раздел, поле не видно — не тратим силы на отрисовку.
+        if (useUi.getState().screen === 'game') this.renderer.render(this.engine, fdt);
         this.hudTimer -= fdt;
         if (this.hudTimer <= 0) {
           this.hudTimer = 0.1;
           this.publishHud();
+        }
+        this.ratesTimer -= fdt;
+        if (this.ratesTimer <= 0) {
+          this.ratesTimer = 20;
+          this.updateRates();
         }
       },
     );
@@ -56,6 +65,7 @@ export class GameSession {
     this.unsubs.push(
       useProfile.subscribe((s, prev) => {
         if (s.statsVersion !== prev.statsVersion) this.engine.refreshStats();
+        if (s.offlineReward !== prev.offlineReward) this.syncPause();
       }),
     );
     this.unsubs.push(
@@ -64,7 +74,7 @@ export class GameSession {
           this.loop.speed = s.settings.speed;
           this.renderer.showDamageNumbers = s.settings.showDamageNumbers;
         }
-        if (s.paused !== prev.paused || s.screen !== prev.screen || s.bossReward !== prev.bossReward) this.syncPause();
+        if (s.paused !== prev.paused || s.bossReward !== prev.bossReward || s.introOpen !== prev.introOpen) this.syncPause();
       }),
     );
     this.loop.speed = useUi.getState().settings.speed;
@@ -72,10 +82,10 @@ export class GameSession {
     useProfile.getState().addStats({ runs: 1 });
   }
 
-  /** Бой на паузе, пока открыт другой раздел или окно награды. */
+  /** Пауза только вручную или пока открыто окно награды / вступление. */
   private syncPause(): void {
     const ui = useUi.getState();
-    this.loop.paused = ui.paused || ui.screen !== 'game' || ui.bossReward !== null;
+    this.loop.paused = ui.paused || ui.bossReward !== null || ui.introOpen || useProfile.getState().offlineReward !== null;
   }
 
   resize(w: number, h: number): void {
@@ -90,6 +100,7 @@ export class GameSession {
 
   destroy(): void {
     this.commitStats();
+    this.updateRates();
     this.loop.stop();
     for (const u of this.unsubs) u();
   }
@@ -98,7 +109,14 @@ export class GameSession {
     this.engine.surrender();
   }
 
-  /** Вызов босса по кнопке: за прогресс групп или за пропуск. */
+  /** Темпы добычи для офлайн-прогресса (без учёта боссов). */
+  private updateRates(): void {
+    const r = this.engine.run;
+    if (r.bossesKilled > 0 || this.engine.mode === 'boss') return;
+    const rates = ratesFromRun(r, this.engine.location.id);
+    if (rates) useProfile.getState().setRates(rates);
+  }
+
   summonBoss(usePass: boolean): boolean {
     const loc = this.engine.location;
     const prof = useProfile.getState();
@@ -115,16 +133,22 @@ export class GameSession {
     const loc = this.engine.location;
     switch (e.type) {
       case 'kill': {
-        const gained = prof.applyLoot(e.loot, e.xp);
-        if (gained > 0) {
+        const r = prof.applyLoot(e.loot, e.xp);
+        if (r.levels > 0) {
           ui.toast(`Уровень бункера ${useProfile.getState().profile!.bunker.level}`, 'good');
           sfx.levelUp();
+          haptic('success');
         }
+        const sold = new Set(r.sold.map((x) => x.id));
         for (const it of e.loot.items) {
+          if (sold.has(it.id)) continue;
           const rare = isAtLeast(it.rarity, 'rare');
           ui.toast(`${ru.rarity[it.rarity]}: ${it.name}`, rare ? 'rare' : 'info');
           sfx.item(rare);
+          if (rare) haptic('medium');
         }
+        for (const p of e.loot.parts) ui.toast(`Модификация: ${p.name}`, 'rare');
+        if (e.loot.resources.expansionKeys) ui.toast('Найден ключ расширения слота', 'rare');
         if (e.loot.resources.bossPasses) ui.toast('Найден пропуск вызова босса', 'rare');
         if (e.enemy.isMiniboss) prof.addStats({ minibossesKilled: 1 });
         sfx.kill(e.enemy.isMiniboss);
@@ -133,11 +157,14 @@ export class GameSession {
       case 'groupCleared': {
         const before = canSummonBoss(prof.profile!, loc.id);
         prof.addGroup(loc.id);
-        if (!before && canSummonBoss(useProfile.getState().profile!, loc.id)) ui.toast('Можно вызвать босса', 'good');
+        if (!before && canSummonBoss(useProfile.getState().profile!, loc.id)) {
+          ui.toast('Можно вызвать босса', 'good');
+          haptic('success');
+        }
         break;
       }
       case 'pulse':
-        sfx.pulse(e.crit);
+        if (useUi.getState().screen === 'game') sfx.pulse(e.crit);
         break;
       case 'bunkerHit':
         sfx.hit();
@@ -150,6 +177,7 @@ export class GameSession {
         break;
       case 'bossSpawn':
         sfx.boss();
+        haptic('heavy');
         ui.toast(`${e.name} вступает в бой`, 'bad');
         break;
       case 'minibossSpawn':
@@ -159,16 +187,18 @@ export class GameSession {
         const s = this.engine.stats;
         const loot = rollBossLoot(e.bossId, { location: loc, decay: 1, dropChanceMult: s.dropChanceMult, coinMult: s.coinMult });
         const boss = bossesConfig[e.bossId];
-        const gained = prof.applyLoot({ resources: {}, items: [] }, boss.xp * s.xpMult);
-        if (gained > 0) sfx.levelUp();
+        const r = prof.applyLoot({ resources: {}, items: [], parts: [] }, boss.xp * s.xpMult);
+        if (r.levels > 0) sfx.levelUp();
         const unlocked = useProfile.getState().bossVictory(loc.id, loot);
         this.engine.addLoot(loot);
         sfx.victory();
+        haptic('success');
         this.commitStats();
         useUi.getState().setBossReward({ locationId: loc.id, bossName: boss.name, loot, unlocked });
         break;
       }
       case 'defeat':
+        haptic('error');
         this.finish(e.duringBoss);
         break;
     }
@@ -192,6 +222,7 @@ export class GameSession {
     if (this.finished) return;
     this.finished = true;
     this.commitStats();
+    this.updateRates();
     const prof = useProfile.getState();
     prof.addStats({ defeats: 1 });
     if (duringBoss) prof.refundSummon(this.engine.location.id, this.summonedWithPass);

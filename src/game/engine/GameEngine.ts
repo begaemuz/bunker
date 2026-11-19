@@ -44,6 +44,7 @@ export interface RunStats {
   overheats: number;
   resources: Resources;
   items: Item[];
+  parts: number;
   xp: number;
 }
 
@@ -66,6 +67,7 @@ function emptyRunStats(): RunStats {
     overheats: 0,
     resources: Object.fromEntries(RESOURCE_KEYS.map((k) => [k, 0])) as Resources,
     items: [],
+    parts: 0,
     xp: 0,
   };
 }
@@ -783,6 +785,7 @@ export class GameEngine {
   /** Учёт награды в статистике боя и визуализация выпадения. */
   addLoot(loot: Loot, x = 0, y = 0): void {
     for (const k of RESOURCE_KEYS) this.run.resources[k] += loot.resources[k] ?? 0;
+    this.run.parts += loot.parts.length;
     for (const it of loot.items) {
       this.run.items.push(it);
       this.recentDrops.unshift(it);

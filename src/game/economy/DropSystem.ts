@@ -5,11 +5,14 @@ import type { Enemy } from '../enemies/Enemy';
 import { generateItem } from '../items/ItemGenerator';
 import { rollRarity } from '../items/ItemRarity';
 import { chance, randInt } from '../rng';
-import type { Item, Rarity, ResourceKey, Resources } from '../types';
+import type { Item, Part, Rarity, ResourceKey, Resources } from '../types';
+import { partDrops } from '../config/partsConfig';
+import { generatePart } from '../items/Parts';
 
 export interface Loot {
   resources: Partial<Resources>;
   items: Item[];
+  parts: Part[];
 }
 
 export interface DropContext {
@@ -70,7 +73,12 @@ export function rollEnemyLoot(e: Enemy, ctx: DropContext): Loot {
       }),
     );
   }
-  return { resources: r, items };
+  const parts: Part[] = [];
+  const pc = e.isMiniboss ? partDrops.minibossChance : partDrops.robotChance * e.dropMult * ctx.dropChanceMult;
+  if (chance(Math.min(1, pc))) parts.push(generatePart(rollRarity(partDrops.rarity, e.elite || e.isMiniboss ? 0.4 : 0.05 * (loc.tier - 1))));
+  const kc = e.isMiniboss ? partDrops.keyMiniboss : e.elite ? partDrops.keyElite : 0;
+  if (kc > 0 && chance(kc)) r.expansionKeys = 1;
+  return { resources: r, items, parts };
 }
 
 /** Награда за босса: ресурсы, оборудование и шанс уникальных предметов. */
@@ -96,5 +104,9 @@ export function rollBossLoot(bossId: string, ctx: DropContext): Loot {
   for (const u of boss.uniques) {
     if (chance(u.chance)) items.push(generateItem({ templateId: u.template, rarity: 'unique', tier: loc.tier, source }));
   }
-  return { resources: r, items };
+  const parts: Part[] = [];
+  const pn = randInt(partDrops.bossCount[0], partDrops.bossCount[1]);
+  for (let i = 0; i < pn; i++) parts.push(generatePart(rollRarity(partDrops.rarity, 0.6 + 0.1 * loc.tier)));
+  if (chance(partDrops.keyBoss)) r.expansionKeys = 1;
+  return { resources: r, items, parts };
 }
