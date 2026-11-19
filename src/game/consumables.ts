@@ -4,13 +4,25 @@ import type { ResourceKey } from './types';
  * Расходные предметы: хранятся в инвентаре стопками, а не как валюта.
  * Автопродажа их не трогает, лимит склада на них не распространяется.
  */
-export const CONSUMABLES = ['expansionKeys', 'stabilizers', 'blueprints', 'energyCores', 'bossPasses'] as const;
+export const CONSUMABLES = ['scrap', 'techParts', 'blueprints', 'energyCores', 'stabilizers', 'expansionKeys', 'bossPasses'] as const;
+/** Частые ресурсы не показываются в ленте добычи, чтобы не засорять её. */
+export const FEED_SKIP: ConsumableKey[] = ['scrap', 'techParts'];
 export type ConsumableKey = (typeof CONSUMABLES)[number];
 
 /** Валюты — показываются в полосе ресурсов на всех экранах. */
-export const CURRENCIES: ResourceKey[] = ['coins', 'scrap', 'techParts', 'crystals'];
+export const CURRENCIES: ResourceKey[] = ['coins', 'crystals'];
 
 export const consumableInfo: Record<ConsumableKey, { color: string; description: string; use: string }> = {
+  scrap: {
+    color: '#a8b0b8',
+    description: 'Металл с разбитых роботов. Основной материал для ремонта и улучшений.',
+    use: 'Тратится при улучшении оборудования, исследованиях и обмене в магазине.',
+  },
+  techParts: {
+    color: '#3fc8ff',
+    description: 'Шестерни, платы и приводы из уцелевших механизмов.',
+    use: 'Тратятся при улучшении оборудования и в «Науке».',
+  },
   expansionKeys: {
     color: '#ff9f2e',
     description: 'Пробивает новое гнездо в оборудовании под модификацию.',

@@ -19,7 +19,7 @@ import { PartCard, PartsGrid } from '../parts/Parts';
 import { BunkerArt } from './BunkerArt';
 import { ConsumableSheet, ConsumableTiles } from '../inventory/Consumables';
 import { CONSUMABLES, type ConsumableKey } from '../../game/consumables';
-import { Select, Sheet } from '../common/Sheet';
+import { Sheet } from '../common/Sheet';
 import { MassSellSheet } from './MassSell';
 
 
@@ -181,6 +181,7 @@ export function BunkerScreen() {
   const setAutoSell = useProfile((s) => s.setAutoSell);
   const [massSell, setMassSell] = useState(false);
   const [cons, setCons] = useState<ConsumableKey | null>(null);
+  const [autoOpen, setAutoOpen] = useState(false);
   const [kind, setKind] = useState<'all' | 'gear' | 'parts' | 'cons'>('all');
   const freeParts = Object.values(profile.parts).filter((p) => !p.installedIn).length;
   const listRef = useRef<HTMLDivElement>(null);
@@ -262,32 +263,20 @@ export function BunkerScreen() {
           </span>
         </button>
 
-        <div ref={listRef} className="section-title storage-title">
-          <span>
-            Склад {stored}/{balanceConfig.inventoryLimit}
-          </span>
-          {hints.size > 0 && <span className="tab-up">↑ {hints.size} лучше установленного</span>}
-        </div>
-        <div className="storage-actions">
+        <div ref={listRef} className="storage-head">
+          <div className="grow">
+            <div className="storage-name">
+              Склад {stored}/{balanceConfig.inventoryLimit}
+            </div>
+            {hints.size > 0 && <div className="tab-up small">↑ {hints.size} лучше установленного</div>}
+          </div>
           <button className="btn btn-rust btn-sm" onClick={() => setMassSell(true)}>
             Продать
           </button>
-          <Select
-            className="grow"
-            title="Автопродажа"
-            prefix={<span className="muted">Автопродажа: </span>}
-            value={profile.autoSell.maxRarity ?? 'off'}
-            onChange={(v) => setAutoSell(v === 'off' ? null : (v as Rarity))}
-            options={[
-              { value: 'off', label: 'выкл.', hint: 'Ничего не продаётся автоматически' },
-              ...RARITIES.filter((r) => r !== 'unique').map((r) => ({
-                value: r as string,
-                label: `до «${ru.rarity[r]}»`,
-                color: rarityColor[r],
-                hint: 'Новое оборудование этой редкости и ниже продаётся сразу. Лучшее, чем установлено, и уникальное не продаётся.',
-              })),
-            ]}
-          />
+          <button className="btn btn-sm gear-btn" onClick={() => setAutoOpen(true)} aria-label="Автопродажа">
+            <UiIcon kind="menu" size={18} />
+            {profile.autoSell.maxRarity && <span className="gear-dot" style={{ background: rarityColor[profile.autoSell.maxRarity] }} />}
+          </button>
         </div>
         {forSlot && equipTarget ? (
           <div className="info-box" style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -342,6 +331,30 @@ export function BunkerScreen() {
       </div>
 
       {massSell && <MassSellSheet onClose={() => setMassSell(false)} hints={hints} />}
+      {autoOpen && (
+        <Sheet title="Автопродажа" onClose={() => setAutoOpen(false)}>
+          <div className="small muted" style={{ marginBottom: 10 }}>
+            Новые вещи выбранной редкости и ниже продаются сразу при выпадении. Лучшие, чем установленные, и уникальные не продаются. Модификации и расходники не продаются никогда.
+          </div>
+          <div className="option-list">
+            {[null, ...RARITIES.filter((r) => r !== 'unique')].map((r) => (
+              <button
+                key={r ?? 'off'}
+                className={`option${profile.autoSell.maxRarity === r ? ' on' : ''}`}
+                onClick={() => {
+                  setAutoSell(r as Rarity | null);
+                  setAutoOpen(false);
+                }}
+              >
+                <span className="radio" />
+                <span className="grow" style={{ color: r ? rarityColor[r] : undefined, fontWeight: 800 }}>
+                  {r ? `До «${ru.rarity[r]}» включительно` : 'Выключена'}
+                </span>
+              </button>
+            ))}
+          </div>
+        </Sheet>
+      )}
       {cons && <ConsumableSheet k={cons} onClose={() => setCons(null)} />}
       {partId && <PartCard partId={partId} onClose={() => setPartId(null)} />}
       {showStats && <StatsSheet profile={profile} stats={stats} onClose={() => setShowStats(false)} />}

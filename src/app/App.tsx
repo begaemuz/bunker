@@ -10,6 +10,7 @@ import { useUi, type Screen } from '../stores/uiStore';
 import { BunkerScreen } from '../components/bunker/BunkerScreen';
 import { Toasts } from '../components/common/Common';
 import { UiIcon } from '../components/common/Icons';
+import { ProfileSheet } from '../components/player/ProfileSheet';
 import { GameScreen } from '../components/game/GameScreen';
 import { MenuScreen } from '../components/game/MenuScreen';
 import { BossRewardModal, OfflineRewardModal, ResultScreen } from '../components/game/ResultScreen';
@@ -48,6 +49,8 @@ function Main() {
   const introOpen = useUi((s) => s.introOpen);
   const questsOpen = useUi((s) => s.questsOpen);
   const setQuestsOpen = useUi((s) => s.setQuestsOpen);
+  const profileOpen = useUi((s) => s.profileOpen);
+  const setProfileOpen = useUi((s) => s.setProfileOpen);
   const setIntroOpen = useUi((s) => s.setIntroOpen);
   useEffect(() => {
     const p = useProfile.getState().profile!;
@@ -77,6 +80,7 @@ function Main() {
         {screen === 'menu' && <MenuScreen />}
         {result && <ResultScreen />}
         {questsOpen && <QuestsSheet onClose={() => setQuestsOpen(false)} />}
+        {profileOpen && <ProfileSheet onClose={() => setProfileOpen(false)} />}
         <BossRewardModal />
         {!introOpen && <OfflineRewardModal />}
         <Toasts />

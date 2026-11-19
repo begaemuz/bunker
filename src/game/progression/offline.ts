@@ -5,6 +5,7 @@ import { generateItem } from '../items/ItemGenerator';
 import { rollRarity } from '../items/ItemRarity';
 import { generatePart } from '../items/Parts';
 import type { OfflineRates, Profile } from '../profile/Profile';
+import { vipLevel, vipPerks } from '../meta/vip';
 import { RESOURCE_KEYS, type Item, type Part, type Resources } from '../types';
 
 export const offlineConfig = {
@@ -47,9 +48,10 @@ export interface OfflineReward {
 /** Награда за время отсутствия по темпам последнего боя. */
 export function computeOfflineReward(p: Profile, now = Date.now()): OfflineReward | null {
   const r = p.offline.rates;
-  const away = Math.min(offlineConfig.maxSeconds, (now - p.offline.lastSeen) / 1000);
+  const perks = vipPerks(vipLevel(p.vip?.points ?? 0));
+  const away = Math.min(offlineConfig.maxSeconds + perks.offlineHours * 3600, (now - p.offline.lastSeen) / 1000);
   if (!r || away < offlineConfig.minSeconds) return null;
-  const t = away * offlineConfig.efficiency;
+  const t = away * (offlineConfig.efficiency + perks.offlineEff);
   const loc = getLocation(r.location);
   const resources: Partial<Resources> = {};
   for (const k of RESOURCE_KEYS) {

@@ -1,6 +1,7 @@
 import { ResourceStrip } from '../common/Common';
 import { useEffect, useState } from 'react';
 import { exchangeConfig, shopConfig } from '../../game/config/metaConfig';
+import { crystalPacks, vipLevel } from '../../game/meta/vip';
 import { exchangeUsed, nextShopRefresh, shopRefreshCost, type Offer } from '../../game/meta/Meta';
 import { canAfford } from '../../game/profile/Profile';
 import { RESOURCE_KEYS, type Resources } from '../../game/types';
@@ -187,7 +188,16 @@ export function ShopScreen() {
   const buySpecial = useProfile((s) => s.buySpecial);
   const exchange = useProfile((s) => s.exchange);
   const toast = useUi((s) => s.toast);
-  const [tab, setTab] = useState<Tab>('regular');
+  const setProfileOpen = useUi((s) => s.setProfileOpen);
+  const shopTab = useUi((s) => s.shopTab);
+  const clearShopTab = useUi((s) => s.clearShopTab);
+  const [tab, setTab] = useState<Tab>((shopTab as Tab) ?? 'regular');
+  useEffect(() => {
+    if (shopTab) {
+      setTab(shopTab as Tab);
+      clearShopTab();
+    }
+  }, [shopTab, clearShopTab]);
   const [open, setOpen] = useState<{ o: Offer; section: 'regular' | 'rare' } | null>(null);
   const now = useNow();
 
@@ -242,6 +252,26 @@ export function ShopScreen() {
 
         {tab === 'special' && (
           <div className="deal-list">
+            <button className="vip-strip" onClick={() => setProfileOpen(true)}>
+              <span className="vip-badge">VIP {vipLevel(profile.vip.points)}</span>
+              <span className="grow small">Покупка кристаллов повышает VIP-статус и даёт постоянные бонусы</span>
+              <span className="muted">›</span>
+            </button>
+            <div className="pack-grid">
+              {crystalPacks.map((p) => (
+                <button key={p.id} className="pack" onClick={() => toast('Оплата Telegram Stars скоро будет подключена', 'info')}>
+                  {p.bonus > 0 && <span className="pack-bonus">+{p.bonus} бонус</span>}
+                  <span className="pack-gem">
+                    <ResourceIcon type="crystals" size={34} />
+                  </span>
+                  <span className="pack-amount">{fmtNum(p.crystals)}</span>
+                  <span className="pack-price">⭐ {fmtNum(p.stars)}</span>
+                </button>
+              ))}
+            </div>
+            <div className="section-title" style={{ margin: '6px 2px 0' }}>
+              За кристаллы
+            </div>
             {shopConfig.special.map((o) => (
               <div key={o.id} className="deal">
                 <span className="deal-gem">

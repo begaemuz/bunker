@@ -108,6 +108,8 @@ const migrations: Record<number, (s: AnySave) => AnySave> = {
   }),
   // v4 → v5: магазин, обмен, награды за вход, ежедневные задания.
   4: (s) => ({ ...s, ...emptyMeta(), version: 5 }),
+  // v5 → v6: карточка игрока и VIP.
+  5: (s) => ({ ...s, player: { nick: '', avatar: 0, frame: 'steel' }, vip: { points: 0 }, version: 6 }),
 };
 
 /** Приводит сохранение любой версии к текущей и заполняет пропуски. */
@@ -142,5 +144,7 @@ export function migrate(raw: unknown): Profile {
     exchange: p.exchange ?? base.exchange,
     daily: p.daily ?? base.daily,
     quests: p.quests ?? base.quests,
+    player: { ...base.player, ...(p.player ?? {}) },
+    vip: p.vip ?? base.vip,
   };
 }

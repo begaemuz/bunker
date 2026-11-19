@@ -11,7 +11,10 @@ import { unlockAudio } from '../../services/sound';
 import { useProfile } from '../../stores/profileStore';
 import { useUi, type CoilHud } from '../../stores/uiStore';
 import { colors } from '../../ui/theme';
-import { Bar, ResourceStrip } from '../common/Common';
+import { Bar } from '../common/Common';
+import { PlayerAvatar } from '../player/Avatar';
+import { playerNick } from '../player/ProfileSheet';
+import { vipLevel } from '../../game/meta/vip';
 import { ResourceIcon, UiIcon } from '../common/Icons';
 
 let activeSession: GameSession | null = null;
@@ -56,10 +59,10 @@ export function GameScreen() {
 
 function TopBar() {
   const profile = useProfile((s) => s.profile)!;
-  const paused = useUi((s) => s.paused);
-  const setPaused = useUi((s) => s.setPaused);
+  const tg = useProfile((s) => s.tg);
   const setScreen = useUi((s) => s.setScreen);
-  const loc = getLocation(profile.locations.current);
+  const setProfileOpen = useUi((s) => s.setProfileOpen);
+  const openShop = useUi((s) => s.openShop);
   const lvl = profile.bunker.level;
   const setQuests = useUi((s) => s.setQuestsOpen);
   const badge = useQuestBadge();
@@ -69,36 +72,43 @@ function TopBar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [profile.equipment, profile.items, profile.parts, profile.techs],
   );
+  const r = profile.resources;
 
   return (
     <div className="topbar">
       <div className="topbar-row">
-        <div className="grow" style={{ minWidth: 0 }}>
-          <div className="loc-title">
-            Локация {loc.id} · {loc.name}
-          </div>
-          <div className="lvl-line">
-            <span className="lvl-badge">УР {lvl}</span>
-            <div className="grow">
-              <Bar value={profile.bunker.xp} max={xpForLevel(lvl)} color={colors.xp} thin />
-            </div>
-            <span className="power" title="Боевая мощь">
-              <UiIcon kind="bolt" size={14} /> {fmtNum(power)}
-            </span>
-          </div>
+        <PlayerAvatar
+          avatar={profile.player.avatar}
+          frame={profile.player.frame}
+          level={lvl}
+          progress={profile.bunker.xp / xpForLevel(lvl)}
+          vip={vipLevel(profile.vip.points)}
+          size={50}
+          onClick={() => setProfileOpen(true)}
+        />
+        <div className="grow top-who">
+          <div className="top-nick">{playerNick(profile.player.nick, tg?.first_name)}</div>
+          <span className="power" title="Боевая мощь">
+            <UiIcon kind="bolt" size={13} /> {fmtNum(power)}
+          </span>
+        </div>
+        <div className="top-money">
+          <span className="money">
+            <ResourceIcon type="coins" /> {fmtNum(r.coins)}
+          </span>
+          <button className="money" onClick={() => openShop('special')} aria-label="Купить кристаллы">
+            <ResourceIcon type="crystals" /> {fmtNum(r.crystals)}
+            <span className="money-plus">+</span>
+          </button>
         </div>
         <button className="btn top-btn" onClick={() => setQuests(true)} aria-label="Задания и награды">
           <UiIcon kind="gift" size={19} />
           {badge > 0 && <span className="nav-badge">{badge}</span>}
         </button>
-        <button className="btn top-btn" onClick={() => setPaused(!paused)} aria-label="Пауза">
-          <UiIcon kind={paused ? 'play' : 'pause'} size={19} />
-        </button>
         <button className="btn top-btn" onClick={() => setScreen('menu')} aria-label="Настройки">
           <UiIcon kind="menu" size={20} />
         </button>
       </div>
-      <ResourceStrip />
     </div>
   );
 }
@@ -112,7 +122,7 @@ function BossChip() {
   return (
     <span className={`chip boss-chip${ready ? ' ready' : ''}`}>
       <span className="boss-chip-t">
-        <UiIcon kind="skull" size={12} /> Босс {Math.min(prog.groups, loc.groupsForBoss)}/{loc.groupsForBoss}
+        Лок. {loc.id} · <UiIcon kind="skull" size={12} /> {Math.min(prog.groups, loc.groupsForBoss)}/{loc.groupsForBoss}
       </span>
       <span className="boss-chip-bar">
         <i style={{ width: `${k * 100}%` }} />

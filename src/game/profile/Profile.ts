@@ -17,7 +17,7 @@ import {
   type SlotId,
 } from '../types';
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 export interface GlobalStats {
   robotsKilled: number;
@@ -95,6 +95,10 @@ export interface Profile {
   exchange: ExchangeState;
   daily: DailyState;
   quests: QuestState;
+  /** Карточка игрока: ник, аватар инженера, рамка. */
+  player: { nick: string; avatar: number; frame: string };
+  /** Очки VIP (за покупку кристаллов за реальные деньги). */
+  vip: { points: number };
 }
 
 export function emptyMeta(): Pick<Profile, 'shop' | 'exchange' | 'daily' | 'quests'> {
@@ -169,6 +173,8 @@ export function createNewProfile(): Profile {
     offline: { lastSeen: now, rates: null },
     tgUserId: null,
     ...emptyMeta(),
+    player: { nick: '', avatar: 0, frame: 'steel' },
+    vip: { points: 0 },
   };
 }
 

@@ -11,7 +11,7 @@ import { rewardDecay } from './progression/rewards';
 import { Renderer } from '../render/Renderer';
 import { useProfile } from '../stores/profileStore';
 import { rarityColor } from '../ui/theme';
-import { CONSUMABLES, consumableInfo } from './consumables';
+import { CONSUMABLES, FEED_SKIP, consumableInfo } from './consumables';
 import { useUi } from '../stores/uiStore';
 import { ru } from '../i18n/ru';
 import { setMusicMode, sfx } from '../services/sound';
@@ -151,6 +151,7 @@ export class GameSession {
         }
         for (const p of e.loot.parts) ui.pushFeed(`Модификация: ${p.name}`, rarityColor[p.rarity]);
         for (const k of CONSUMABLES) {
+          if (FEED_SKIP.includes(k)) continue;
           const n = e.loot.resources[k];
           if (n) ui.pushFeed(`${ru.resource[k]} ×${n}`, consumableInfo[k].color);
         }

@@ -22,6 +22,7 @@ import {
   type OfflineRates,
   type Profile,
 } from '../game/profile/Profile';
+import { vipLevel, vipPerks } from '../game/meta/vip';
 import { computeOfflineReward, type OfflineReward } from '../game/progression/offline';
 import { research } from '../game/progression/TechnologyTree';
 import type { Item, Part, Rarity, Resources, SlotId } from '../game/types';
@@ -78,6 +79,7 @@ interface ProfileState {
   fuse: (partId: string) => { success?: boolean; result?: Part; error?: string };
   scrapPart: (partId: string) => number;
   extractPart: (itemId: string, slot: number) => string | null;
+  setPlayer: (patch: Partial<Profile['player']>) => void;
   fuseAll: (rarity: Rarity) => { success: number; failed: number; results: Part[] };
   setRates: (r: OfflineRates) => void;
   touch: () => void;
@@ -176,6 +178,8 @@ export const useProfile = create<ProfileState>((set, get) => {
     applyLoot: (loot, xp, enemyKind) => {
       let p = get().profile;
       if (!p) return { levels: 0, sold: [], coins: 0 };
+      const vipCoin = vipPerks(vipLevel(p.vip.points)).coinPct;
+      if (vipCoin > 0 && loot.resources.coins) loot = { ...loot, resources: { ...loot.resources, coins: Math.round(loot.resources.coins * (1 + vipCoin)) } };
       p = addResources(p, loot.resources);
       if (enemyKind) {
         p = questProgress(p, 'kill');
@@ -381,6 +385,12 @@ export const useProfile = create<ProfileState>((set, get) => {
       if (r.error) return { error: r.error };
       commit(r.profile, false, true);
       return { success: r.success, result: r.result };
+    },
+
+    setPlayer: (patch) => {
+      const p = get().profile;
+      if (!p) return;
+      commit({ ...p, player: { ...p.player, ...patch } }, true, true);
     },
 
     extractPart: (itemId, slot) => {
