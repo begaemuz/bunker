@@ -39,7 +39,7 @@ export function PartTile({ part, count, onClick }: { part: Part; count?: number;
 }
 
 /** Сетка свободных модификаций: одинаковые детали складываются в стопку. */
-export function PartsGrid({ onOpen }: { onOpen: (id: string) => void }) {
+export function PartsGrid({ onOpen, bare }: { onOpen: (id: string) => void; bare?: boolean }) {
   const profile = useProfile((s) => s.profile)!;
   const stacks = useMemo(() => {
     const free = Object.values(profile.parts).filter((p) => !p.installedIn);
@@ -50,6 +50,8 @@ export function PartsGrid({ onOpen }: { onOpen: (id: string) => void }) {
     }
     return [...map.values()].sort((a, b) => rarityIndex(b[0].rarity) - rarityIndex(a[0].rarity) || b.length - a.length);
   }, [profile.parts]);
+  const tiles = stacks.map((st) => <PartTile key={st[0].id} part={st[0]} count={fusionGroup(profile, st[0]).length} onClick={() => onOpen(st[0].id)} />);
+  if (bare) return <>{tiles}</>;
   if (!stacks.length)
     return (
       <div className="empty">

@@ -15,7 +15,7 @@ import { Bar, ResourceStrip } from '../common/Common';
 import { CategoryGlyph, ItemIcon, UiIcon } from '../common/Icons';
 import { ItemCard } from '../inventory/ItemCard';
 import { ItemTile } from '../inventory/ItemRow';
-import { MassFuseSheet, PartCard, PartsGrid } from '../parts/Parts';
+import { PartCard, PartsGrid } from '../parts/Parts';
 import { BunkerArt } from './BunkerArt';
 import { ConsumableSheet, ConsumableTiles } from '../inventory/Consumables';
 import { CONSUMABLES, type ConsumableKey } from '../../game/consumables';
@@ -177,13 +177,11 @@ export function BunkerScreen() {
   const equipTarget = useUi((s) => s.equipTarget);
   const setEquipTarget = useUi((s) => s.setEquipTarget);
   const [showStats, setShowStats] = useState(false);
-  const [view, setView] = useState<'items' | 'parts'>('items');
   const [partId, setPartId] = useState<string | null>(null);
   const setAutoSell = useProfile((s) => s.setAutoSell);
   const [massSell, setMassSell] = useState(false);
-  const [massFuse, setMassFuse] = useState(false);
   const [cons, setCons] = useState<ConsumableKey | null>(null);
-  const [kind, setKind] = useState<'all' | 'gear' | 'cons'>('all');
+  const [kind, setKind] = useState<'all' | 'gear' | 'parts' | 'cons'>('all');
   const freeParts = Object.values(profile.parts).filter((p) => !p.installedIn).length;
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -202,7 +200,6 @@ export function BunkerScreen() {
   /** Показать на складе предметы для пустого слота. */
   const pickFor = (slot: SlotId) => {
     setEquipTarget(slot);
-    setView('items');
     setTimeout(() => listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
   };
 
@@ -265,95 +262,87 @@ export function BunkerScreen() {
           </span>
         </button>
 
-        <div ref={listRef} className="tabs storage-tabs">
-          <button className={`tab${view === 'items' ? ' on' : ''}`} onClick={() => setView('items')}>
+        <div ref={listRef} className="section-title storage-title">
+          <span>
             Склад {stored}/{balanceConfig.inventoryLimit}
-            {hints.size > 0 && <span className="tab-up"> ↑{hints.size}</span>}
-          </button>
-          <button className={`tab${view === 'parts' ? ' on' : ''}`} onClick={() => setView('parts')}>
-            Модификации {freeParts}
-          </button>
+          </span>
+          {hints.size > 0 && <span className="tab-up">↑ {hints.size} лучше установленного</span>}
         </div>
-
-        {view === 'parts' && (
-          <>
-            <div className="storage-actions">
-              <button className="btn btn-gold btn-sm grow" onClick={() => setMassFuse(true)}>
-                Массовое объединение
+        <div className="storage-actions">
+          <button className="btn btn-rust btn-sm" onClick={() => setMassSell(true)}>
+            Продать
+          </button>
+          <Select
+            className="grow"
+            title="Автопродажа"
+            prefix={<span className="muted">Автопродажа: </span>}
+            value={profile.autoSell.maxRarity ?? 'off'}
+            onChange={(v) => setAutoSell(v === 'off' ? null : (v as Rarity))}
+            options={[
+              { value: 'off', label: 'выкл.', hint: 'Ничего не продаётся автоматически' },
+              ...RARITIES.filter((r) => r !== 'unique').map((r) => ({
+                value: r as string,
+                label: `до «${ru.rarity[r]}»`,
+                color: rarityColor[r],
+                hint: 'Новое оборудование этой редкости и ниже продаётся сразу. Лучшее, чем установлено, и уникальное не продаётся.',
+              })),
+            ]}
+          />
+        </div>
+        {forSlot && equipTarget ? (
+          <div className="info-box" style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span className="grow">Подходит для слота «{ru.slot[equipTarget]}»</span>
+            <button className="btn btn-ghost btn-sm" onClick={() => setEquipTarget(null)}>
+              Весь склад
+            </button>
+          </div>
+        ) : (
+          <div className="seg kind-tabs">
+            {(
+              [
+                ['all', 'Все'],
+                ['gear', 'Вещи'],
+                ['parts', `Модификации${freeParts ? ` ${freeParts}` : ''}`],
+                ['cons', 'Чертежи и др.'],
+              ] as const
+            ).map(([id, label]) => (
+              <button key={id} className={kind === id ? 'on' : ''} onClick={() => setKind(id)}>
+                {label}
               </button>
-            </div>
-            <PartsGrid onOpen={setPartId} />
-          </>
+            ))}
+          </div>
         )}
-        {view === 'items' && (
-          <>
-            <div className="storage-actions">
-              <button className="btn btn-rust btn-sm" onClick={() => setMassSell(true)}>
-                Продать
-              </button>
-              <Select
-                className="grow"
-                title="Автопродажа"
-                prefix={<span className="muted">Автопродажа: </span>}
-                value={profile.autoSell.maxRarity ?? 'off'}
-                onChange={(v) => setAutoSell(v === 'off' ? null : (v as Rarity))}
-                options={[
-                  { value: 'off', label: 'выкл.', hint: 'Ничего не продаётся автоматически' },
-                  ...RARITIES.filter((r) => r !== 'unique').map((r) => ({
-                    value: r as string,
-                    label: `до «${ru.rarity[r]}»`,
-                    color: rarityColor[r],
-                    hint: 'Новое оборудование этой редкости и ниже продаётся сразу. Лучшее, чем установлено, и уникальное не продаётся.',
-                  })),
-                ]}
-              />
+        {(() => {
+          const k = forSlot ? 'gear' : kind;
+          const showGear = k === 'all' || k === 'gear';
+          const showParts = k === 'all' || k === 'parts';
+          const showCons = k === 'all' || k === 'cons';
+          const hasCons = CONSUMABLES.some((x) => profile.resources[x] > 0);
+          const empty = !(showGear && items.length) && !(showParts && freeParts) && !(showCons && hasCons);
+          if (empty)
+            return (
+              <div className="empty">
+                {forSlot
+                  ? 'Для этого слота на складе ничего нет. Оборудование выпадает с роботов и боссов.'
+                  : k === 'parts'
+                    ? 'Модификации выпадают с роботов и боссов. Вставляются в оборудование, три одинаковые можно объединить в более редкую.'
+                    : k === 'cons'
+                      ? 'Чертежи, ключи, стабилизаторы, энергоядра и пропуски выпадают с роботов и боссов.'
+                      : 'Здесь появятся вещи, выпавшие с роботов и боссов.'}
+              </div>
+            );
+          return (
+            <div className="item-grid">
+              {showGear && items.map((it) => <ItemTile key={it.id} item={it} better={hints.has(it.id)} onClick={() => selectItem(it.id)} />)}
+              {showParts && <PartsGrid bare onOpen={setPartId} />}
+              {showCons && <ConsumableTiles onOpen={setCons} />}
             </div>
-            {!forSlot && (
-              <div className="seg kind-tabs">
-                {(
-                  [
-                    ['all', 'Все'],
-                    ['gear', 'Оборудование'],
-                    ['cons', 'Чертежи и др.'],
-                  ] as const
-                ).map(([id, label]) => (
-                  <button key={id} className={kind === id ? 'on' : ''} onClick={() => setKind(id)}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            )}
-            {forSlot && equipTarget && (
-              <div className="info-box" style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="grow">Подходит для слота «{ru.slot[equipTarget]}»</span>
-                <button className="btn btn-ghost btn-sm" onClick={() => setEquipTarget(null)}>
-                  Весь склад
-                </button>
-              </div>
-            )}
-            {!forSlot && kind !== 'gear' && CONSUMABLES.some((k) => profile.resources[k] > 0) && (
-              <div className="item-grid" style={{ marginBottom: 7 }}>
-                <ConsumableTiles onOpen={setCons} />
-              </div>
-            )}
-            {kind === 'cons' && !forSlot ? (
-              !CONSUMABLES.some((k) => profile.resources[k] > 0) && <div className="empty">Чертежи, ключи, стабилизаторы, энергоядра и пропуски выпадают с роботов и боссов.</div>
-            ) : items.length === 0 ? (
-              <div className="empty">{forSlot ? 'Для этого слота на складе ничего нет. Оборудование выпадает с роботов и боссов.' : 'Здесь появится оборудование, выпавшее с роботов и боссов.'}</div>
-            ) : (
-              <div className="item-grid">
-                {items.map((it) => (
-                  <ItemTile key={it.id} item={it} better={hints.has(it.id)} onClick={() => selectItem(it.id)} />
-                ))}
-              </div>
-            )}
-          </>
-        )}
+          );
+        })()}
       </div>
 
       {massSell && <MassSellSheet onClose={() => setMassSell(false)} hints={hints} />}
       {cons && <ConsumableSheet k={cons} onClose={() => setCons(null)} />}
-      {massFuse && <MassFuseSheet onClose={() => setMassFuse(false)} />}
       {partId && <PartCard partId={partId} onClose={() => setPartId(null)} />}
       {showStats && <StatsSheet profile={profile} stats={stats} onClose={() => setShowStats(false)} />}
       {selected && (

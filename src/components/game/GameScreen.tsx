@@ -186,9 +186,6 @@ function FieldOverlay() {
   return (
     <>
       <div className="overlay-info">
-        <span className="chip">
-          DPS <b>{fmtNum(hud.dps)}</b>
-        </span>
         {hud.mode !== 'boss' && <BossChip />}
         <span className="chip">
           Угроза <b style={{ color: hud.threat > 0.4 ? '#ff6b5a' : undefined }}>{Math.round(hud.threat * 100)}%</b>
