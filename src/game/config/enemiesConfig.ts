@@ -108,7 +108,7 @@ export const robotsConfig: Record<RobotKind, EnemyDef> = {
     speed: 35,
     damage: 10,
     attackInterval: 1.6,
-    range: 110,
+    range: 80,
     attack: 'energy',
     resist: { thermal: 0.2 },
     electronic: true,
