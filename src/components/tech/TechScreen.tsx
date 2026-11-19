@@ -231,7 +231,7 @@ export function TechScreen() {
           return (
             <button key={b.id} className={`tab${tab === b.id ? ' on' : ''}`} style={{ ['--bc' as string]: b.color }} onClick={() => setTab(b.id)}>
               <span className="tab-dot" />
-              {b.name.split(' ')[0]}
+              {({ energy: 'Энергия', em: 'Оружие', defense: 'Защита' } as Record<TechBranch, string>)[b.id]}
               {n > 0 && <span className="tab-count">{n}</span>}
             </button>
           );

@@ -11,6 +11,8 @@ import { getSprite, clearSpriteCache, SPRITE_FOOT, SPRITE_W } from './sprites';
  * стоят вертикально — вид «два с половиной D».
  */
 export const TILT = 0.56;
+/** Визуальное увеличение роботов относительно хитбокса. */
+const VIS = 1.35;
 
 // Старые WebView без roundRect: рисуем обычный прямоугольник.
 if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
@@ -419,7 +421,7 @@ export class Renderer {
     c.fillStyle = 'rgba(0,0,0,0.42)';
     for (const en of list) {
       const hover = en.kind === 'support' || en.kind === 'shielded';
-      const r = en.size * (hover ? 0.7 : 1.0);
+      const r = en.size * VIS * (hover ? 0.7 : 1.0);
       c.beginPath();
       c.arc(en.x, en.y, r, 0, Math.PI * 2);
       c.fill();
@@ -615,7 +617,8 @@ export class Renderer {
     const ps = this.scale * this.dpr;
     const walking = !en.attacking;
     const frame = walking ? Math.floor(en.anim * 7) % 2 : 0;
-    const spr = getSprite(en.kind, en.size, en.elite, ps, frame);
+    // роботы рисуются крупнее хитбокса, чтобы силуэт читался на телефоне
+    const spr = getSprite(en.kind, en.size * VIS, en.elite, ps, frame);
     const w = spr.width / ps;
     const foot = w * SPRITE_FOOT;
     const sy = en.y * TILT;
@@ -642,8 +645,8 @@ export class Renderer {
     const c = this.ctx;
     const x = en.x;
     const base = en.y * TILT;
-    const top = base - en.size * (en.isBoss ? 2.3 : 2.0);
-    const mid = base - en.size;
+    const top = base - en.size * VIS * (en.isBoss ? 2.3 : 2.0);
+    const mid = base - en.size * VIS;
     const st = en.status;
     if (st.slowT > 0) {
       c.strokeStyle = 'rgba(224,178,58,0.7)';

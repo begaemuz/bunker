@@ -255,14 +255,18 @@ function BottomHud() {
   const low = hud ? hud.hp / hud.maxHp < 0.3 : false;
   return (
     <div className="bottom-hud">
-      <Bar value={hud?.hp ?? 1} max={hud?.maxHp ?? 1} color={low ? '#ff2a1a' : colors.hp} label={hud ? `ПРОЧНОСТЬ ${Math.ceil(hud.hp)} / ${hud.maxHp}` : ''} />
+      <Bar value={hud?.hp ?? 1} max={hud?.maxHp ?? 1} color={low ? '#ff2a1a' : colors.hp} label={hud ? `Прочность ${Math.ceil(hud.hp)} / ${hud.maxHp}` : ''} />
       {hud && (
         <div className="hud-row">
-          <span style={{ color: colors.energy, fontWeight: 800 }}>ЭН</span>
+          <span className="hud-k" style={{ color: colors.energy }}>
+            <UiIcon kind="bolt" size={13} /> Энергия
+          </span>
           <div className="grow">
             <Bar value={hud.energy} max={hud.capacity} color={colors.energy} mid />
           </div>
-          <span style={{ color: hud.overheated ? '#ff5a4a' : colors.heat, fontWeight: 800 }}>ТЕП</span>
+          <span className="hud-k" style={{ color: hud.overheated ? '#ff5a4a' : colors.heat }}>
+            Нагрев
+          </span>
           <div className="grow">
             <Bar value={hud.heat} max={hud.heatCap} color={hud.overheated ? '#ff2a1a' : colors.heat} mid />
           </div>

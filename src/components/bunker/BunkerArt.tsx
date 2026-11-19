@@ -28,7 +28,7 @@ export function BunkerArt({ profile, highlight }: { profile: Profile; highlight?
   const hl = (s: SlotId) => (highlight === s ? 1 : 0);
 
   return (
-    <svg className="bunker-art" viewBox="0 0 200 260" role="img" aria-label="Бункер">
+    <svg className="bunker-art" viewBox="0 0 200 260" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Бункер">
       <defs>
         <linearGradient id="ba-sky" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#141a20" />

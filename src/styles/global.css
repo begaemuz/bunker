@@ -2807,3 +2807,61 @@ body,
 .swap-btn {
   grid-column: 1 / -1;
 }
+
+/* ── Без капса: таблички и подписи ── */
+.loc-title,
+.loc-num,
+.boss-card .t,
+.boss-name,
+.boss-bar,
+.slot-tile .sname,
+.bstat .k,
+.tree-head,
+.tree-head b,
+.tag {
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+.loc-title {
+  font-family: var(--display);
+  font-size: 12px;
+  color: #b7c0c8;
+}
+.boss-card .t {
+  font-family: var(--display);
+  font-size: 12px;
+}
+.hud-k {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--display);
+  font-size: 11px;
+}
+.bar .label,
+.bar-label {
+  text-transform: none;
+  font-family: var(--display);
+  font-weight: 400;
+}
+.tile-name {
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+.skill-tabs .tab {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 9px 6px;
+}
+.tnode.locked {
+  opacity: 1;
+}
+.tnode.locked .tnode-name {
+  opacity: 0.6;
+}
+.tnode.locked .tnode-hex path:first-child {
+  fill: #20262c;
+}
+.bunker-art {
+  border-radius: 12px;
+}

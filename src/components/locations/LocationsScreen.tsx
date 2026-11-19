@@ -48,7 +48,7 @@ export function LocationsScreen() {
               <div className="bg" style={{ background: `linear-gradient(135deg, ${l.palette.groundAlt}, ${l.palette.accent} 60%, ${l.palette.fog})` }} />
               <div className="inner">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span className="loc-num">ЛОКАЦИЯ {l.id} · Т{l.tier}</span>
+                  <span className="loc-num">Локация {l.id} · Т{l.tier}</span>
                   {current && <span className="tag">Текущая</span>}
                   {!unlocked && (
                     <span className="muted">
