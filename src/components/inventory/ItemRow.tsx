@@ -4,7 +4,7 @@ import { formatStatValue } from '../../game/items/statInfo';
 import type { Item } from '../../game/types';
 import { ru, statLabel } from '../../i18n/ru';
 import { rarityColor } from '../../ui/theme';
-import { ItemIcon } from '../common/Icons';
+import { CategoryGlyph, ItemIcon } from '../common/Icons';
 
 export function SlotDots({ item }: { item: Item }) {
   if (item.slots.length === 0) return null;
@@ -58,6 +58,34 @@ export function ItemRow({ item, equipped, better, onClick }: { item: Item; equip
           </div>
         )}
       </div>
+    </button>
+  );
+}
+
+/** Квадратная плитка предмета для сетки склада. */
+export function ItemTile({ item, better, onClick }: { item: Item; better?: boolean; onClick: () => void }) {
+  const col = rarityColor[item.rarity];
+  return (
+    <button
+      className="item-tile"
+      style={{ borderColor: col, boxShadow: `inset 0 0 18px ${col}2a${item.rarity === 'legendary' || item.rarity === 'unique' ? `, 0 0 10px ${col}55` : ''}` }}
+      onClick={onClick}
+    >
+      <span className="tile-glyph">
+        <CategoryGlyph category={item.category} color={col} size={34} />
+      </span>
+      <span className="tile-lvl">{item.level}</span>
+      <span className="tile-tier">Т{item.tier}</span>
+      {better && (
+        <span className="tile-better" title="Лучше установленного">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 20V5M5 11l7-7 7 7" />
+          </svg>
+        </span>
+      )}
+      <span className="tile-name" style={{ color: col }}>
+        {item.name}
+      </span>
     </button>
   );
 }

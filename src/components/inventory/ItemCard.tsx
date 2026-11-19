@@ -13,7 +13,7 @@ import { useProfile } from '../../stores/profileStore';
 import { useUi } from '../../stores/uiStore';
 import { rarityColor } from '../../ui/theme';
 import { ConfirmDialog } from '../common/Common';
-import { ItemIcon, ResourceIcon } from '../common/Icons';
+import { ItemIcon, ResourceIcon, UiIcon } from '../common/Icons';
 import { UpgradeDialog } from './UpgradeDialog';
 
 function sourceText(s: ItemSource): string {
@@ -93,6 +93,7 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
       (equipTarget && SLOT_CATEGORY[equipTarget] === item.category ? equipTarget : (betterSlotFor(profile, item)?.slot ?? defaultSlotFor(profile, item))))
     : null;
 
+  const betterHint = useMemo(() => (item ? betterSlotFor(profile, item) : null), [profile, item]);
   const preview = useMemo(() => {
     if (!item || equippedSlot || !slot) return null;
     const r = equipItem(profile, item.id, slot);
@@ -132,9 +133,12 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
 
   return (
     <div className="modal-back" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+      <div className="sheet" style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+        <button className="btn btn-ghost icon-btn card-close" onClick={onClose} aria-label="Закрыть">
+          <UiIcon kind="close" size={18} />
+        </button>
         <div className="sheet-body">
-          <div className="card-head">
+          <div className="card-head" style={{ paddingRight: 44 }}>
             <ItemIcon category={item.category} rarity={item.rarity} size={64} />
             <div className="grow">
               <div style={{ color: col, fontWeight: 900, fontSize: 17 }}>{item.name}</div>
@@ -151,6 +155,11 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
             {item.description}
           </div>
 
+          {!equippedSlot && betterHint && (
+            <div className="warn-item ok" style={{ marginBottom: 8 }}>
+              ↑ {betterHint.gain >= 1 ? `Слот «${ru.slot[betterHint.slot]}» свободен — установите` : `Лучше установленного: +${Math.max(1, Math.round(betterHint.gain * 100))}% к мощи комплекса`}
+            </div>
+          )}
           {item.unique && <div className="unique-box">★ {uniqueText(item.unique)}</div>}
 
           {coil && (
@@ -261,6 +270,9 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
         </div>
 
         <div className="sheet-actions">
+          <button className="btn btn-ghost" onClick={onClose}>
+            Закрыть
+          </button>
           <button className="btn btn-gold" disabled={!canUpgrade} onClick={() => setUpgrading(true)}>
             Улучшить
           </button>

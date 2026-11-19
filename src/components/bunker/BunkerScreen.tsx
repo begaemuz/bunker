@@ -14,7 +14,7 @@ import { colors, rarityColor } from '../../ui/theme';
 import { Bar } from '../common/Common';
 import { CategoryGlyph, ItemIcon, UiIcon } from '../common/Icons';
 import { ItemCard } from '../inventory/ItemCard';
-import { ItemRow } from '../inventory/ItemRow';
+import { ItemTile } from '../inventory/ItemRow';
 
 const GRID: SlotId[] = ['generator', 'coil1', 'coil2', 'capacitor', 'converter', 'cooling', 'sensor', 'shield'];
 type Sort = 'better' | 'rarity' | 'tier' | 'new';
@@ -290,7 +290,11 @@ export function BunkerScreen() {
         {items.length === 0 ? (
           <div className="empty">Здесь появится оборудование, выпавшее с роботов и боссов.</div>
         ) : (
-          items.map((it) => <ItemRow key={it.id} item={it} better={hints.get(it.id)?.gain} onClick={() => selectItem(it.id)} />)
+          <div className="item-grid">
+            {items.map((it) => (
+              <ItemTile key={it.id} item={it} better={hints.has(it.id)} onClick={() => selectItem(it.id)} />
+            ))}
+          </div>
         )}
       </div>
 
