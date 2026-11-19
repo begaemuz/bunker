@@ -1678,12 +1678,14 @@ button {
 }
 .node-name {
   font-size: 8.5px;
-  overflow-wrap: anywhere;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  overflow-wrap: normal;
   font-weight: 700;
   text-align: center;
   line-height: 1.1;
   color: #c2cad1;
-  max-width: 64px;
+  max-width: 100%;
 }
 
 /* ═════════════ Магазин ═════════════ */

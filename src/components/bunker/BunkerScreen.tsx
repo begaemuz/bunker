@@ -254,11 +254,9 @@ export function BunkerScreen() {
         {view === 'parts' && <PartsGrid onOpen={setPartId} />}
         {view === 'items' && (
         <>
-        <div className="toggle-row" style={{ marginBottom: 8, padding: '6px 10px' }}>
+        <div className="toggle-row" style={{ marginBottom: 8, padding: '8px 10px', flexDirection: 'column', alignItems: 'stretch', gap: 6 }}>
           <span className="small">
-            <b>Автопродажа</b>
-            <br />
-            <span className="muted">новое оборудование до выбранной редкости (лучшее и уникальное не продаётся)</span>
+            <b>Автопродажа</b> <span className="muted">— новое оборудование до выбранной редкости, лучшее и уникальное не продаётся</span>
           </span>
           <Select
             title="Автопродажа"
