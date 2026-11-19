@@ -17,6 +17,7 @@ function fmtDuration(sec: number): string {
 export function MenuScreen() {
   const settings = useUi((s) => s.settings);
   const toggleSound = useUi((s) => s.toggleSound);
+  const setVolume = useUi((s) => s.setVolume);
   const toggleNumbers = useUi((s) => s.toggleDamageNumbers);
   const setScreen = useUi((s) => s.setScreen);
   const newRun = useUi((s) => s.newRun);
@@ -97,6 +98,21 @@ export function MenuScreen() {
             <span>Звук</span>
             <Switch on={settings.soundOn} onChange={toggleSound} />
           </div>
+          {(
+            [
+              ['masterVol', 'Общая громкость'],
+              ['sfxVol', 'Эффекты'],
+              ['musicVol', 'Музыка'],
+            ] as const
+          ).map(([k, label]) => (
+            <div key={k} className="toggle-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 6 }}>
+              <span style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>{label}</span>
+                <b>{Math.round(settings[k] * 100)}%</b>
+              </span>
+              <input className="range" type="range" min={0} max={1} step={0.05} value={settings[k]} onChange={(e) => setVolume(k, Number(e.target.value))} />
+            </div>
+          ))}
           <div className="toggle-row">
             <span>Числа урона</span>
             <Switch on={settings.showDamageNumbers} onChange={toggleNumbers} />

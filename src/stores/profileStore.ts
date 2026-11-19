@@ -24,7 +24,20 @@ import {
 } from '../game/profile/Profile';
 import { computeOfflineReward, type OfflineReward } from '../game/progression/offline';
 import { research } from '../game/progression/TechnologyTree';
-import type { Item, Part, Rarity, SlotId } from '../game/types';
+import type { Item, Part, Rarity, Resources, SlotId } from '../game/types';
+import {
+  buyOffer,
+  buySpecial,
+  claimDaily,
+  claimQuest,
+  claimQuestBonus,
+  doExchange,
+  ensureQuests,
+  ensureShop,
+  questProgress,
+  refreshShop,
+} from '../game/meta/Meta';
+import { sellMany } from '../game/profile/Profile';
 import { migrate } from '../services/migrations';
 import { clearProfile, loadProfile, saveBackupSync, saveProfile, setStorageUser } from '../services/storage';
 import { cloudAvailable, cloudLoad, cloudSave, initTelegram, tgUser, type TgUser } from '../services/telegram';
@@ -38,7 +51,16 @@ interface ProfileState {
   /** Награда за время отсутствия, ожидающая получения. */
   offlineReward: OfflineReward | null;
   init: () => Promise<void>;
-  applyLoot: (loot: Loot, xp: number) => { levels: number; sold: Item[]; coins: number };
+  applyLoot: (loot: Loot, xp: number, enemyKind?: string) => { levels: number; sold: Item[]; coins: number };
+  massSell: (ids: string[]) => { coins: number; count: number };
+  ensureMeta: () => void;
+  buy: (section: 'regular' | 'rare', offerId: string) => string | null;
+  buySpecial: (id: string) => { got?: string; error?: string };
+  refreshShop: () => boolean;
+  exchange: (id: string) => string | null;
+  claimDaily: () => Partial<Resources> | null;
+  claimQuest: (id: string) => boolean;
+  claimQuestBonus: () => boolean;
   addGroup: (locationId: number) => void;
   summon: (locationId: number, usePass: boolean) => boolean;
   refundSummon: (locationId: number, usedPass: boolean) => void;
@@ -130,6 +152,7 @@ export const useProfile = create<ProfileState>((set, get) => {
       }
       let p = ensureMinimumKit(profile ?? createNewProfile()).profile;
       if (user) p = { ...p, tgUserId: user.id };
+      p = ensureQuests(ensureShop(p));
       const offlineReward = computeOfflineReward(p);
       set({ profile: p, loaded: true, tg: user, cloud: cloudAvailable(), offlineReward });
       void saveProfile(p);
@@ -137,10 +160,17 @@ export const useProfile = create<ProfileState>((set, get) => {
       installLifecycleSaves(get);
     },
 
-    applyLoot: (loot, xp) => {
+    applyLoot: (loot, xp, enemyKind) => {
       let p = get().profile;
       if (!p) return { levels: 0, sold: [], coins: 0 };
       p = addResources(p, loot.resources);
+      if (enemyKind) {
+        p = questProgress(p, 'kill');
+        if (enemyKind === 'heavy' || enemyKind === 'armored') p = questProgress(p, 'killHeavy');
+        if (enemyKind === 'miniboss') p = questProgress(p, 'miniboss');
+        p = questProgress(p, 'coins', loot.resources.coins ?? 0);
+        p = questProgress(p, 'items', loot.items.length);
+      }
       const r = withItems(p, loot.items);
       p = addParts(r.profile, loot.parts);
       const lv = addXp(p, xp);
@@ -151,7 +181,82 @@ export const useProfile = create<ProfileState>((set, get) => {
 
     addGroup: (locationId) => {
       const p = get().profile;
-      if (p) commit(addGroupKill(p, locationId));
+      if (p) commit(questProgress(addGroupKill(p, locationId), 'groups'));
+    },
+
+    massSell: (ids) => {
+      const p = get().profile;
+      if (!p) return { coins: 0, count: 0 };
+      const r = sellMany(p, ids);
+      commit(r.profile, false, true);
+      return { coins: r.coins, count: r.count };
+    },
+
+    ensureMeta: () => {
+      const p = get().profile;
+      if (!p) return;
+      const q = ensureQuests(ensureShop(p));
+      if (q !== p) commit(q, false, true);
+    },
+
+    buy: (section, offerId) => {
+      const p = get().profile;
+      if (!p) return 'not_loaded';
+      const r = buyOffer(p, section, offerId);
+      if (r.error) return r.error;
+      commit(questProgress(r.profile, 'items', 0), false, true);
+      return null;
+    },
+
+    buySpecial: (id) => {
+      const p = get().profile;
+      if (!p) return { error: 'not_loaded' };
+      const r = buySpecial(p, id);
+      if (r.error) return { error: r.error };
+      commit(r.profile, false, true);
+      return { got: r.got };
+    },
+
+    refreshShop: () => {
+      const p = get().profile;
+      const q = p ? refreshShop(p) : null;
+      if (!q) return false;
+      commit(q, false, true);
+      return true;
+    },
+
+    exchange: (id) => {
+      const p = get().profile;
+      if (!p) return 'not_loaded';
+      const r = doExchange(p, id);
+      if (r.error) return r.error;
+      commit(r.profile, false, true);
+      return null;
+    },
+
+    claimDaily: () => {
+      const p = get().profile;
+      if (!p) return null;
+      const r = claimDaily(p);
+      if (!r.reward) return null;
+      commit(r.profile, false, true);
+      return r.reward;
+    },
+
+    claimQuest: (id) => {
+      const p = get().profile;
+      const q = p ? claimQuest(p, id) : null;
+      if (!q) return false;
+      commit(q, false, true);
+      return true;
+    },
+
+    claimQuestBonus: () => {
+      const p = get().profile;
+      const q = p ? claimQuestBonus(p) : null;
+      if (!q) return false;
+      commit(q, false, true);
+      return true;
     },
 
     summon: (locationId, usePass) => {
@@ -173,6 +278,7 @@ export const useProfile = create<ProfileState>((set, get) => {
       if (!p) return null;
       p = addResources(p, loot.resources);
       p = addParts(addItems(p, loot.items).profile, loot.parts);
+      p = questProgress(p, 'boss');
       const r = registerBossKill(p, locationId);
       commit(r.profile, false, true);
       return r.unlocked;
@@ -214,7 +320,7 @@ export const useProfile = create<ProfileState>((set, get) => {
       if (!p) return { error: 'not_loaded', granted: [] };
       const r = tryUpgrade(p, itemId, useStabilizer);
       if (r.error) return { error: r.error, granted: [] };
-      const kit = ensureMinimumKit(r.profile);
+      const kit = ensureMinimumKit(questProgress(r.profile, 'upgrade'));
       commit(kit.profile, true, true);
       return { outcome: r.outcome, granted: kit.granted };
     },
@@ -224,7 +330,7 @@ export const useProfile = create<ProfileState>((set, get) => {
       if (!p) return 'not_loaded';
       const r = research(p, techId);
       if (r.error) return r.error;
-      commit(r.profile, true, true);
+      commit(questProgress(r.profile, 'research'), true, true);
       return null;
     },
 

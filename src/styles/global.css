@@ -492,7 +492,7 @@ button {
 /* ═════════════ Навигация ═════════════ */
 .nav {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   background: linear-gradient(#0d1115, #07090b);
   border-top: 1px solid var(--line);
   padding: 6px 4px calc(6px + var(--safe-bottom));
@@ -505,7 +505,7 @@ button {
   align-items: center;
   gap: 3px;
   padding: 6px 0 5px;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
   color: var(--muted);
   border-radius: 12px;
@@ -1483,4 +1483,263 @@ button {
   font-size: 18px;
   color: #fff;
   flex: none;
+}
+
+/* ═════════════ Нижнее окно: закреплённые шапка и действия ═════════════ */
+.sheet {
+  max-height: 92%;
+  overflow: hidden;
+}
+.sheet-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 12px 10px 14px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(#1b2128, #151a1f);
+  border-radius: 16px 16px 0 0;
+}
+.sheet-head::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 5px;
+  width: 40px;
+  height: 4px;
+  margin-left: -20px;
+  border-radius: 2px;
+  background: #3d4752;
+}
+.sheet { position: relative; }
+.sheet-title {
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.sheet-x {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: #d5dde3;
+  background: #232a32;
+  box-shadow: inset 0 0 0 1px var(--line-2);
+}
+.sheet-x:active {
+  background: #2c343d;
+}
+.sheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.sheet-actions {
+  flex: none;
+  background: #101418;
+}
+
+/* Свой список выбора */
+.select-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  background: linear-gradient(#1d232a, #161b20);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: left;
+  min-width: 0;
+}
+.option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.option.on {
+  background: #0e2f40;
+  box-shadow: inset 0 0 0 1px #2fb4ec;
+}
+.option .radio {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--line-2);
+}
+.option.on .radio {
+  border-color: #3fc8ff;
+  background: radial-gradient(circle, #3fc8ff 40%, transparent 45%);
+}
+.chip-toggle {
+  padding: 8px 12px;
+  border-radius: 18px;
+  font-size: 12px;
+  font-weight: 800;
+  background: var(--panel);
+  box-shadow: inset 0 0 0 1.5px var(--line-2);
+}
+.chip-toggle.on {
+  box-shadow: inset 0 0 0 1.5px currentColor, 0 0 10px rgba(255, 255, 255, 0.08);
+  background: #1b2229;
+}
+
+/* ═════════════ Дерево навыков ═════════════ */
+.tree {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.tree-col {
+  position: relative;
+  border-radius: 12px;
+  padding: 8px 4px 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.tree-head {
+  text-align: center;
+  margin-bottom: 8px;
+}
+.tree-head b {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.tree-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  row-gap: 22px;
+  column-gap: 4px;
+}
+.tree-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.node {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.node-orb {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 35%, #2a3139, #0d1013);
+  border: 2px solid #2c343d;
+  font-weight: 900;
+  font-size: 15px;
+}
+.node.active .node-orb {
+  border-color: var(--bc);
+  box-shadow: 0 0 10px var(--bc), inset 0 0 12px rgba(255, 255, 255, 0.08);
+}
+.node.locked .node-orb {
+  opacity: 0.4;
+}
+.node.ready .node-orb::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--good);
+  box-shadow: 0 0 8px var(--good);
+}
+.node-name {
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.1;
+  color: #c2cad1;
+  max-width: 64px;
+}
+
+/* ═════════════ Магазин ═════════════ */
+.shop-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border: 1.5px solid var(--line);
+  min-height: 150px;
+}
+.shop-card.sold {
+  opacity: 0.4;
+}
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.shop-card .price {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+}
+.quest {
+  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border: 1px solid var(--line);
+}
+.day-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.day {
+  border-radius: 10px;
+  padding: 8px 4px;
+  text-align: center;
+  background: var(--panel);
+  border: 1.5px solid var(--line);
+  font-size: 10px;
+}
+.day.today {
+  border-color: var(--gold);
+  box-shadow: 0 0 12px rgba(242, 181, 58, 0.4);
+}
+.day.done {
+  opacity: 0.45;
+}
+.range {
+  width: 100%;
+  accent-color: #3fc8ff;
 }

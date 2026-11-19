@@ -16,6 +16,8 @@ import { CategoryGlyph, ItemIcon, UiIcon } from '../common/Icons';
 import { ItemCard } from '../inventory/ItemCard';
 import { ItemTile } from '../inventory/ItemRow';
 import { PartCard, PartsGrid } from '../parts/Parts';
+import { Select, Sheet } from '../common/Sheet';
+import { MassSellSheet } from './MassSell';
 
 const GRID: SlotId[] = ['generator', 'coil1', 'coil2', 'capacitor', 'converter', 'cooling', 'sensor', 'shield'];
 type Sort = 'better' | 'rarity' | 'tier' | 'new';
@@ -69,15 +71,8 @@ function SlotTile({ slot, profile, onClick }: { slot: SlotId; profile: Profile; 
 function StatsSheet({ profile, stats, onClose }: { profile: Profile; stats: BunkerStats; onClose: () => void }) {
   const lvl = profile.bunker.level;
   return (
-    <div className="modal-back" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="screen-header" style={{ paddingTop: 12, borderRadius: '16px 16px 0 0' }}>
-          <h2 className="grow">Характеристики</h2>
-          <button className="btn btn-ghost icon-btn" onClick={onClose}>
-            <UiIcon kind="close" />
-          </button>
-        </div>
-        <div className="sheet-body">
+    <Sheet title="Характеристики" onClose={onClose}>
+        <div>
           <div className="panel">
             <div className="hud-row">
               <span className="lvl-badge">УР {lvl}</span>
@@ -170,8 +165,7 @@ function StatsSheet({ profile, stats, onClose }: { profile: Profile; stats: Bunk
             </div>
           </div>
         </div>
-      </div>
-    </div>
+    </Sheet>
   );
 }
 
@@ -188,6 +182,7 @@ export function BunkerScreen() {
   const [view, setView] = useState<'items' | 'parts'>('items');
   const [partId, setPartId] = useState<string | null>(null);
   const setAutoSell = useProfile((s) => s.setAutoSell);
+  const [massSell, setMassSell] = useState(false);
   const freeParts = Object.values(profile.parts).filter((p) => !p.installedIn).length;
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -265,18 +260,20 @@ export function BunkerScreen() {
             <br />
             <span className="muted">новое оборудование до выбранной редкости (лучшее и уникальное не продаётся)</span>
           </span>
-          <select
-            className="select"
+          <Select
+            title="Автопродажа"
             value={profile.autoSell.maxRarity ?? 'off'}
-            onChange={(e) => setAutoSell(e.target.value === 'off' ? null : (e.target.value as Rarity))}
-          >
-            <option value="off">Выкл.</option>
-            {RARITIES.filter((r) => r !== 'unique').map((r) => (
-              <option key={r} value={r}>
-                до «{ru.rarity[r]}»
-              </option>
-            ))}
-          </select>
+            onChange={(v) => setAutoSell(v === 'off' ? null : (v as Rarity))}
+            options={[
+              { value: 'off', label: 'Выкл.', hint: 'Ничего не продаётся автоматически' },
+              ...RARITIES.filter((r) => r !== 'unique').map((r) => ({
+                value: r as string,
+                label: `до «${ru.rarity[r]}»`,
+                color: rarityColor[r],
+                hint: 'Новое оборудование этой редкости и ниже продаётся сразу',
+              })),
+            ]}
+          />
         </div>
         {equipTarget && cat === SLOT_CATEGORY[equipTarget] && (
           <div className="info-box" style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -303,20 +300,28 @@ export function BunkerScreen() {
           ))}
         </div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-          <select className="select grow" value={rar} onChange={(e) => setRar(e.target.value as Rarity | 'all')}>
-            <option value="all">Любая редкость</option>
-            {RARITIES.map((r) => (
-              <option key={r} value={r}>
-                {ru.rarity[r]}
-              </option>
-            ))}
-          </select>
-          <select className="select grow" value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
-            <option value="better">Сначала лучшие</option>
-            <option value="rarity">По редкости</option>
-            <option value="tier">По тех. уровню</option>
-            <option value="new">Сначала новые</option>
-          </select>
+          <Select
+            className="grow"
+            title="Редкость"
+            value={rar}
+            onChange={(v) => setRar(v)}
+            options={[{ value: 'all' as Rarity | 'all', label: 'Любая редкость' }, ...RARITIES.map((r) => ({ value: r as Rarity | 'all', label: ru.rarity[r], color: rarityColor[r] }))]}
+          />
+          <Select
+            className="grow"
+            title="Сортировка"
+            value={sort}
+            onChange={(v) => setSort(v)}
+            options={[
+              { value: 'better', label: 'Сначала лучшие' },
+              { value: 'rarity', label: 'По редкости' },
+              { value: 'tier', label: 'По тех. уровню' },
+              { value: 'new', label: 'Сначала новые' },
+            ]}
+          />
+          <button className="btn btn-rust btn-sm" onClick={() => setMassSell(true)}>
+            Продать…
+          </button>
         </div>
         {items.length === 0 ? (
           <div className="empty">Здесь появится оборудование, выпавшее с роботов и боссов.</div>
@@ -331,6 +336,7 @@ export function BunkerScreen() {
         )}
       </div>
 
+      {massSell && <MassSellSheet onClose={() => setMassSell(false)} hints={hints} />}
       {partId && <PartCard partId={partId} onClose={() => setPartId(null)} />}
       {showStats && <StatsSheet profile={profile} stats={stats} onClose={() => setShowStats(false)} />}
       {selected && (

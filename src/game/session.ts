@@ -12,7 +12,7 @@ import { Renderer } from '../render/Renderer';
 import { useProfile } from '../stores/profileStore';
 import { useUi } from '../stores/uiStore';
 import { ru } from '../i18n/ru';
-import { sfx } from '../services/sound';
+import { setMusicMode, sfx } from '../services/sound';
 import { haptic } from '../services/telegram';
 
 /**
@@ -133,7 +133,7 @@ export class GameSession {
     const loc = this.engine.location;
     switch (e.type) {
       case 'kill': {
-        const r = prof.applyLoot(e.loot, e.xp);
+        const r = prof.applyLoot(e.loot, e.xp, e.enemy.kind);
         if (r.levels > 0) {
           ui.toast(`Уровень бункера ${useProfile.getState().profile!.bunker.level}`, 'good');
           sfx.levelUp();
@@ -176,6 +176,7 @@ export class GameSession {
         ui.toast('Аварийный ремонт', 'good');
         break;
       case 'bossSpawn':
+        setMusicMode('boss');
         sfx.boss();
         haptic('heavy');
         ui.toast(`${e.name} вступает в бой`, 'bad');
@@ -192,12 +193,14 @@ export class GameSession {
         const unlocked = useProfile.getState().bossVictory(loc.id, loot);
         this.engine.addLoot(loot);
         sfx.victory();
+        setMusicMode('calm');
         haptic('success');
         this.commitStats();
         useUi.getState().setBossReward({ locationId: loc.id, bossName: boss.name, loot, unlocked });
         break;
       }
       case 'defeat':
+        setMusicMode('calm');
         haptic('error');
         this.finish(e.duringBoss);
         break;

@@ -4,7 +4,7 @@ import { upgradeBlock } from '../game/items/ItemUpgrade';
 import { upgradeHints } from '../game/bunker/compare';
 import { researchBlock } from '../game/progression/TechnologyTree';
 import { SLOT_IDS } from '../game/types';
-import { setSoundEnabled } from '../services/sound';
+import { setSoundEnabled, setVolumes } from '../services/sound';
 import { useProfile } from '../stores/profileStore';
 import { useUi, type Screen } from '../stores/uiStore';
 import { BunkerScreen } from '../components/bunker/BunkerScreen';
@@ -17,11 +17,13 @@ import { Intro } from '../components/intro/Intro';
 import { introSeen } from '../services/storage';
 import { LocationsScreen } from '../components/locations/LocationsScreen';
 import { TechScreen } from '../components/tech/TechScreen';
+import { ShopScreen } from '../components/shop/ShopScreen';
 
-const navItems: { id: Screen; label: string; icon: 'battle' | 'bunker' | 'tech' | 'map' | 'menu' }[] = [
+const navItems: { id: Screen; label: string; icon: 'battle' | 'bunker' | 'tech' | 'shop' | 'map' | 'menu' }[] = [
   { id: 'game', label: 'Бой', icon: 'battle' },
   { id: 'bunker', label: 'Бункер', icon: 'bunker' },
   { id: 'tech', label: 'Наука', icon: 'tech' },
+  { id: 'shop', label: 'Магазин', icon: 'shop' },
   { id: 'locations', label: 'Локации', icon: 'map' },
   { id: 'menu', label: 'Меню', icon: 'menu' },
 ];
@@ -31,7 +33,9 @@ export function App() {
   const init = useProfile((s) => s.init);
 
   useEffect(() => {
-    setSoundEnabled(useUi.getState().settings.soundOn);
+    const st = useUi.getState().settings;
+    setSoundEnabled(st.soundOn);
+    setVolumes({ master: st.masterVol, sfx: st.sfxVol, music: st.musicVol });
     void init();
   }, [init]);
 
@@ -66,6 +70,7 @@ function Main() {
         <GameScreen />
         {screen === 'bunker' && <BunkerScreen />}
         {screen === 'tech' && <TechScreen />}
+        {screen === 'shop' && <ShopScreen />}
         {screen === 'locations' && <LocationsScreen />}
         {screen === 'menu' && <MenuScreen />}
         {result && <ResultScreen />}

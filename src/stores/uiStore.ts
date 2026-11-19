@@ -3,9 +3,9 @@ import type { Loot } from '../game/economy/DropSystem';
 import type { EngineMode, EngineState, RunStats } from '../game/engine/GameEngine';
 import type { CoilMode, Item, SlotId } from '../game/types';
 import { loadSettings, saveSettings, type Settings } from '../services/storage';
-import { setSoundEnabled } from '../services/sound';
+import { setSoundEnabled, setVolumes } from '../services/sound';
 
-export type Screen = 'game' | 'bunker' | 'tech' | 'locations' | 'menu';
+export type Screen = 'game' | 'bunker' | 'tech' | 'shop' | 'locations' | 'menu';
 
 export interface Toast {
   id: number;
@@ -75,6 +75,7 @@ interface UiState {
   setSpeed: (s: number) => void;
   toggleDamageNumbers: () => void;
   toggleSound: () => void;
+  setVolume: (k: 'masterVol' | 'sfxVol' | 'musicVol', v: number) => void;
   selectItem: (id: string | null) => void;
   setEquipTarget: (t: SlotId | null) => void;
   setHud: (h: HudSnapshot) => void;
@@ -117,6 +118,12 @@ export const useUi = create<UiState>((set, get) => ({
     const settings = { ...get().settings, soundOn: !get().settings.soundOn };
     saveSettings(settings);
     setSoundEnabled(settings.soundOn);
+    set({ settings });
+  },
+  setVolume: (k, v) => {
+    const settings = { ...get().settings, [k]: v };
+    saveSettings(settings);
+    setVolumes({ master: settings.masterVol, sfx: settings.sfxVol, music: settings.musicVol });
     set({ settings });
   },
   selectItem: (selectedItemId) => set({ selectedItemId }),

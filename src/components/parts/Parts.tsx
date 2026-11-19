@@ -11,7 +11,8 @@ import { useProfile } from '../../stores/profileStore';
 import { useUi } from '../../stores/uiStore';
 import { rarityColor } from '../../ui/theme';
 import { ConfirmDialog } from '../common/Common';
-import { ItemIcon, PartGlyph, UiIcon } from '../common/Icons';
+import { ItemIcon, PartGlyph } from '../common/Icons';
+import { Sheet } from '../common/Sheet';
 
 export function partStatsText(p: Part): string {
   return p.stats.map((s) => `${statLabel(s.stat)} ${formatStatValue(s.stat, s.value)}`).join(' · ');
@@ -93,21 +94,45 @@ export function PartCard({ partId, onClose }: { partId: string; onClose: () => v
   targets.sort((a, b) => Number(!!slotOf(profile, b.item.id)) - Number(!!slotOf(profile, a.item.id)) || rarityIndex(b.item.rarity) - rarityIndex(a.item.rarity));
 
   return (
-    <div className="modal-back" onClick={onClose}>
-      <div className="sheet" style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
-        <button className="btn btn-ghost icon-btn card-close" onClick={onClose} aria-label="Закрыть">
-          <UiIcon kind="close" size={18} />
-        </button>
-        <div className="sheet-body">
-          <div className="card-head" style={{ paddingRight: 44 }}>
-            <div className="item-icon" style={{ width: 60, height: 60, borderColor: col }}>
-              <PartGlyph color={col} size={36} />
-            </div>
-            <div className="grow">
-              <div style={{ color: col, fontWeight: 900, fontSize: 17 }}>{part.name}</div>
-              <div className="item-sub">{ru.rarity[part.rarity]} модификация</div>
-            </div>
+    <>
+    <Sheet
+      onClose={onClose}
+      head={
+        <div className="card-head" style={{ margin: 0 }}>
+          <div className="item-icon" style={{ width: 52, height: 52, borderColor: col }}>
+            <PartGlyph color={col} size={32} />
           </div>
+          <div className="grow">
+            <div style={{ color: col, fontWeight: 900, fontSize: 16 }}>{part.name}</div>
+            <div className="item-sub">{ru.rarity[part.rarity]} модификация</div>
+          </div>
+        </div>
+      }
+      actions={
+        <>
+
+          <button className="btn btn-ghost" onClick={onClose}>
+            Закрыть
+          </button>
+          <button
+            className="btn btn-rust"
+            onClick={() => {
+              const s = scrap(part.id);
+              toast(`Разобрано: +${s} металлолома`, 'good');
+              onClose();
+            }}
+          >
+            Разобрать
+          </button>
+          <button className="btn btn-gold" disabled={!canFuse} onClick={() => setConfirmFuse(true)}>
+            Объединить
+          </button>
+          <button className="btn btn-primary" style={{ flexBasis: '100%' }} onClick={() => setPicking(!picking)}>
+            {picking ? 'Скрыть оборудование' : 'Установить в оборудование'}
+          </button>
+        </>
+      }
+    >
           <div className="small muted" style={{ marginBottom: 8 }}>
             {t.description}
           </div>
@@ -163,29 +188,8 @@ export function PartCard({ partId, onClose }: { partId: string; onClose: () => v
               ))}
             </>
           )}
-        </div>
-        <div className="sheet-actions">
-          <button className="btn btn-ghost" onClick={onClose}>
-            Закрыть
-          </button>
-          <button
-            className="btn btn-rust"
-            onClick={() => {
-              const s = scrap(part.id);
-              toast(`Разобрано: +${s} металлолома`, 'good');
-              onClose();
-            }}
-          >
-            Разобрать
-          </button>
-          <button className="btn btn-gold" disabled={!canFuse} onClick={() => setConfirmFuse(true)}>
-            Объединить
-          </button>
-          <button className="btn btn-primary" style={{ flexBasis: '100%' }} onClick={() => setPicking(!picking)}>
-            {picking ? 'Скрыть оборудование' : 'Установить в оборудование'}
-          </button>
-        </div>
-      </div>
+
+    </Sheet>
       {confirmFuse && next && (
         <ConfirmDialog
           title="Объединить модификации?"
@@ -207,7 +211,7 @@ export function PartCard({ partId, onClose }: { partId: string; onClose: () => v
           onCancel={() => setConfirmFuse(false)}
         />
       )}
-    </div>
+    </>
   );
 }
 

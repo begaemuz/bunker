@@ -13,7 +13,8 @@ import { useProfile } from '../../stores/profileStore';
 import { useUi } from '../../stores/uiStore';
 import { rarityColor } from '../../ui/theme';
 import { ConfirmDialog } from '../common/Common';
-import { ItemIcon, ResourceIcon, UiIcon } from '../common/Icons';
+import { ItemIcon, ResourceIcon } from '../common/Icons';
+import { Sheet } from '../common/Sheet';
 import { UpgradeDialog } from './UpgradeDialog';
 import { ItemSlots } from '../parts/Parts';
 
@@ -133,25 +134,64 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
   };
 
   return (
-    <div className="modal-back" onClick={onClose}>
-      <div className="sheet" style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
-        <button className="btn btn-ghost icon-btn card-close" onClick={onClose} aria-label="Закрыть">
-          <UiIcon kind="close" size={18} />
-        </button>
-        <div className="sheet-body">
-          <div className="card-head" style={{ paddingRight: 44 }}>
-            <ItemIcon category={item.category} rarity={item.rarity} size={64} />
-            <div className="grow">
-              <div style={{ color: col, fontWeight: 900, fontSize: 17 }}>{item.name}</div>
-              <div className="item-sub">
-                {ru.rarity[item.rarity]} · {ru.category[item.category].toLowerCase()}
-                {equippedSlot && <span className="tag">{ru.slot[equippedSlot]}</span>}
-              </div>
-              <div className="item-sub">
-                Уровень {item.level} / {item.maxLevel} · технологический уровень {item.tier}
-              </div>
+    <>
+    <Sheet
+      onClose={onClose}
+      head={
+        <div className="card-head" style={{ margin: 0 }}>
+          <ItemIcon category={item.category} rarity={item.rarity} size={52} />
+          <div className="grow" style={{ minWidth: 0 }}>
+            <div style={{ color: col, fontWeight: 900, fontSize: 16, lineHeight: 1.15 }}>{item.name}</div>
+            <div className="item-sub">
+              {ru.rarity[item.rarity]} · {ru.category[item.category].toLowerCase()}
+              {equippedSlot && <span className="tag">{ru.slot[equippedSlot]}</span>}
+            </div>
+            <div className="item-sub">
+              Ур. {item.level}/{item.maxLevel} · тех. уровень {item.tier}
             </div>
           </div>
+        </div>
+      }
+      actions={
+        <>
+
+          <button className="btn btn-ghost" onClick={onClose}>
+            Закрыть
+          </button>
+          <button className="btn btn-gold" disabled={!canUpgrade} onClick={() => setUpgrading(true)}>
+            Улучшить
+          </button>
+          {equippedSlot ? (
+            <>
+              {onReplace && (
+                <button className="btn" onClick={() => onReplace(equippedSlot)}>
+                  Заменить
+                </button>
+              )}
+              <button
+                className="btn btn-ghost"
+                onClick={() => {
+                  unequip(item.id);
+                  toast(`Снято: ${item.name}`);
+                  onClose();
+                }}
+              >
+                Снять
+              </button>
+            </>
+          ) : (
+            <>
+              <button className="btn btn-rust" onClick={() => setConfirmSell(true)}>
+                Продать <ResourceIcon type="coins" /> {price}
+              </button>
+              <button className="btn btn-primary" onClick={doEquip} style={{ flexBasis: '100%' }}>
+                {replacing ? `Заменить: ${ru.slot[slot!]}` : `Установить: ${ru.slot[slot!]}`}
+              </button>
+            </>
+          )}
+        </>
+      }
+    >
           <div className="small muted" style={{ lineHeight: 1.45, marginBottom: 8 }}>
             {item.description}
           </div>
@@ -257,45 +297,8 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
               ID: {item.id}
             </div>
           )}
-        </div>
 
-        <div className="sheet-actions">
-          <button className="btn btn-ghost" onClick={onClose}>
-            Закрыть
-          </button>
-          <button className="btn btn-gold" disabled={!canUpgrade} onClick={() => setUpgrading(true)}>
-            Улучшить
-          </button>
-          {equippedSlot ? (
-            <>
-              {onReplace && (
-                <button className="btn" onClick={() => onReplace(equippedSlot)}>
-                  Заменить
-                </button>
-              )}
-              <button
-                className="btn btn-ghost"
-                onClick={() => {
-                  unequip(item.id);
-                  toast(`Снято: ${item.name}`);
-                  onClose();
-                }}
-              >
-                Снять
-              </button>
-            </>
-          ) : (
-            <>
-              <button className="btn btn-rust" onClick={() => setConfirmSell(true)}>
-                Продать <ResourceIcon type="coins" /> {price}
-              </button>
-              <button className="btn btn-primary" onClick={doEquip} style={{ flexBasis: '100%' }}>
-                {replacing ? `Заменить: ${ru.slot[slot!]}` : `Установить: ${ru.slot[slot!]}`}
-              </button>
-            </>
-          )}
-        </div>
-      </div>
+    </Sheet>
 
       {upgrading && <UpgradeDialog itemId={item.id} onClose={() => setUpgrading(false)} onDestroyed={onClose} />}
       {confirmSell && (
@@ -320,6 +323,6 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
           onCancel={() => setConfirmSell(false)}
         />
       )}
-    </div>
+    </>
   );
 }

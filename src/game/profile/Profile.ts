@@ -4,6 +4,7 @@ import { getLocation, locationsConfig } from '../config/locationsConfig';
 import { generateItem, sellPrice } from '../items/ItemGenerator';
 import { isAtLeast } from '../items/ItemRarity';
 import { dropItemParts } from '../items/Parts';
+import type { DailyState, ExchangeState, QuestState, ShopState } from '../meta/Meta';
 import {
   RESOURCE_KEYS,
   SLOT_CATEGORY,
@@ -16,7 +17,7 @@ import {
   type SlotId,
 } from '../types';
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 export interface GlobalStats {
   robotsKilled: number;
@@ -90,6 +91,19 @@ export interface Profile {
   offline: { lastSeen: number; rates: OfflineRates | null };
   /** Игрок Telegram, к которому привязан прогресс. */
   tgUserId: number | null;
+  shop: ShopState;
+  exchange: ExchangeState;
+  daily: DailyState;
+  quests: QuestState;
+}
+
+export function emptyMeta(): Pick<Profile, 'shop' | 'exchange' | 'daily' | 'quests'> {
+  return {
+    shop: { refreshedAt: 0, refreshDay: '', refreshes: 0, regular: [], rare: [] },
+    exchange: { day: '', used: {} },
+    daily: { lastDay: null, cycle: 0 },
+    quests: { day: '', list: [], bonusClaimed: false },
+  };
 }
 
 export function emptyResources(): Resources {
@@ -154,6 +168,7 @@ export function createNewProfile(): Profile {
     autoSell: { maxRarity: null },
     offline: { lastSeen: now, rates: null },
     tgUserId: null,
+    ...emptyMeta(),
   };
 }
 
@@ -292,6 +307,21 @@ export function sellItem(p: Profile, itemId: string): { profile: Profile; coins:
     },
     coins,
   };
+}
+
+/** Массовая продажа: установленное оборудование пропускается. */
+export function sellMany(p: Profile, ids: string[]): { profile: Profile; coins: number; count: number } {
+  let q = p;
+  let coins = 0;
+  let count = 0;
+  for (const id of ids) {
+    const r = sellItem(q, id);
+    if (r.error) continue;
+    q = r.profile;
+    coins += r.coins;
+    count++;
+  }
+  return { profile: q, coins, count };
 }
 
 export function needsSellWarning(item: Item): boolean {

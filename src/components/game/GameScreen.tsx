@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { QuestsSheet, useQuestBadge } from '../shop/QuestsSheet';
 import { gameConfig, modeConfig } from '../../game/config/gameConfig';
 import { getLocation } from '../../game/config/locationsConfig';
 import { canSummonBoss, locationProgress, xpForLevel } from '../../game/profile/Profile';
@@ -60,6 +61,8 @@ function TopBar() {
   const loc = getLocation(profile.locations.current);
   const r = profile.resources;
   const lvl = profile.bunker.level;
+  const [quests, setQuests] = useState(false);
+  const badge = useQuestBadge();
 
   return (
     <div className="topbar">
@@ -82,10 +85,15 @@ function TopBar() {
             </button>
           ))}
         </div>
+        <button className="btn icon-btn" style={{ position: 'relative', overflow: 'visible' }} onClick={() => setQuests(true)} aria-label="Задания">
+          <UiIcon kind="gift" size={18} />
+          {badge > 0 && <span className="nav-badge" style={{ top: 1, right: 1 }}>{badge}</span>}
+        </button>
         <button className="btn icon-btn" onClick={() => setPaused(!paused)} aria-label="Пауза">
           <UiIcon kind={paused ? 'play' : 'pause'} size={18} />
         </button>
       </div>
+      {quests && <QuestsSheet onClose={() => setQuests(false)} />}
       <div className="res-strip">
         {(['coins', 'scrap', 'techParts', 'blueprints', 'energyCores', 'stabilizers', 'bossPasses'] as const).map((k) => (
           <span key={k} className="res">

@@ -23,10 +23,12 @@ import {
   isEquipped,
   registerBossKill,
   sellItem,
+  sellMany,
   setCurrentLocation,
   unequipItem,
 } from '../src/game/profile/Profile';
-import { research, researchBlock } from '../src/game/progression/TechnologyTree';
+import { effectValue, research, researchBlock, researchCost } from '../src/game/progression/TechnologyTree';
+import { buyOffer, buySpecial, claimDaily, claimQuest, claimQuestBonus, doExchange, ensureQuests, ensureShop, exchangeUsed, questProgress, refreshShop } from '../src/game/meta/Meta';
 import { addParts, fuseParts, generatePart, installPart, unlockSlot } from '../src/game/items/Parts';
 import { applyAutoSell } from '../src/game/economy/AutoSell';
 import { computeOfflineReward } from '../src/game/progression/offline';
@@ -175,6 +177,55 @@ console.log('— Технологии и уровень');
   check('Требование уровня бункера', research(p, 'e_drain').error === 'level');
 }
 
+console.log('— Бесконечные навыки');
+{
+  let p = addResources(addXp(createNewProfile(), 1e9).profile, { coins: 1e15, techParts: 1e15, scrap: 1e15, blueprints: 1e15, energyCores: 1e15 });
+  for (let i = 0; i < 60; i++) for (const t of techConfig) p = research(p, t.id).profile;
+  check('Навык качается выше старого предела (60 уровней)', (p.techs['m_power'] ?? 0) === 60);
+  const st = computeBunkerStats(p);
+  const drNode = techConfig.find((t) => t.id === 'd_dr')!;
+  check('Ограниченный эффект навыка приближается к пределу', effectValue(drNode.effects[0], 1000) <= 0.35 + 1e-9 && effectValue(drNode.effects[0], 1000) > 0.34);
+  check(`Общий предел снижения урона (${(st.damageReduction * 100).toFixed(0)}%)`, st.damageReduction <= 0.6);
+  const node = techConfig.find((t) => t.id === 'm_power')!;
+  check('Стоимость растёт геометрически', (researchCost(node, 20).coins ?? 0) > (researchCost(node, 10).coins ?? 0) * 10);
+}
+
+console.log('— Магазин, обмен, награды, задания');
+{
+  let p = ensureQuests(ensureShop(addResources(createNewProfile(), { coins: 1e6, scrap: 1000, techParts: 1000, blueprints: 100, crystals: 500 })));
+  check('Магазин заполнен', p.shop.regular.length === 7 && p.shop.rare.length === 4);
+  const offer = p.shop.regular.find((o) => o.item)!;
+  const before = Object.keys(p.items).length;
+  const b = buyOffer(p, 'regular', offer.id);
+  check('Покупка списывает монеты и добавляет предмет', !b.error && Object.keys(b.profile.items).length === before + 1 && b.profile.resources.coins < p.resources.coins);
+  check('Нельзя купить дважды', buyOffer(b.profile, 'regular', offer.id).error === 'sold');
+  const r1 = refreshShop(p)!;
+  check('Ручное обновление стоит монет и меняет ассортимент', r1.resources.coins < p.resources.coins && r1.shop.regular[0].id !== p.shop.regular[0].id);
+  check('Спецмагазин за кристаллы', buySpecial(p, 'sp_pass').profile.resources.bossPasses === 1);
+  let q = p;
+  for (let i = 0; i < 30; i++) q = doExchange(q, 'scrap_coins').profile;
+  check('Дневной лимит обмена', exchangeUsed(q, 'scrap_coins') === 20 && doExchange(q, 'scrap_coins').error === 'limit');
+  // Обмен по кругу не даёт прибыли
+  let loop = addResources(createNewProfile(), { coins: 3000 });
+  const c0 = loop.resources.coins;
+  loop = doExchange(loop, 'coins_tech').profile;
+  for (let i = 0; i < 2; i++) loop = doExchange(loop, 'tech_scrap').profile;
+  while (loop.resources.scrap >= 20) loop = doExchange(loop, 'scrap_coins').profile;
+  check(`Обмен по кругу в убыток (${c0} → ${loop.resources.coins})`, loop.resources.coins < c0);
+  const d1 = claimDaily(p);
+  check('Награда за вход выдаётся', !!d1.reward && d1.profile.resources.coins > p.resources.coins);
+  check('Повторно в тот же день нельзя', !claimDaily(d1.profile).reward);
+  let qq = p;
+  const kinds = qq.quests.list.map((x) => x.kind);
+  for (const k of kinds) qq = questProgress(qq, k, 1e6);
+  for (const x of qq.quests.list) qq = claimQuest(qq, x.id) ?? qq;
+  check('Задания выполняются и награда выдаётся', qq.quests.list.every((x) => x.claimed));
+  check('Бонус за все задания', !!claimQuestBonus(qq));
+  const eqId = p.equipment.coil1!;
+  const ms = sellMany(p, [eqId, offer.id]);
+  check('Массовая продажа пропускает установленное', !!ms.profile.items[eqId]);
+}
+
 console.log('— Улучшение оборудования');
 {
   let p = addResources(createNewProfile(), { coins: 1e7, scrap: 1e6, techParts: 1e6, energyCores: 1000, stabilizers: 1000 });
@@ -273,7 +324,8 @@ console.log('— Сохранения');
   check('Миграция: реактор стал генератором и остался установлен', m.items.b?.category === 'generator' && m.equipment.generator === 'b');
   check('Миграция: победа над боссом открыла 2-ю локацию', m.locations.unlocked.includes(2));
   check('Миграция: стоит катушка №1', m.equipment.coil1 === 'a');
-  check('Миграция v2 → v4: модификации и автопродажа', !!m.parts && m.autoSell.maxRarity === null && m.resources.expansionKeys === 0);
+  check('Миграция v2 → v5: модификации и автопродажа', !!m.parts && m.autoSell.maxRarity === null && m.resources.expansionKeys === 0);
+  check('Миграция v5: магазин, обмен, награды, задания', !!m.shop && !!m.exchange && !!m.daily && !!m.quests && m.version === 5);
 }
 
 // ─────────────── Прогон баланса ───────────────

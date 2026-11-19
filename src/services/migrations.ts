@@ -1,6 +1,7 @@
 import { generateItem } from '../game/items/ItemGenerator';
 import {
   createNewProfile,
+  emptyMeta,
   emptyEquipment,
   emptyLocationProgress,
   emptyResources,
@@ -105,6 +106,8 @@ const migrations: Record<number, (s: AnySave) => AnySave> = {
     tgUserId: null,
     version: 4,
   }),
+  // v4 → v5: магазин, обмен, награды за вход, ежедневные задания.
+  4: (s) => ({ ...s, ...emptyMeta(), version: 5 }),
 };
 
 /** Приводит сохранение любой версии к текущей и заполняет пропуски. */
@@ -135,5 +138,9 @@ export function migrate(raw: unknown): Profile {
     autoSell: p.autoSell ?? base.autoSell,
     offline: p.offline ?? base.offline,
     tgUserId: p.tgUserId ?? null,
+    shop: p.shop ?? base.shop,
+    exchange: p.exchange ?? base.exchange,
+    daily: p.daily ?? base.daily,
+    quests: p.quests ?? base.quests,
   };
 }
