@@ -134,13 +134,15 @@ export const useProfile = create<ProfileState>((set, get) => {
 
     init: async () => {
       if (get().loaded) return;
-      await initTelegram();
+      const safe = <T,>(p: Promise<T>, ms: number, fallback: T): Promise<T> =>
+        Promise.race([p.catch(() => fallback), new Promise<T>((r) => setTimeout(() => r(fallback), ms))]);
+      await safe(initTelegram(), 5000, null);
       const user = tgUser();
       setStorageUser(user?.id ?? null);
-      let profile = await loadProfile();
+      let profile = await safe(loadProfile(), 6000, null);
       // Облачная копия Telegram: берём более свежую.
       if (cloudAvailable()) {
-        const raw = await cloudLoad();
+        const raw = await safe(cloudLoad(), 6000, null);
         if (raw) {
           try {
             const remote = migrate(JSON.parse(raw));
@@ -152,8 +154,17 @@ export const useProfile = create<ProfileState>((set, get) => {
       }
       let p = ensureMinimumKit(profile ?? createNewProfile()).profile;
       if (user) p = { ...p, tgUserId: user.id };
-      p = ensureQuests(ensureShop(p));
-      const offlineReward = computeOfflineReward(p);
+      try {
+        p = ensureQuests(ensureShop(p));
+      } catch (e) {
+        console.error('Магазин/задания', e);
+      }
+      let offlineReward: OfflineReward | null = null;
+      try {
+        offlineReward = computeOfflineReward(p);
+      } catch (e) {
+        console.error('Офлайн-награда', e);
+      }
       set({ profile: p, loaded: true, tg: user, cloud: cloudAvailable(), offlineReward });
       void saveProfile(p);
       persistCloud(p, true);
