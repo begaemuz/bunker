@@ -69,6 +69,8 @@ interface UiState {
   runId: number;
   introOpen: boolean;
   setIntroOpen: (o: boolean) => void;
+  questsOpen: boolean;
+  setQuestsOpen: (o: boolean) => void;
 
   setScreen: (s: Screen) => void;
   setPaused: (p: boolean) => void;
@@ -101,6 +103,8 @@ export const useUi = create<UiState>((set, get) => ({
   runId: 1,
   introOpen: false,
   setIntroOpen: (introOpen) => set({ introOpen }),
+  questsOpen: false,
+  setQuestsOpen: (questsOpen) => set({ questsOpen }),
 
   setScreen: (screen) => set({ screen, selectedItemId: null, equipTarget: null }),
   setPaused: (paused) => set({ paused }),

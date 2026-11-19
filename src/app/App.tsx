@@ -18,6 +18,7 @@ import { introSeen } from '../services/storage';
 import { LocationsScreen } from '../components/locations/LocationsScreen';
 import { TechScreen } from '../components/tech/TechScreen';
 import { ShopScreen } from '../components/shop/ShopScreen';
+import { QuestsSheet } from '../components/shop/QuestsSheet';
 
 const navItems: { id: Screen; label: string; icon: 'battle' | 'bunker' | 'tech' | 'shop' | 'map' | 'menu' }[] = [
   { id: 'game', label: 'Бой', icon: 'battle' },
@@ -46,6 +47,8 @@ export function App() {
 function Main() {
   const screen = useUi((s) => s.screen);
   const introOpen = useUi((s) => s.introOpen);
+  const questsOpen = useUi((s) => s.questsOpen);
+  const setQuestsOpen = useUi((s) => s.setQuestsOpen);
   const setIntroOpen = useUi((s) => s.setIntroOpen);
   useEffect(() => {
     const p = useProfile.getState().profile!;
@@ -74,6 +77,7 @@ function Main() {
         {screen === 'locations' && <LocationsScreen />}
         {screen === 'menu' && <MenuScreen />}
         {result && <ResultScreen />}
+        {questsOpen && <QuestsSheet onClose={() => setQuestsOpen(false)} />}
         <BossRewardModal />
         {!introOpen && <OfflineRewardModal />}
         <Toasts />

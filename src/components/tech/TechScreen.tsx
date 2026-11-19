@@ -109,7 +109,7 @@ function BranchColumn({ branch, onOpen }: { branch: (typeof techBranches)[number
   const nodes = techConfig.filter((t) => t.branch === branch.id);
   const tiers = Math.max(...nodes.map((n) => n.tier)) + 1;
   const height = tiers * ROW + (tiers - 1) * GAP;
-  const pos = (n: TechNode) => ({ x: n.col * 50 + 25, y: n.tier * (ROW + GAP) + 23 });
+  const pos = (n: TechNode) => ({ x: n.col * 50 + 25, y: n.tier * (ROW + GAP) + 20 });
   return (
     <div className="tree-col">
       <div className="tree-head">
@@ -129,9 +129,9 @@ function BranchColumn({ branch, onOpen }: { branch: (typeof techBranches)[number
                 <line
                   key={`${r.id}-${n.id}`}
                   x1={a.x}
-                  y1={a.y + 23}
+                  y1={a.y + 20}
                   x2={b.x}
-                  y2={b.y - 23}
+                  y2={b.y - 20}
                   stroke={met ? branch.color : '#2c343d'}
                   strokeWidth={met ? 2.5 : 2}
                   vectorEffect="non-scaling-stroke"

@@ -1605,8 +1605,8 @@ button {
 /* ═════════════ Дерево навыков ═════════════ */
 .tree {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
 }
 .tree-col {
   position: relative;
@@ -1621,7 +1621,8 @@ button {
 }
 .tree-head b {
   display: block;
-  font-size: 11px;
+  min-height: 26px;
+  font-size: 10px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -1647,8 +1648,8 @@ button {
 }
 .node-orb {
   position: relative;
-  width: 46px;
-  height: 46px;
+  width: 40px;
+  height: 40px;
   border-radius: 12px;
   display: grid;
   place-items: center;
@@ -1676,7 +1677,8 @@ button {
   box-shadow: 0 0 8px var(--good);
 }
 .node-name {
-  font-size: 9px;
+  font-size: 8.5px;
+  overflow-wrap: anywhere;
   font-weight: 700;
   text-align: center;
   line-height: 1.1;
