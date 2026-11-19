@@ -88,14 +88,14 @@ function TopBar() {
           </div>
         </div>
         <button className="btn top-btn" onClick={() => setQuests(true)} aria-label="Задания и награды">
-          <UiIcon kind="gift" size={26} />
+          <UiIcon kind="gift" size={19} />
           {badge > 0 && <span className="nav-badge">{badge}</span>}
         </button>
         <button className="btn top-btn" onClick={() => setPaused(!paused)} aria-label="Пауза">
-          <UiIcon kind={paused ? 'play' : 'pause'} size={26} />
+          <UiIcon kind={paused ? 'play' : 'pause'} size={19} />
         </button>
-        <button className="btn top-btn" onClick={() => setScreen('menu')} aria-label="Меню">
-          <UiIcon kind="menu" size={26} />
+        <button className="btn top-btn" onClick={() => setScreen('menu')} aria-label="Настройки">
+          <UiIcon kind="menu" size={20} />
         </button>
       </div>
       <ResourceStrip />
@@ -128,8 +128,7 @@ function SpeedButton() {
   const next = () => setSpeed((list as readonly number[])[((list as readonly number[]).indexOf(speed) + 1) % list.length]);
   return (
     <button className={`btn speed-btn s${speed}`} onClick={next} aria-label="Скорость боя">
-      <span>x{speed}</span>
-      <i>скорость</i>
+      x{speed}
     </button>
   );
 }

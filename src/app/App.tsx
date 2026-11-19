@@ -86,12 +86,13 @@ function Main() {
         <nav className="nav">
           {navItems.map((n) => (
             <button key={n.id} className={screen === n.id ? 'on' : ''} onClick={() => setScreen(n.id)}>
-              <UiIcon kind={n.icon} />
-              {n.label}
-
-              {n.id === 'tech' && canResearch && <span className="nav-dot" />}
-              {n.id === 'bunker' && better > 0 && <span className="nav-badge" style={{ background: 'linear-gradient(#7be38a, #2f9a3c)', boxShadow: '0 0 6px rgba(95,209,106,0.8)' }}>{better}</span>}
-              {n.id === 'bunker' && better === 0 && canUpgrade && <span className="nav-dot" />}
+              <span className="nav-ic">
+                <UiIcon kind={n.icon} size={22} />
+                {n.id === 'tech' && canResearch && <span className="nav-dot" />}
+                {n.id === 'bunker' && better > 0 && <span className="nav-badge good">{better}</span>}
+                {n.id === 'bunker' && better === 0 && canUpgrade && <span className="nav-dot" />}
+              </span>
+              <span className="nav-label">{n.label}</span>
             </button>
           ))}
         </nav>

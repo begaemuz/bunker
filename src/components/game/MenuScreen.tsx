@@ -52,7 +52,7 @@ export function MenuScreen() {
   return (
     <div className="screen">
       <div className="screen-header">
-        <h2 className="grow">Меню</h2>
+        <h2 className="grow">Настройки</h2>
         <ResourceStrip />
       </div>
       <div className="screen-body">
