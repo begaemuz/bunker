@@ -33,8 +33,8 @@ export function PartTile({ part, canFuse, onClick }: { part: Part; canFuse?: boo
         {Math.round(q * 100)}%
       </span>
       {canFuse && (
-        <span className="tile-better" style={{ background: 'radial-gradient(circle at 40% 35%, #ffe7a3, #d99b1c)', boxShadow: '0 0 12px rgba(242,181,58,0.9)' }} title="Можно объединить">
-          <span style={{ fontWeight: 900, fontSize: 11 }}>3</span>
+        <span className="tile-fuse" title="Можно объединить">
+          ×3
         </span>
       )}
       {part.element && <ElementDot el={part.element} />}

@@ -173,9 +173,11 @@ export function ResourceIcon({ type, size = 14 }: { type: ResourceKey; size?: nu
     case 'components':
       return (
         <svg {...p}>
-          <rect x="6" y="6" width="12" height="12" rx="2" fill="none" stroke={c} strokeWidth="2" />
-          <rect x="9.5" y="9.5" width="5" height="5" rx="1" fill={c} />
-          <path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
+          {/* компоненты синтеза: две гайки-детали */}
+          <path d="M14.32 7.20 L11.20 9.00 L8.08 7.20 L8.08 3.60 L11.20 1.80 L14.32 3.60Z" fill={c} opacity={0.75} />
+          <circle cx="11.2" cy="5.4" r="1.4" fill="#0b0e11" />
+          <path d="M9.32 12.15 L5.60 14.30 L1.88 12.15 L1.88 7.85 L5.60 5.70 L9.32 7.85Z" fill={c} />
+          <circle cx="5.6" cy="10" r="1.7" fill="#0b0e11" />
         </svg>
       );
     case 'boost1':
