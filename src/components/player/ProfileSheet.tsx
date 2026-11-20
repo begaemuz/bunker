@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { computeBunkerStats } from '../../game/bunker/BunkerStats';
 import { combatPower } from '../../game/bunker/compare';
 import { AVATARS, FRAMES, frameUnlocked, VIP_THRESHOLDS, vipLevel, vipNext, vipPerkLines } from '../../game/meta/vip';
@@ -51,72 +51,142 @@ export function NickDialog({ initial, title, onSave, onCancel }: { initial: stri
   );
 }
 
-/** Листалка уровней VIP: что даёт каждый уровень. */
+function VipGem({ size = 44 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden>
+      <defs>
+        <linearGradient id="vg-a" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#ffe9a8" />
+          <stop offset="0.5" stopColor="#f2a93b" />
+          <stop offset="1" stopColor="#b45f12" />
+        </linearGradient>
+        <linearGradient id="vg-b" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#e3b6ff" />
+          <stop offset="1" stopColor="#7a2fd0" />
+        </linearGradient>
+      </defs>
+      <path d="M8 18l7 6 9-12 9 12 7-6-4 18H12z" fill="url(#vg-a)" stroke="#5a2c06" strokeWidth="1.5" strokeLinejoin="round" />
+      <rect x="12" y="36" width="24" height="5" rx="2" fill="url(#vg-a)" stroke="#5a2c06" strokeWidth="1.5" />
+      <path d="M24 22l4 5-4 5-4-5z" fill="url(#vg-b)" />
+      <circle cx="8" cy="17" r="2.5" fill="#ffe9a8" />
+      <circle cx="40" cy="17" r="2.5" fill="#ffe9a8" />
+      <circle cx="24" cy="10" r="2.5" fill="#ffe9a8" />
+    </svg>
+  );
+}
+
+/** VIP: карточка статуса и листалка привилегий всех уровней. */
 function VipTab() {
   const profile = useProfile((s) => s.profile)!;
   const openShop = useUi((s) => s.openShop);
   const cur = vipLevel(profile.vip.points);
   const max = VIP_THRESHOLDS.length - 1;
-  const [view, setView] = useState(Math.min(max, Math.max(1, cur + 1)));
   const next = vipNext(profile.vip.points);
-  const need = VIP_THRESHOLDS[view];
-  const reached = cur >= view;
-  const frames = FRAMES.filter((f) => f.req.vip === view);
+  const [view, setView] = useState(Math.min(max, Math.max(1, cur + 1)));
+  const track = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = track.current?.children[view - 1] as HTMLElement | undefined;
+    el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }, [view]);
+
+  const onScroll = () => {
+    const t = track.current;
+    if (!t) return;
+    const center = t.scrollLeft + t.clientWidth / 2;
+    let best = 1;
+    let dist = Infinity;
+    Array.from(t.children).forEach((c, i) => {
+      const el = c as HTMLElement;
+      const d = Math.abs(el.offsetLeft + el.offsetWidth / 2 - center);
+      if (d < dist) {
+        dist = d;
+        best = i + 1;
+      }
+    });
+    if (best !== view) setView(best);
+  };
+
+  const pct = next ? ((profile.vip.points - next.from) / (next.need - next.from)) * 100 : 100;
+
   return (
     <>
-      <div className="vip-card">
-        <div className="vip-top">
-          <span className="vip-badge">VIP {cur}</span>
-          <div className="grow">
-            {next ? (
-              <>
-                <div className="small">
-                  До VIP {next.level}: {fmtNum(profile.vip.points)} / {fmtNum(next.need)} очков
-                </div>
-                <div className="vip-bar">
-                  <i style={{ width: `${((profile.vip.points - next.from) / (next.need - next.from)) * 100}%` }} />
-                </div>
-              </>
-            ) : (
-              <div className="small">Максимальный VIP</div>
-            )}
-          </div>
+      <div className="vip-hero">
+        <VipGem size={52} />
+        <div className="grow" style={{ minWidth: 0 }}>
+          <div className="vip-hero-lvl">VIP {cur}</div>
+          {next ? (
+            <>
+              <div className="vip-meter">
+                <i style={{ width: `${Math.max(2, pct)}%` }} />
+              </div>
+              <div className="vip-hero-sub">
+                {fmtNum(profile.vip.points)} / {fmtNum(next.need)} до VIP {next.level}
+              </div>
+            </>
+          ) : (
+            <div className="vip-hero-sub">Максимальный уровень</div>
+          )}
         </div>
-        <div className="small muted" style={{ marginTop: 8 }}>
-          Очки VIP начисляются за покупку кристаллов: 1 кристалл = 1 очко.
-        </div>
+      </div>
+      <div className="small muted" style={{ margin: '8px 2px 12px' }}>
+        1 купленный кристалл = 1 очко VIP. Привилегии действуют навсегда.
       </div>
 
-      <div className="vip-browser">
-        <button className="btn vip-arrow" disabled={view <= 1} onClick={() => setView(view - 1)} aria-label="Предыдущий VIP">
-          ‹
-        </button>
-        <div className={`vip-page${reached ? ' reached' : ''}`}>
-          <div className="vip-page-head">
-            <span className="vip-badge big">VIP {view}</span>
-            <span className="small">{reached ? 'Получено' : `${fmtNum(need)} очков`}</span>
-          </div>
-          <ul className="vip-perks">
-            {vipPerkLines(view)
-              .filter((l) => l !== 'VIP-рамки аватара')
-              .map((l) => (
-                <li key={l}>{l}</li>
-              ))}
-            {frames.map((f) => (
-              <li key={f.id}>Рамка «{f.name}»</li>
-            ))}
-          </ul>
-          <div className="vip-dots">
-            {Array.from({ length: max }, (_, i) => (
-              <i key={i} className={`${i + 1 === view ? 'on' : ''}${i + 1 <= cur ? ' got' : ''}`} onClick={() => setView(i + 1)} />
-            ))}
-          </div>
+      <div className="vip-carousel">
+        <div className="vip-track" ref={track} onScroll={onScroll}>
+          {Array.from({ length: max }, (_, i) => {
+            const lvl = i + 1;
+            const lines = vipPerkLines(lvl).filter((l) => l !== 'VIP-рамки аватара');
+            const prev = new Set(vipPerkLines(lvl - 1));
+            const frames = FRAMES.filter((f) => f.req.vip === lvl);
+            const got = cur >= lvl;
+            return (
+              <div key={lvl} className={`vip-card2${got ? ' got' : ''}${lvl === cur ? ' current' : ''}`}>
+                <div className="vip-card2-top">
+                  <span className="vip-card2-lvl">VIP {lvl}</span>
+                  <span className={`vip-chip${got ? ' ok' : ''}`}>{lvl === cur ? 'Ваш уровень' : got ? 'Открыто' : `${fmtNum(VIP_THRESHOLDS[lvl])} очков`}</span>
+                </div>
+                <ul className="vip-list">
+                  {lines.map((l) => (
+                    <li key={l} className={prev.has(l) ? '' : 'new'}>
+                      <span className="vip-tick">✓</span>
+                      <span className="grow">{l}</span>
+                      {!prev.has(l) && <span className="vip-new">новое</span>}
+                    </li>
+                  ))}
+                  {frames.map((f) => (
+                    <li key={f.id} className="new">
+                      <span className="vip-tick">✓</span>
+                      <span className="grow">Рамка «{f.name}»</span>
+                      <span className="vip-new">новое</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
         </div>
-        <button className="btn vip-arrow" disabled={view >= max} onClick={() => setView(view + 1)} aria-label="Следующий VIP">
-          ›
+        <button className="vip-nav l" disabled={view <= 1} onClick={() => setView(Math.max(1, view - 1))} aria-label="Предыдущий VIP">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 5l-7 7 7 7" />
+          </svg>
+        </button>
+        <button className="vip-nav r" disabled={view >= max} onClick={() => setView(Math.min(max, view + 1))} aria-label="Следующий VIP">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 5l7 7-7 7" />
+          </svg>
         </button>
       </div>
-      <button className="btn btn-gold btn-hazard" style={{ width: '100%', marginTop: 12 }} onClick={() => openShop('special')}>
+      <div className="vip-steps">
+        {Array.from({ length: max }, (_, i) => (
+          <button key={i} className={`${i + 1 === view ? 'on' : ''}${i + 1 <= cur ? ' got' : ''}`} onClick={() => setView(i + 1)} aria-label={`VIP ${i + 1}`}>
+            {i + 1}
+          </button>
+        ))}
+      </div>
+
+      <button className="btn btn-gold btn-hazard" style={{ width: '100%', marginTop: 14 }} onClick={() => openShop('special')}>
         Купить кристаллы
       </button>
     </>

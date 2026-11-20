@@ -3863,3 +3863,195 @@ button.pavatar:active {
   --edge: #140908;
   color: #ffb3a8;
 }
+
+/* Переключатель не сжимается рядом с длинной подписью */
+.toggle-row {
+  gap: 12px;
+}
+.switch {
+  flex: none;
+}
+
+/* ═════ VIP v2 ═════ */
+.vip-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 18px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 30%, rgba(255, 208, 106, 0.35), transparent 40%),
+    radial-gradient(circle at 100% 0%, rgba(180, 107, 255, 0.45), transparent 55%),
+    linear-gradient(135deg, #2b1a45, #160f24 60%, #1d1430);
+  box-shadow: inset 0 0 0 1px rgba(214, 170, 255, 0.25), 0 8px 24px rgba(60, 20, 110, 0.35);
+}
+.vip-hero-lvl {
+  font-family: var(--display);
+  font-size: 26px;
+  line-height: 1;
+  background: linear-gradient(180deg, #fff3c4, #ffb347);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.vip-meter {
+  height: 8px;
+  margin: 8px 0 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+.vip-meter i {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #b46bff, #ffd06a);
+  box-shadow: 0 0 10px rgba(255, 208, 106, 0.6);
+}
+.vip-hero-sub {
+  font-size: 12px;
+  color: #d9c8ef;
+}
+.vip-carousel {
+  position: relative;
+}
+.vip-track {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding: 4px 11% 6px;
+  margin: 0 -12px;
+}
+.vip-track::-webkit-scrollbar {
+  display: none;
+}
+.vip-card2 {
+  flex: 0 0 78%;
+  scroll-snap-align: center;
+  padding: 14px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #221a2e, #15111c);
+  box-shadow: inset 0 0 0 1px #3a2f4d;
+  transition: transform 0.2s;
+}
+.vip-card2.got {
+  box-shadow: inset 0 0 0 1px #8a5ad0;
+}
+.vip-card2.current {
+  box-shadow: inset 0 0 0 2px #ffd06a, 0 0 18px rgba(255, 208, 106, 0.25);
+}
+.vip-card2-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.vip-card2-lvl {
+  font-family: var(--display);
+  font-size: 20px;
+  color: #e9d5ff;
+}
+.vip-chip {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: #c9b8e0;
+  background: rgba(255, 255, 255, 0.06);
+}
+.vip-chip.ok {
+  color: #2a1600;
+  background: linear-gradient(180deg, #ffd06a, #e8901c);
+}
+.vip-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 7px;
+}
+.vip-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #cfc4dc;
+}
+.vip-list li.new {
+  color: #fff;
+}
+.vip-tick {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 11px;
+  color: #1a0f2a;
+  background: #8f7aa8;
+}
+.vip-list li.new .vip-tick {
+  background: linear-gradient(180deg, #ffd06a, #e8901c);
+}
+.vip-new {
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 9.5px;
+  font-family: var(--display);
+  color: #ffd06a;
+  background: rgba(255, 208, 106, 0.12);
+}
+.vip-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 0;
+  color: #fff;
+  background: rgba(20, 14, 30, 0.85);
+  box-shadow: 0 0 0 1px rgba(214, 170, 255, 0.35), 0 4px 12px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+}
+.vip-nav.l {
+  left: -4px;
+}
+.vip-nav.r {
+  right: -4px;
+}
+.vip-nav:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+.vip-steps {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 10px;
+}
+.vip-steps button {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 50%;
+  border: 0;
+  font-family: var(--display);
+  font-size: 10px;
+  color: #8f7aa8;
+  background: rgba(255, 255, 255, 0.05);
+}
+.vip-steps button.got {
+  color: #e9d5ff;
+  background: rgba(180, 107, 255, 0.3);
+}
+.vip-steps button.on {
+  color: #2a1600;
+  background: linear-gradient(180deg, #ffd06a, #e8901c);
+}

@@ -15,7 +15,7 @@ function rollStat(t: PartTemplate, rarity: Rarity, mult = 1): StatMod {
 
 /** Шаблоны, чьи свойства могут попасть в модификацию как дополнительные. */
 export function partExtraPool(t: PartTemplate): PartTemplate[] {
-  return partTemplates.filter((x) => x.id !== t.id && x.stat !== t.stat && x.fits.some((c) => t.fits.includes(c)));
+  return partTemplates.filter((x) => x.id !== t.id && x.stat !== t.stat);
 }
 
 export function generatePart(rarity: Rarity, templateId?: string): Part {
