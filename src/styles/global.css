@@ -5044,3 +5044,4 @@ button.pavatar:active {
 .toggle-row { padding-left: 18px; padding-right: 18px; }
 .tech-card, .boss-card, .doll-stats, .trader, .deal, .swap { padding-left: 18px; padding-right: 18px; }
 .dialog { padding: 20px 20px 18px; }
+.trader-limit { color: #ffb347; margin: 4px 0; }

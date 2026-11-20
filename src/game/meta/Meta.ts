@@ -1,7 +1,7 @@
 import { gameNow, serverDate, SERVER_TZ_OFFSET } from './clock';
 import { exchangeConfig, loginCalendar, questConfig, shopConfig, type QuestKind, type QuestPeriod } from '../config/metaConfig';
 import { getLocation } from '../config/locationsConfig';
-import { generateItem, sellPrice } from '../items/ItemGenerator';
+import { generateItem, itemQuality, sellPrice } from '../items/ItemGenerator';
 import { rollRarity } from '../items/ItemRarity';
 import { generatePart } from '../items/Parts';
 import { addItems, addResources, canAfford, spend, type Profile } from '../profile/Profile';
@@ -81,6 +81,10 @@ export interface ShopState {
   refreshedAt: number;
   refreshDay: string;
   refreshes: number;
+  /** Начало текущего окна ручных обновлений (лимит на 8 часов). */
+  refreshWindow?: number;
+  /** Версия цен: при смене цен ассортимент пересоздаётся. */
+  priceV?: number;
   regular: Offer[];
   rare: Offer[];
 }
@@ -89,28 +93,38 @@ export function emptyShop(): ShopState {
   return { refreshedAt: 0, refreshDay: '', refreshes: 0, regular: [], rare: [] };
 }
 
+/** Цены магазина растут с Т так же, как доход с роботов. */
+function tierPrice(tier: number): number {
+  return Math.pow(1.45, tier - 1);
+}
+
+/** Цена вещи в магазине: по редкости, Т и качеству. */
+const ITEM_PRICE: Partial<Record<string, number>> = { common: 600, uncommon: 2000, rare: 7000, epic: 25000, legendary: 90000 };
+
 function genShop(p: Profile): Pick<ShopState, 'regular' | 'rare'> {
   const tier = playerTier(p);
+  const tp = tierPrice(tier);
   const loc = Math.max(...p.locations.unlocked);
   const c = shopConfig.regular;
   const regular: Offer[] = [];
   for (let i = 0; i < c.equipment; i++) {
     const item = generateItem({ rarity: rollRarity(c.rarity), tier, source: { kind: 'drop', location: loc, enemy: 'магазин' } });
-    regular.push({ id: uid(), kind: 'item', item, price: { coins: sellPrice(item) * c.priceMult }, sold: false });
+    const base = (ITEM_PRICE[item.rarity] ?? 600) * tp * (0.8 + 0.5 * itemQuality(item));
+    regular.push({ id: uid(), kind: 'item', item, price: { coins: Math.max(sellPrice(item) * c.priceMult, Math.round(base / 10) * 10) }, sold: false });
   }
   for (let i = 0; i < c.parts; i++) {
     const part = generatePart(rollRarity({ common: 0.5, uncommon: 0.35, rare: 0.15, epic: 0, legendary: 0, unique: 0, mythic: 0 }));
-    regular.push({ id: uid(), kind: 'part', part, price: { coins: 250 * tier * (1 + ['common', 'uncommon', 'rare'].indexOf(part.rarity)) }, sold: false });
+    regular.push({ id: uid(), kind: 'part', part, price: { coins: Math.round((800 * tp * [1, 3, 9][Math.max(0, ['common', 'uncommon', 'rare'].indexOf(part.rarity))]) / 10) * 10 }, sold: false });
   }
   const packs = [...shopConfig.resourcePacks].sort(() => random() - 0.5).slice(0, c.resources);
-  for (const pk of packs) regular.push({ id: uid(), kind: 'resource', give: scaleRes(pk.give, 1 + 0.5 * (tier - 1)), price: scaleRes(pk.price, tier), sold: false });
+  for (const pk of packs) regular.push({ id: uid(), kind: 'resource', give: scaleRes(pk.give, 1 + 0.5 * (tier - 1)), price: scaleRes(pk.price, 2 * tp), sold: false });
 
   const r = shopConfig.rare;
   const rare: Offer[] = [];
   for (let i = 0; i < r.parts; i++) {
     const part = generatePart(rollRarity(r.rarity));
     const mult = { rare: 1, epic: 2.5, legendary: 6 }[part.rarity as 'rare' | 'epic' | 'legendary'] ?? 1;
-    rare.push({ id: uid(), kind: 'part', part, price: { coins: Math.ceil(900 * tier * mult), blueprints: Math.ceil(2 * mult) }, sold: false });
+    rare.push({ id: uid(), kind: 'part', part, price: { coins: Math.ceil(3000 * tp * mult), blueprints: Math.ceil(2 * mult) }, sold: false });
   }
   rare.push({ id: uid(), kind: 'key', give: { expansionKeys: 1 }, price: scaleRes(r.keyPrice, tier), sold: false });
   return { regular, rare };
@@ -119,22 +133,40 @@ function genShop(p: Profile): Pick<ShopState, 'regular' | 'rare'> {
 /** Автоматическое обновление ассортимента по реальному времени. */
 export function ensureShop(p: Profile, now = Date.now()): Profile {
   const s = p.shop;
-  const due = now - s.refreshedAt >= shopConfig.refreshHours * 3600_000 || s.regular.length === 0;
-  const day = dayKey(now);
+  const due = now - s.refreshedAt >= shopConfig.refreshHours * 3600_000 || s.regular.length === 0 || (s.priceV ?? 1) < SHOP_PRICE_V;
   let next = s;
-  if (s.refreshDay !== day) next = { ...next, refreshDay: day, refreshes: 0 };
-  if (due) next = { ...next, ...genShop(p), refreshedAt: now };
+  // Лимит ручных обновлений: 5 штук, потом ждать до конца 8-часового окна.
+  if (s.refreshes > 0 && now - (s.refreshWindow ?? 0) >= SHOP_WINDOW_MS) next = { ...next, refreshes: 0, refreshWindow: 0 };
+  if (due) next = { ...next, ...genShop(p), refreshedAt: now, priceV: SHOP_PRICE_V };
   return next === s ? p : { ...p, shop: next };
 }
 
+export const SHOP_REFRESH_LIMIT = 5;
+const SHOP_PRICE_V = 2;
+export const SHOP_WINDOW_MS = 8 * 3600_000;
+
+/** Сколько ручных обновлений осталось и когда лимит восстановится. */
+export function shopRefreshState(p: Profile, now = Date.now()): { left: number; resetIn: number } {
+  const s = p.shop;
+  const expired = s.refreshes > 0 && now - (s.refreshWindow ?? 0) >= SHOP_WINDOW_MS;
+  const used = expired ? 0 : s.refreshes;
+  return { left: Math.max(0, SHOP_REFRESH_LIMIT - used), resetIn: used > 0 ? Math.max(0, (s.refreshWindow ?? 0) + SHOP_WINDOW_MS - now) : 0 };
+}
+
 export function shopRefreshCost(p: Profile): Partial<Resources> {
-  return { coins: shopConfig.refreshBase * playerTier(p) * (1 + p.shop.refreshes) };
+  const used = SHOP_REFRESH_LIMIT - shopRefreshState(p).left;
+  return { coins: Math.round((shopConfig.refreshBase * 4 * tierPrice(playerTier(p)) * (1 + used)) / 10) * 10 };
 }
 
 export function refreshShop(p: Profile): Profile | null {
+  const st = shopRefreshState(p);
+  if (st.left <= 0) return null;
   const paid = spend(p, shopRefreshCost(p));
   if (!paid) return null;
-  return { ...paid, shop: { ...paid.shop, ...genShop(paid), refreshedAt: Date.now(), refreshes: paid.shop.refreshes + 1 } };
+  const now = Date.now();
+  const fresh = st.left === SHOP_REFRESH_LIMIT;
+  const refreshes = fresh ? 1 : paid.shop.refreshes + 1;
+  return { ...paid, shop: { ...paid.shop, ...genShop(paid), refreshedAt: now, refreshes, refreshWindow: fresh ? now : paid.shop.refreshWindow } };
 }
 
 export function nextShopRefresh(p: Profile): number {
