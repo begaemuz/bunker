@@ -726,12 +726,18 @@ export class Renderer {
       c.stroke();
     }
     if (en.shield > 0) {
-      c.strokeStyle = `rgba(110,190,255,${0.3 + 0.5 * (en.shield / en.maxShield)})`;
-      c.fillStyle = `rgba(110,190,255,${0.06 + 0.1 * (en.shield / en.maxShield)})`;
-      c.lineWidth = 2;
+      // Щит — ровный круглый купол вокруг корпуса.
+      const k = en.shield / en.maxShield;
+      const r = en.size * VIS * 1.15;
+      const g = c.createRadialGradient(x, mid, r * 0.55, x, mid, r);
+      g.addColorStop(0, 'rgba(110,190,255,0)');
+      g.addColorStop(1, `rgba(110,190,255,${0.12 + 0.2 * k})`);
+      c.fillStyle = g;
       c.beginPath();
-      c.ellipse(x, mid, en.size * 1.25, en.size * 1.35, 0, 0, Math.PI * 2);
+      c.arc(x, mid, r, 0, Math.PI * 2);
       c.fill();
+      c.strokeStyle = `rgba(150,210,255,${0.35 + 0.45 * k})`;
+      c.lineWidth = 1.5;
       c.stroke();
     }
     if (en.identified) {

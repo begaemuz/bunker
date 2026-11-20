@@ -206,11 +206,6 @@ const drawers: Record<RobotKind, Draw> = {
   // Щитоносец: дрон с излучателями щита.
   shielded: (c, s, elite, f) => {
     const y = -s * 1.25 - (f ? s * 0.06 : 0);
-    c.strokeStyle = 'rgba(110,190,255,0.75)';
-    c.lineWidth = 2.5;
-    c.beginPath();
-    c.arc(s * 0.1, y, s * 1.05, -0.9, 0.9);
-    c.stroke();
     c.fillStyle = shade(c, 0, y - s * 0.5, 0, s, metalLight(elite), metal(elite));
     c.strokeStyle = '#111316';
     c.lineWidth = 1.4;
