@@ -125,3 +125,9 @@ export async function fetchServerTime(): Promise<number | null> {
     clearTimeout(t);
   }
 }
+
+/** Ссылка на оплату набора кристаллов звёздами. */
+export async function createInvoice(pack: string): Promise<string | null> {
+  const r = await call<{ link?: string }>('invoice', { pack });
+  return r?.link ?? null;
+}

@@ -83,6 +83,7 @@ interface ProfileState {
   sell: (itemId: string) => { coins: number; error?: string };
   /** Разобрать вещь на металл (и иногда тех. компоненты). */
   dismantleItem: (itemId: string) => { scrap: number; techParts: number; error?: string };
+  massDismantle: (ids: string[]) => { count: number; scrap: number; techParts: number };
   upgrade: (itemId: string, useStabilizer: boolean) => { outcome?: UpgradeOutcome; error?: string; granted: Item[] };
   research: (techId: string) => string | null;
   /** Применить предмет «Сброс навыков». */
@@ -440,6 +441,22 @@ export const useProfile = create<ProfileState>((set, get) => {
       if (r.error) return { scrap: 0, techParts: 0, error: r.error };
       commit(r.profile, false, true);
       return { scrap: r.scrap, techParts: r.techParts };
+    },
+
+    massDismantle: (ids) => {
+      let p = get().profile;
+      const out = { count: 0, scrap: 0, techParts: 0 };
+      if (!p) return out;
+      for (const id of ids) {
+        const r = dismantleItem(p, id);
+        if (r.error) continue;
+        p = r.profile;
+        out.count++;
+        out.scrap += r.scrap;
+        out.techParts += r.techParts;
+      }
+      if (out.count) commit(p, false, true);
+      return out;
     },
 
     upgrade: (itemId, useStabilizer) => {

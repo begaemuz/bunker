@@ -54,10 +54,71 @@ async function verify(initData: string): Promise<TgUser | null> {
 
 const BOARDS: Record<string, string> = { power: 'power', level: 'level', bosses: 'bosses' };
 
+// ═════ Оплата звёздами ═════
+/** Наборы кристаллов (должны совпадать с игрой). Очки VIP = звёзды. */
+const PACKS: Record<string, { crystals: number; stars: number }> = {
+  c60: { crystals: 60, stars: 50 },
+  c300: { crystals: 330, stars: 250 },
+  c650: { crystals: 750, stars: 500 },
+  c1400: { crystals: 1700, stars: 1000 },
+  c3000: { crystals: 3900, stars: 2000 },
+};
+
+const tg = (method: string, body: unknown) =>
+  fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).then((r) => r.json());
+
+/** Секрет вебхука выводится из токена бота: снаружи его не узнать. */
+async function webhookSecret(): Promise<string> {
+  return hex(await hmac(new TextEncoder().encode('bunker-webhook'), BOT_TOKEN)).slice(0, 48);
+}
+
+/** Обновления от Telegram: подтверждение и зачисление оплаты. */
+async function handleWebhook(req: Request): Promise<Response> {
+  if (req.headers.get('x-telegram-bot-api-secret-token') !== (await webhookSecret())) return new Response('forbidden', { status: 403 });
+  const u = await req.json().catch(() => ({}));
+  const q = u.pre_checkout_query;
+  if (q) {
+    let ok = false;
+    try {
+      const pl = JSON.parse(q.invoice_payload);
+      ok = !!PACKS[pl.p] && PACKS[pl.p].stars === q.total_amount && q.currency === 'XTR' && pl.u === q.from.id;
+    } catch {
+      ok = false;
+    }
+    await tg('answerPreCheckoutQuery', ok ? { pre_checkout_query_id: q.id, ok: true } : { pre_checkout_query_id: q.id, ok: false, error_message: 'Набор недоступен, попробуйте ещё раз' });
+    return new Response('ok');
+  }
+  const pay = u.message?.successful_payment;
+  if (pay) {
+    const userId = u.message.from.id;
+    let pack = '';
+    try {
+      pack = JSON.parse(pay.invoice_payload).p;
+    } catch {
+      pack = '';
+    }
+    const def = PACKS[pack];
+    if (def) {
+      // charge_id уникален — повторное уведомление не начислит дважды
+      const { error } = await db.from('payments').insert({ charge_id: pay.telegram_payment_charge_id, tg_id: userId, pack, stars: pay.total_amount, crystals: def.crystals });
+      if (!error) {
+        await db.from('deliveries').insert([
+          { tg_id: userId, kind: 'crystals', amount: def.crystals, note: `Покупка: ${def.crystals} кристаллов` },
+          { tg_id: userId, kind: 'vip', amount: pay.total_amount, note: `+${pay.total_amount} очков VIP` },
+        ]);
+        const { data: me } = await db.from('players').select('vip_points').eq('tg_id', userId).maybeSingle();
+        if (me) await db.from('players').update({ vip_points: Number(me.vip_points ?? 0) + pay.total_amount }).eq('tg_id', userId);
+      }
+    }
+  }
+  return new Response('ok');
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'method' }, 405);
 
+  if (new URL(req.url).searchParams.get('webhook') !== null) return handleWebhook(req);
   // Время сервера — без входа: по нему у всех одинаково наступают новые сутки.
   if (new URL(req.url).searchParams.get('time') !== null) return json({ now: Date.now() });
 
@@ -225,6 +286,20 @@ Deno.serve(async (req) => {
       return json({
         list: (data ?? []).map((d: Record<string, unknown>) => ({ id: d.id, kind: d.kind, amount: d.amount, payload: d.payload, note: d.note })),
       });
+    }
+
+    case 'invoice': {
+      const def = PACKS[String(body.pack)];
+      if (!def) return json({ error: 'pack' }, 400);
+      const r = await tg('createInvoiceLink', {
+        title: `${def.crystals} кристаллов`,
+        description: `Кристаллы для BUNKER: LAST SIGNAL и +${def.stars} очков VIP`,
+        payload: JSON.stringify({ u: user.id, p: body.pack, n: crypto.randomUUID().slice(0, 8) }),
+        currency: 'XTR',
+        prices: [{ label: `${def.crystals} кристаллов`, amount: def.stars }],
+      });
+      if (!r.ok) return json({ error: 'telegram', detail: r.description }, 502);
+      return json({ link: r.result });
     }
 
     case 'ping':

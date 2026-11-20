@@ -1,3 +1,5 @@
+import { createInvoice, serverAvailable } from '../../services/server';
+import { openInvoice } from '../../services/telegram';
 import { ResourceStrip } from '../common/Common';
 import { useEffect, useState } from 'react';
 import { exchangeConfig, shopConfig } from '../../game/config/metaConfig';
@@ -183,6 +185,36 @@ function fmtLeft(ms: number): string {
 }
 
 export function ShopScreen() {
+  const [buying, setBuying] = useState<string | null>(null);
+  const pullDeliveries = useProfile((s) => s.pullDeliveries);
+  const buyPack = async (id: string) => {
+    if (!serverAvailable()) {
+      toast('Покупка звёздами работает при запуске через Telegram-бота', 'info');
+      return;
+    }
+    setBuying(id);
+    const link = await createInvoice(id);
+    if (!link) {
+      setBuying(null);
+      toast('Не удалось создать оплату, попробуйте ещё раз', 'bad');
+      return;
+    }
+    const status = await openInvoice(link);
+    if (status === 'paid') {
+      toast('Оплата прошла, зачисляем кристаллы…', 'good');
+      // Сервер зачисляет оплату через пару секунд — забираем посылку.
+      for (let i = 0; i < 6; i++) {
+        await new Promise((r) => setTimeout(r, 1500));
+        const got = await pullDeliveries();
+        if (got.length) {
+          sfx.victory();
+          toast(got.map((d) => d.note).join(' · '), 'rare');
+          break;
+        }
+      }
+    } else if (status === 'failed') toast('Оплата не прошла', 'bad');
+    setBuying(null);
+  };
   const profile = useProfile((s) => s.profile)!;
   const ensureMeta = useProfile((s) => s.ensureMeta);
   const refresh = useProfile((s) => s.refreshShop);
@@ -262,7 +294,7 @@ export function ShopScreen() {
             </button>
             <div className="pack-grid">
               {crystalPacks.map((p) => (
-                <button key={p.id} className="pack" onClick={() => toast('Оплата Telegram Stars скоро будет подключена', 'info')}>
+                <button key={p.id} className="pack" disabled={buying !== null} onClick={() => void buyPack(p.id)}>
                   {p.bonus > 0 && <span className="pack-bonus">+{p.bonus} бонус</span>}
                   <span className="pack-gem">
                     <ResourceIcon type="crystals" size={34} />

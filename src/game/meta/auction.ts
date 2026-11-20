@@ -60,7 +60,7 @@ export function putLot(p: Profile, payload: LotPayload): Profile {
 
 export interface Delivery {
   id: number;
-  kind: 'crystals' | 'lot';
+  kind: 'crystals' | 'lot' | 'vip';
   amount: number;
   payload: LotPayload | null;
   note: string;
@@ -72,6 +72,7 @@ export function applyDeliveries(p: Profile, list: Delivery[]): Profile {
   for (const d of list) {
     if (d.kind === 'crystals' && d.amount > 0) q = addResources(q, { crystals: d.amount });
     else if (d.kind === 'lot' && d.payload) q = putLot(q, d.payload);
+    else if (d.kind === 'vip' && d.amount > 0) q = { ...q, vip: { ...q.vip, points: (q.vip?.points ?? 0) + d.amount } };
   }
   return q;
 }

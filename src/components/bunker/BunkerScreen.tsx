@@ -207,6 +207,7 @@ export function BunkerScreen() {
   const [partId, setPartId] = useState<string | null>(null);
   const setAutoSell = useProfile((s) => s.setAutoSell);
   const [massSell, setMassSell] = useState(false);
+  const [massScrap, setMassScrap] = useState(false);
   const [cons, setCons] = useState<ConsumableKey | null>(null);
   const [autoOpen, setAutoOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
@@ -300,9 +301,14 @@ export function BunkerScreen() {
             )}
           </div>
           {(kind === 'gear' || forSlot) && (
-            <button className="btn btn-rust btn-sm" onClick={() => setMassSell(true)}>
-              Продать
-            </button>
+            <>
+              <button className="btn btn-sm" onClick={() => setMassScrap(true)}>
+                Разобрать
+              </button>
+              <button className="btn btn-rust btn-sm" onClick={() => setMassSell(true)}>
+                Продать
+              </button>
+            </>
           )}
           {kind === 'parts' && !forSlot && (
             <>
@@ -378,6 +384,7 @@ export function BunkerScreen() {
       </div>
 
       {massSell && <MassSellSheet onClose={() => setMassSell(false)} hints={hints} />}
+      {massScrap && <MassSellSheet mode="dismantle" onClose={() => setMassScrap(false)} hints={hints} />}
       {massDismantle && <MassDismantleSheet onClose={() => setMassDismantle(false)} />}
       {massAssemble && <MassAssembleSheet onClose={() => setMassAssemble(false)} />}
       {sortOpen && (

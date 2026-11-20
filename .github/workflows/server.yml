@@ -40,6 +40,13 @@ jobs:
         run: supabase secrets set --project-ref "$REF" TELEGRAM_BOT_TOKEN="$BOT"
       - name: Deploy function
         run: supabase functions deploy api --project-ref "$REF" --no-verify-jwt
+      - name: Telegram webhook (payments)
+        run: |
+          SECRET=$(printf '%s' "$BOT" | openssl dgst -sha256 -hmac "bunker-webhook" -hex | sed 's/^.*= //' | cut -c1-48)
+          curl -sS "https://api.telegram.org/bot$BOT/setWebhook" \
+            --data-urlencode "url=https://$REF.supabase.co/functions/v1/api?webhook=1" \
+            --data-urlencode "secret_token=$SECRET" \
+            --data-urlencode 'allowed_updates=["pre_checkout_query","message"]' | jq -c '{ok, description}'
       - name: Smoke test
         run: |
           code=$(curl -s -o /tmp/r.json -w '%{http_code}' -X POST "https://${REF}.supabase.co/functions/v1/api" -H 'content-type: application/json' -d '{"action":"ping"}')

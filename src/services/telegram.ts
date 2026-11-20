@@ -33,6 +33,7 @@ interface WebApp {
   disableVerticalSwipes?(): void;
   enableClosingConfirmation?(): void;
   onEvent(e: string, cb: () => void): void;
+  openInvoice?(url: string, cb?: (status: 'paid' | 'cancelled' | 'failed' | 'pending') => void): void;
   CloudStorage?: CloudStorage;
   HapticFeedback?: {
     impactOccurred(s: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft'): void;
@@ -210,4 +211,12 @@ export async function cloudSave(json: string, updatedAt: number): Promise<boolea
 /** Подписанные данные запуска — сервер по ним проверяет игрока. */
 export function tgInitData(): string {
   return app?.initData ?? '';
+}
+
+/** Открывает окно оплаты звёздами. Возвращает статус. */
+export function openInvoice(url: string): Promise<'paid' | 'cancelled' | 'failed' | 'pending'> {
+  return new Promise((res) => {
+    if (!app?.openInvoice) return res('failed');
+    app.openInvoice(url, (s) => res(s));
+  });
 }

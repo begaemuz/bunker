@@ -30,23 +30,43 @@ function ac(): AudioContext | null {
   return ctx;
 }
 
-/** Сами усыпляем звук при сворачивании и будим при возврате — иначе музыка пропадает. */
+/** Будим звук: если контекст «сломан» после сворачивания — создаём новый. */
 function wake(): void {
   if (!ctx || document.hidden) return;
   if (ctx.state === 'closed') {
-    // WebView закрыл контекст — пересоздаём заново
-    ctx = null;
-    ac();
+    rebuild();
     return;
   }
-  if (ctx.state !== 'running') void ctx.resume().catch(() => undefined);
+  if (ctx.state !== 'running') {
+    void ctx.resume().catch(() => undefined);
+    // Если через полсекунды звук так и не ожил — пересоздаём контекст целиком.
+    const c = ctx;
+    setTimeout(() => {
+      if (ctx === c && c.state !== 'running' && !document.hidden) rebuild();
+    }, 500);
+  }
 }
 
+/** Новый аудиоконтекст вместо старого (после Alt+Tab WebView иногда «глушит» старый навсегда). */
+function rebuild(): void {
+  const old = ctx;
+  ctx = null;
+  master = sfxBus = musicBus = null;
+  if (old && old.state !== 'closed') void old.close().catch(() => undefined);
+  ac();
+}
+
+let hiddenAt = 0;
 if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
     if (!ctx) return;
-    if (document.hidden) void ctx.suspend().catch(() => undefined);
-    else wake();
+    if (document.hidden) {
+      hiddenAt = Date.now();
+      void ctx.suspend().catch(() => undefined);
+    } else if (Date.now() - hiddenAt > 300) {
+      // После сворачивания надёжнее начать с чистого контекста.
+      rebuild();
+    } else wake();
   });
   window.addEventListener('focus', wake);
   window.addEventListener('pageshow', wake);
@@ -135,6 +155,8 @@ const SCALE = [0, 3, 5, 7, 10, 12, 15];
 const ROOTS = [45, 43, 41, 40];
 const midi = (n: number) => 440 * Math.pow(2, (n - 69) / 12);
 
+let musicLoop = false;
+
 function startMusic(): void {
   const c = ctx;
   if (!c || !musicBus) return;
@@ -160,7 +182,11 @@ function startMusic(): void {
   filter.connect(droneGain);
   droneGain.connect(musicBus);
   lfo.start();
-  scheduleMusic();
+  // Цикл мелодии один на всё время работы, даже если контекст пересоздан.
+  if (!musicLoop) {
+    musicLoop = true;
+    scheduleMusic();
+  }
 }
 
 function scheduleMusic(): void {
