@@ -3,7 +3,8 @@ import { computeBunkerStats, type BunkerStats } from '../../game/bunker/BunkerSt
 import { betterSlotFor } from '../../game/bunker/compare';
 import { modeConfig } from '../../game/config/gameConfig';
 import { getLocation } from '../../game/config/locationsConfig';
-import { coilProps, itemModifiers, sellPrice } from '../../game/items/ItemGenerator';
+import { coilProps, coilRolls, itemModifiers, itemStatRolls, sellPrice, type StatRoll } from '../../game/items/ItemGenerator';
+import { RollLine } from './Roll';
 import { upgradeBlock } from '../../game/items/ItemUpgrade';
 import { formatStatValue, lowerIsBetter } from '../../game/items/statInfo';
 import { defaultSlotFor, equipItem, needsSellWarning, slotOf } from '../../game/profile/Profile';
@@ -29,16 +30,22 @@ function sourceText(s: ItemSource): string {
   }
 }
 
-function StatLines({ mods }: { mods: StatMod[] }) {
+function StatLines({ mods, rolls }: { mods: StatMod[]; rolls?: (StatRoll | null)[] }) {
   return (
     <div className="stat-list">
       {mods.map((m, i) => {
         const good = m.stat === 'conversion' || (lowerIsBetter(m.stat) ? m.value < 0 : m.value > 0);
+        const r = rolls?.[i];
         return (
-          <div className="stat-line" key={i}>
-            <span>{statLabel(m.stat)}</span>
-            <span className={good ? 'pos' : 'neg'}>{formatStatValue(m.stat, m.value)}</span>
-          </div>
+          <RollLine
+            key={i}
+            label={statLabel(m.stat)}
+            value={formatStatValue(m.stat, m.value)}
+            valueClass={good ? 'pos' : 'neg'}
+            min={r ? formatStatValue(m.stat, r.min) : undefined}
+            max={r ? formatStatValue(m.stat, r.max) : undefined}
+            quality={r?.quality}
+          />
         );
       })}
     </div>
@@ -111,6 +118,8 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
   const price = sellPrice(item);
   const canUpgrade = !upgradeBlock(profile, item, false) || !upgradeBlock(profile, item, true);
   const mods = itemModifiers(item);
+  const rolls = itemStatRolls(item);
+  const cr = coilRolls(item);
 
   const doEquip = () => {
     if (!slot) return;
@@ -210,18 +219,15 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
                 {modeConfig[coil.mode].description}
               </div>
               <div className="stat-list">
-                <div className="stat-line">
-                  <span>Мощность импульса</span>
-                  <span>{coil.power.toFixed(1)}</span>
-                </div>
-                <div className="stat-line">
-                  <span>Радиус воздействия</span>
-                  <span>{coil.radius.toFixed(0)}</span>
-                </div>
-                <div className="stat-line">
-                  <span>Интервал</span>
-                  <span>{coil.interval.toFixed(2)} с</span>
-                </div>
+                <RollLine label="Мощность импульса" value={coil.power.toFixed(1)} min={cr?.power.min.toFixed(1)} max={cr?.power.max.toFixed(1)} quality={cr?.power.quality} />
+                <RollLine label="Радиус воздействия" value={coil.radius.toFixed(0)} min={cr?.radius.min.toFixed(0)} max={cr?.radius.max.toFixed(0)} quality={cr?.radius.quality} />
+                <RollLine
+                  label="Интервал"
+                  value={`${coil.interval.toFixed(2)} с`}
+                  min={cr ? `${cr.interval.min.toFixed(2)} с` : undefined}
+                  max={cr ? `${cr.interval.max.toFixed(2)} с` : undefined}
+                  quality={cr?.interval.quality}
+                />
                 <div className="stat-line">
                   <span>Энергия на импульс</span>
                   <span className="neg">{coil.energyPerPulse.toFixed(1)}</span>
@@ -237,13 +243,13 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
           {item.baseStats.length > 0 && (
             <>
               <div className="section-title">Характеристики (с учётом уровня)</div>
-              <StatLines mods={mods.slice(0, item.baseStats.length)} />
+              <StatLines mods={mods.slice(0, item.baseStats.length)} rolls={rolls.base} />
             </>
           )}
           {item.extraStats.length > 0 && (
             <>
               <div className="section-title">Дополнительные свойства</div>
-              <StatLines mods={item.extraStats} />
+              <StatLines mods={item.extraStats} rolls={rolls.extra} />
             </>
           )}
           {item.energyCost > 0 && (

@@ -2,7 +2,7 @@ import { ResourceStrip } from '../common/Common';
 import { useEffect, useState } from 'react';
 import { exchangeConfig, shopConfig } from '../../game/config/metaConfig';
 import { crystalPacks, vipLevel } from '../../game/meta/vip';
-import { exchangeUsed, nextShopRefresh, shopRefreshCost, type Offer } from '../../game/meta/Meta';
+import { exchangeLimit, exchangeUsed, nextShopRefresh, shopRefreshCost, type Offer } from '../../game/meta/Meta';
 import { canAfford } from '../../game/profile/Profile';
 import { RESOURCE_KEYS, type Resources } from '../../game/types';
 import { fmtNum, ru } from '../../i18n/ru';
@@ -307,7 +307,8 @@ export function ShopScreen() {
           <div className="deal-list">
             {exchangeConfig.map((x) => {
               const used = exchangeUsed(profile, x.id);
-              const ok = used < x.dailyLimit && r[x.from] >= x.give;
+              const limit = exchangeLimit(profile, x.dailyLimit);
+              const ok = used < limit && r[x.from] >= x.give;
               return (
                 <div key={x.id} className="swap">
                   <div className="swap-side">
@@ -319,7 +320,7 @@ export function ShopScreen() {
                     <svg width="34" height="20" viewBox="0 0 34 20" aria-hidden>
                       <path d="M2 10h28M22 3l8 7-8 7" fill="none" stroke="#f2a93b" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
-                    <span className="swap-left">сегодня {used}/{x.dailyLimit}</span>
+                    <span className="swap-left">сегодня {used}/{limit}</span>
                   </div>
                   <div className="swap-side">
                     <ResourceIcon type={x.to} size={26} />
@@ -335,7 +336,7 @@ export function ShopScreen() {
                       else sfx.click();
                     }}
                   >
-                    {used >= x.dailyLimit ? 'Лимит' : 'Обменять'}
+                    {used >= limit ? 'Лимит' : 'Обменять'}
                   </button>
                 </div>
               );

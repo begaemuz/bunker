@@ -93,6 +93,7 @@ interface UiState {
   setPaused: (p: boolean) => void;
   setSpeed: (s: number) => void;
   toggleDamageNumbers: () => void;
+  toggleToasts: () => void;
   toggleSound: () => void;
   setVolume: (k: 'masterVol' | 'sfxVol' | 'musicVol', v: number) => void;
   selectItem: (id: string | null) => void;
@@ -145,6 +146,11 @@ export const useUi = create<UiState>((set, get) => ({
     saveSettings(settings);
     set({ settings });
   },
+  toggleToasts: () => {
+    const settings = { ...get().settings, showToasts: !get().settings.showToasts };
+    saveSettings(settings);
+    set({ settings });
+  },
   toggleSound: () => {
     const settings = { ...get().settings, soundOn: !get().settings.soundOn };
     saveSettings(settings);
@@ -163,6 +169,8 @@ export const useUi = create<UiState>((set, get) => ({
   setResult: (result) => set({ result }),
   setBossReward: (bossReward) => set({ bossReward }),
   toast: (text, tone = 'info') => {
+    // Ошибки показываются всегда, остальное — по настройке.
+    if (!get().settings.showToasts && tone !== 'bad') return;
     const id = toastId++;
     set({ toasts: [...get().toasts.slice(-2), { id, text, tone }] });
     setTimeout(() => get().dismissToast(id), 2600);

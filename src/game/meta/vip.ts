@@ -23,6 +23,10 @@ export interface VipPerks {
   offlineHours: number;
   /** Эффективность офлайн-обороны (прибавка). */
   offlineEff: number;
+  /** Множитель дневных лимитов обмена. */
+  exchangeMult: number;
+  /** Множитель награды за ежедневный вход. */
+  loginMult: number;
 }
 
 export function vipPerks(level: number): VipPerks {
@@ -30,6 +34,8 @@ export function vipPerks(level: number): VipPerks {
     coinPct: level * 0.05,
     offlineHours: Math.min(8, level),
     offlineEff: Math.min(0.3, level * 0.03),
+    exchangeMult: level >= 7 ? 2 : level >= 2 ? 1.5 : 1,
+    loginMult: level >= 9 ? 2 : level >= 4 ? 1.5 : 1,
   };
 }
 
@@ -39,6 +45,8 @@ export function vipPerkLines(level: number): string[] {
   if (p.coinPct) out.push(`+${Math.round(p.coinPct * 100)}% монет с роботов`);
   if (p.offlineHours) out.push(`+${p.offlineHours} ч офлайн-обороны`);
   if (p.offlineEff) out.push(`+${Math.round(p.offlineEff * 100)}% к добыче офлайн`);
+  if (p.exchangeMult > 1) out.push(`Лимиты обмена ×${p.exchangeMult}`);
+  if (p.loginMult > 1) out.push(`Награды за вход ×${p.loginMult}`);
   if (level >= 1) out.push('VIP-рамки аватара');
   return out;
 }

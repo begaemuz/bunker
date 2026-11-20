@@ -6,6 +6,7 @@ import { generatePart } from '../items/Parts';
 import { addItems, addResources, canAfford, spend, type Profile } from '../profile/Profile';
 import { addParts } from '../items/Parts';
 import { random, uid } from '../rng';
+import { vipLevel, vipPerks } from './vip';
 import { RESOURCE_KEYS, type Item, type Part, type Resources } from '../types';
 
 // ───────────── Время ─────────────
@@ -194,7 +195,7 @@ export function doExchange(p: Profile, id: string): { profile: Profile; error?: 
   const r = exchangeConfig.find((x) => x.id === id);
   if (!r) return { profile: p, error: 'not_found' };
   const used = exchangeUsed(p, id);
-  if (used >= r.dailyLimit) return { profile: p, error: 'limit' };
+  if (used >= exchangeLimit(p, r.dailyLimit)) return { profile: p, error: 'limit' };
   const paid = spend(p, { [r.from]: r.give });
   if (!paid) return { profile: p, error: 'resources' };
   const day = dayKey();
@@ -217,7 +218,14 @@ export function canClaimDaily(p: Profile): boolean {
 }
 
 export function dailyReward(p: Profile, index = p.daily.cycle): Partial<Resources> {
-  return scaleSoft(loginCalendar[index % LOGIN_DAYS].reward, 1 + 0.5 * (playerTier(p) - 1));
+  const base = scaleSoft(loginCalendar[index % LOGIN_DAYS].reward, 1 + 0.5 * (playerTier(p) - 1));
+  const m = vipPerks(vipLevel(p.vip?.points ?? 0)).loginMult;
+  return m > 1 ? scaleRes(base, m) : base;
+}
+
+/** Дневной лимит обмена с учётом VIP. */
+export function exchangeLimit(p: Profile, base: number): number {
+  return Math.floor(base * vipPerks(vipLevel(p.vip?.points ?? 0)).exchangeMult);
 }
 
 export function claimDaily(p: Profile): { profile: Profile; reward?: Partial<Resources> } {

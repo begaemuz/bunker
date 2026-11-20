@@ -138,13 +138,14 @@ export async function clearProfile(): Promise<void> {
 export interface Settings {
   speed: number;
   showDamageNumbers: boolean;
+  showToasts: boolean;
   soundOn: boolean;
   masterVol: number;
   sfxVol: number;
   musicVol: number;
 }
 const SETTINGS_KEY = 'bls-settings';
-const defaultSettings: Settings = { speed: 1, showDamageNumbers: true, soundOn: true, masterVol: 0.8, sfxVol: 0.8, musicVol: 0.5 };
+const defaultSettings: Settings = { speed: 1, showDamageNumbers: true, showToasts: true, soundOn: true, masterVol: 0.8, sfxVol: 0.8, musicVol: 0.5 };
 
 export function introSeen(): boolean {
   try {

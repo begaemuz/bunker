@@ -2,7 +2,8 @@ import { ResourceStrip } from '../common/Common';
 import { useState } from 'react';
 import { getTech, techBranches, techConfig, type TechBranch, type TechEffect, type TechNode } from '../../game/config/techConfig';
 import { formatStatValue } from '../../game/items/statInfo';
-import { branchPoints, effectValue, researchBlock, researchCost, techLevel } from '../../game/progression/TechnologyTree';
+import { branchPoints, effectValue, researchBlock, researchCost, skillPointsFree, skillPointsSpent, skillPointsTotal, techLevel } from '../../game/progression/TechnologyTree';
+import { ConfirmDialog } from '../common/Common';
 import { RESOURCE_KEYS, type StatKey } from '../../game/types';
 import { fmtNum } from '../../i18n/ru';
 import { sfx } from '../../services/sound';
@@ -41,7 +42,7 @@ function NodeSheet({ node, onClose }: { node: TechNode; onClose: () => void }) {
     if (n > 0) {
       sfx.levelUp();
       toast(`${node.name}: уровень ${lvl + n}`, 'good');
-    } else toast('Не хватает ресурсов', 'bad');
+    } else toast(block === 'points' ? 'Нет свободных очков навыков' : 'Не хватает ресурсов', 'bad');
   };
 
   return (
@@ -94,6 +95,10 @@ function NodeSheet({ node, onClose }: { node: TechNode; onClose: () => void }) {
       </div>
       <div className="small muted">Каждый следующий уровень дороже в {node.growth.toFixed(2)} раза. Уровни не ограничены.</div>
       {block === 'level' && <div className="warn-box" style={{ marginTop: 10 }}>Нужен уровень бункера {node.levelReq}.</div>}
+      {block === 'points' && <div className="warn-box" style={{ marginTop: 10 }}>Нет свободных очков навыков. Новое очко — с каждым уровнем бункера.</div>}
+      <div className="small muted" style={{ marginTop: 8 }}>
+        Каждый уровень навыка стоит 1 очко. Свободно очков: {skillPointsFree(profile)} из {skillPointsTotal(profile)}.
+      </div>
       {block === 'requires' && (
         <div className="warn-box" style={{ marginTop: 10 }}>
           Сначала изучите: {node.requires.map((r) => `${getTech(r.id)?.name} до ур. ${r.level}`).join(', ')}.
@@ -217,6 +222,11 @@ export function TechScreen() {
   const profile = useProfile((s) => s.profile)!;
   const [open, setOpen] = useState<TechNode | null>(null);
   const [tab, setTab] = useState<TechBranch>('energy');
+  const [confirmReset, setConfirmReset] = useState(false);
+  const resetSkills = useProfile((s) => s.resetSkills);
+  const toast = useUi((s) => s.toast);
+  const spent = skillPointsSpent(profile);
+  const free = skillPointsFree(profile);
   const branch = techBranches.find((b) => b.id === tab)!;
   const readyIn = (b: TechBranch) => techConfig.filter((n) => n.branch === b && !researchBlock(profile, n)).length;
   return (
@@ -245,17 +255,40 @@ export function TechScreen() {
             <div className="small muted">{branch.description}</div>
           </div>
           <div className="skill-points">
-            <b>{branchPoints(profile, branch.id)}</b>
-            <span>очков</span>
+            <b>{Math.max(0, free)}</b>
+            <span>свободно</span>
           </div>
         </div>
-        
+        <div className="skill-bar">
+          <span className="small">
+            Очки навыков: <b>{spent}</b> / {skillPointsTotal(profile)} · в ветке {branchPoints(profile, branch.id)}
+          </span>
+          <button className="btn btn-sm btn-ghost" disabled={spent === 0} onClick={() => setConfirmReset(true)}>
+            Сбросить
+          </button>
+        </div>
+        {free < 0 && <div className="warn-box" style={{ marginBottom: 8 }}>Вложено больше очков, чем даёт уровень бункера. Изученное сохранится, но новые уровни откроются, когда уровень бункера догонит. Можно сбросить навыки и распределить заново.</div>}
+
         <BranchTree branch={branch} onOpen={setOpen} />
         <div className="small muted" style={{ margin: '4px 0 12px', textAlign: 'center' }}>
-          Знак «+» — можно изучить сейчас. Уровни навыков не ограничены.
+          Знак «+» — можно изучить сейчас. Каждый уровень бункера даёт 1 очко навыков.
         </div>
       </div>
       {open && <NodeSheet node={open} onClose={() => setOpen(null)} />}
+      {confirmReset && (
+        <ConfirmDialog
+          title="Сбросить навыки?"
+          text="Все уровни навыков обнулятся, очки и все потраченные на изучение ресурсы вернутся. Сброс бесплатный."
+          confirmLabel="Сбросить"
+          danger
+          onConfirm={() => {
+            setConfirmReset(false);
+            resetSkills();
+            toast('Навыки сброшены, ресурсы возвращены', 'good');
+          }}
+          onCancel={() => setConfirmReset(false)}
+        />
+      )}
     </div>
   );
 }

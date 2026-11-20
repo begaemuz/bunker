@@ -27,7 +27,7 @@ import {
   setCurrentLocation,
   unequipItem,
 } from '../src/game/profile/Profile';
-import { effectValue, research, researchBlock, researchCost } from '../src/game/progression/TechnologyTree';
+import { effectValue, resetSkills, research, researchBlock, researchCost } from '../src/game/progression/TechnologyTree';
 import { LOGIN_DAYS, buyOffer, buySpecial, claimDaily, claimQuest, claimQuestBonus, doExchange, ensureQuests, ensureShop, exchangeUsed, questProgress, refreshShop } from '../src/game/meta/Meta';
 import { addParts, extractPart, fuseAll, fuseParts, generatePart, installPart, unlockSlot } from '../src/game/items/Parts';
 import { applyAutoSell } from '../src/game/economy/AutoSell';
@@ -187,6 +187,15 @@ console.log('— Технологии и уровень');
 console.log('— Бесконечные навыки');
 {
   let p = addResources(addXp(createNewProfile(), 1e9).profile, { coins: 1e15, techParts: 1e15, scrap: 1e15, blueprints: 1e15, energyCores: 1e15 });
+  {
+    let q = { ...p, bunker: { ...p.bunker, level: 30 } };
+    for (let i = 0; i < 60; i++) for (const t of techConfig) q = research(q, t.id).profile;
+    const spent = Object.values(q.techs).reduce((a, b) => a + b, 0);
+    check(`Уровень 30 = 30 очков навыков (вложено ${spent})`, spent === 30 && research(q, 'm_power').error === 'points');
+    const r = resetSkills(q);
+    check('Сброс навыков возвращает очки и ресурсы', Object.keys(r.techs).length === 0 && r.resources.coins > q.resources.coins);
+  }
+  p = { ...p, bunker: { ...p.bunker, level: 100000 } };
   for (let i = 0; i < 60; i++) for (const t of techConfig) p = research(p, t.id).profile;
   check('Навык качается выше старого предела (60 уровней)', (p.techs['m_power'] ?? 0) === 60);
   const st = computeBunkerStats(p);

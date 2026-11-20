@@ -25,12 +25,41 @@ export function researchCost(node: TechNode, currentLevel: number): Partial<Reso
   return out;
 }
 
-export type ResearchBlock = 'level' | 'requires' | 'resources' | null;
+export type ResearchBlock = 'level' | 'requires' | 'points' | 'resources' | null;
+
+/** Очки навыков: 1 за каждый уровень бункера, 1 очко = 1 уровень навыка. */
+export function skillPointsTotal(p: Profile): number {
+  return p.bunker.level;
+}
+
+export function skillPointsSpent(p: Profile): number {
+  return Object.values(p.techs).reduce((s, v) => s + (v ?? 0), 0);
+}
+
+export function skillPointsFree(p: Profile): number {
+  return skillPointsTotal(p) - skillPointsSpent(p);
+}
+
+/** Сброс навыков: все очки и потраченные ресурсы возвращаются. */
+export function resetSkills(p: Profile): Profile {
+  const refund: Partial<Resources> = {};
+  for (const node of techConfig) {
+    const lvl = techLevel(p, node.id);
+    for (let i = 0; i < lvl; i++) {
+      const c = researchCost(node, i);
+      for (const k of RESOURCE_KEYS) if (c[k]) refund[k] = (refund[k] ?? 0) + c[k]!;
+    }
+  }
+  const resources = { ...p.resources };
+  for (const k of RESOURCE_KEYS) if (refund[k]) resources[k] += refund[k]!;
+  return { ...p, techs: {}, resources };
+}
 
 export function researchBlock(p: Profile, node: TechNode): ResearchBlock {
   const lvl = techLevel(p, node.id);
   if (lvl === 0 && p.bunker.level < node.levelReq) return 'level';
   if (node.requires.some((r) => techLevel(p, r.id) < r.level)) return 'requires';
+  if (skillPointsFree(p) <= 0) return 'points';
   if (!canAfford(p, researchCost(node, lvl))) return 'resources';
   return null;
 }

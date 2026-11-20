@@ -25,7 +25,7 @@ import {
 import { vipLevel, vipPerks } from '../game/meta/vip';
 import type { QuestPeriod } from '../game/config/metaConfig';
 import { computeOfflineReward, type OfflineReward } from '../game/progression/offline';
-import { research } from '../game/progression/TechnologyTree';
+import { research , resetSkills } from '../game/progression/TechnologyTree';
 import type { Item, Part, Rarity, Resources, SlotId } from '../game/types';
 import {
   buyOffer,
@@ -73,6 +73,7 @@ interface ProfileState {
   sell: (itemId: string) => { coins: number; error?: string };
   upgrade: (itemId: string, useStabilizer: boolean) => { outcome?: UpgradeOutcome; error?: string; granted: Item[] };
   research: (techId: string) => string | null;
+  resetSkills: () => void;
   setLocation: (id: number) => void;
   setAutoSell: (r: Rarity | null) => void;
   installPart: (partId: string, itemId: string, slot: number) => InstallError | null;
@@ -341,6 +342,11 @@ export const useProfile = create<ProfileState>((set, get) => {
       const kit = ensureMinimumKit(questProgress(r.profile, 'upgrade'));
       commit(kit.profile, true, true);
       return { outcome: r.outcome, granted: kit.granted };
+    },
+
+    resetSkills: () => {
+      const p = get().profile;
+      if (p) commit(resetSkills(p), true, true);
     },
 
     research: (techId) => {

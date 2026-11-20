@@ -13,6 +13,20 @@ function rollStat(t: PartTemplate, rarity: Rarity): StatMod {
   return { stat: t.stat, value: Math.round(v * 1000) / 1000 };
 }
 
+/** Диапазон свойства модификации при её редкости. */
+export function partStatRoll(rarity: Rarity, stat: StatMod): { min: number; max: number; quality: number } | null {
+  const t = partTemplates.find((x) => x.stat === stat.stat);
+  if (!t) return null;
+  const m = partRarityMult[rarity];
+  const a = t.range[0] * m;
+  const b = t.range[1] * m;
+  const lo = Math.min(a, b);
+  const hi = Math.max(a, b);
+  let q = hi - lo > 1e-9 ? (stat.value - lo) / (hi - lo) : 1;
+  if (t.range[1] < t.range[0]) q = 1 - q;
+  return { min: lo, max: hi, quality: Math.max(0, Math.min(1, q)) };
+}
+
 export function generatePart(rarity: Rarity, templateId?: string): Part {
   const t = templateId ? getPartTemplate(templateId) : pickWeighted(partTemplates, (x) => x.weight);
   return { id: uid(), templateId: t.id, name: t.name, rarity, stats: [rollStat(t, rarity)], installedIn: null, obtainedAt: Date.now() };

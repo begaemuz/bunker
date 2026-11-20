@@ -3642,3 +3642,123 @@ button.pavatar:active {
 .lday.grand .lday-v {
   font-size: 12px;
 }
+
+/* Строка характеристики с диапазоном */
+.roll-line {
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.roll-line:last-child {
+  border-bottom: 0;
+}
+.roll-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+.roll-top > span:last-child {
+  font-family: var(--display);
+}
+.roll-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 10.5px;
+  color: #8f99a2;
+}
+.roll-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: #0b0e11;
+  overflow: hidden;
+}
+.roll-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+}
+.roll-mm {
+  white-space: nowrap;
+}
+.roll-q {
+  min-width: 30px;
+  text-align: right;
+  font-family: var(--display);
+}
+.skill-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 10px 0 4px;
+}
+.prof-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.edit-btn {
+  width: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+.vip-browser {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 12px;
+}
+.vip-arrow {
+  width: 38px;
+  min-width: 38px;
+  padding: 0;
+  font-size: 26px;
+  line-height: 1;
+}
+.vip-page {
+  flex: 1;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #221c2c, #141118);
+  border: 1px solid #3a2f4d;
+}
+.vip-page.reached {
+  border-color: #b46bff;
+  box-shadow: 0 0 12px rgba(180, 107, 255, 0.3);
+}
+.vip-page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.vip-badge.big {
+  font-size: 18px;
+}
+.vip-dots {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 10px;
+}
+.vip-dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3a3f45;
+  cursor: pointer;
+}
+.vip-dots i.got {
+  background: #6b2fb0;
+}
+.vip-dots i.on {
+  background: #ffd06a;
+  transform: scale(1.3);
+}

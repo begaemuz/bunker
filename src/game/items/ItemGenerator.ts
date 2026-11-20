@@ -4,7 +4,7 @@ import { extraStatPools, itemTemplates, type ItemTemplate, type StatRange } from
 import { pickWeighted, randFloat, randInt, chance, uid, random } from '../rng';
 import type { CoilProps, EquipCategory, Item, ItemSlot, ItemSource, Rarity, StatKey, StatMod } from '../types';
 import { rarityIndex } from './ItemRarity';
-import { isDrawback, isFlatScaling } from './statInfo';
+import { isDrawback, isFlatScaling, lowerIsBetter } from './statInfo';
 
 export function getTemplate(id: string): ItemTemplate {
   const t = itemTemplates.find((x) => x.id === id);
@@ -141,4 +141,63 @@ export function coilProps(item: Item): CoilProps | null {
 export function sellPrice(item: Item): number {
   const s = balanceConfig.sell;
   return Math.round(s.base * s.rarityMult[item.rarity] * (1 + s.perLevel * (item.level - 1)) * (1 + s.perTier * (item.tier - 1)));
+}
+
+// ───────────── Диапазоны характеристик (как в Diablo) ─────────────
+
+export interface StatRoll {
+  /** Минимум и максимум, которые могли выпасть (с учётом уровня улучшения). */
+  min: number;
+  max: number;
+  /** Качество броска 0..1: насколько выпавшее значение близко к лучшему. */
+  quality: number;
+}
+
+function rollInfo(stat: StatKey, raw: number, r: StatRange, rarity: Rarity, tier: number, level: number, leveled: boolean): StatRoll {
+  const a = round(stat, scaleStat(stat, r.min, rarity, tier));
+  const b = round(stat, scaleStat(stat, r.max, rarity, tier));
+  const lo = Math.min(a, b);
+  const hi = Math.max(a, b);
+  // для «чем меньше, тем лучше» лучшим считается меньшее значение
+  const span = hi - lo;
+  let q = span > 1e-9 ? (raw - lo) / span : 1;
+  if (lowerIsBetter(stat)) q = 1 - q;
+  const f = (v: number) => (leveled ? levelMult(stat, v, level) : v);
+  return { min: f(lo), max: f(hi), quality: Math.max(0, Math.min(1, q)) };
+}
+
+/** Диапазоны основных и дополнительных свойств предмета. */
+export function itemStatRolls(item: Item): { base: (StatRoll | null)[]; extra: (StatRoll | null)[] } {
+  const tpl = itemTemplates.find((t) => t.id === item.templateId);
+  const base = item.baseStats.map((s) => {
+    const r = tpl?.base.find((x) => x.stat === s.stat);
+    return r ? rollInfo(s.stat, s.value, r, item.rarity, item.tier, item.level, true) : null;
+  });
+  const pool = extraStatPools[item.category] ?? [];
+  const extra = item.extraStats.map((s) => {
+    const r = pool.find((x) => x.stat === s.stat);
+    return r ? rollInfo(s.stat, s.value, r, item.rarity, item.tier, item.level, false) : null;
+  });
+  return { base, extra };
+}
+
+/** Диапазоны параметров катушки (без учёта уровня улучшения для энергии и нагрева). */
+export function coilRolls(item: Item): Record<'power' | 'radius' | 'interval', StatRoll> | null {
+  const tpl = itemTemplates.find((t) => t.id === item.templateId);
+  if (!tpl?.coil || !item.coil) return null;
+  const idx = rarityIndex(item.rarity);
+  const n = item.level - 1;
+  const pMult = balanceConfig.rarityStatMult[item.rarity] * (1 + balanceConfig.tier.coilPowerPerTier * (item.tier - 1));
+  const mk = (lo: number, hi: number, v: number, lowerBetter: boolean, lvl: number): StatRoll => {
+    const span = hi - lo;
+    let q = span > 1e-9 ? (v - lo) / span : 1;
+    if (lowerBetter) q = 1 - q;
+    return { min: lo * lvl, max: hi * lvl, quality: Math.max(0, Math.min(1, q)) };
+  };
+  const c = tpl.coil;
+  return {
+    power: mk(c.power[0] * pMult, c.power[1] * pMult, item.coil.power, false, 1 + balanceConfig.item.statPerLevel * n),
+    radius: mk(Math.round(c.radius[0] * (1 + 0.05 * idx)), Math.round(c.radius[1] * (1 + 0.05 * idx)), item.coil.radius, false, 1 + 0.01 * n),
+    interval: mk(c.interval[0] * (1 - 0.035 * idx), c.interval[1] * (1 - 0.035 * idx), item.coil.interval, true, 1 - 0.01 * n),
+  };
 }

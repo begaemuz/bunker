@@ -10,7 +10,7 @@ import { useUi, type Screen } from '../stores/uiStore';
 import { BunkerScreen } from '../components/bunker/BunkerScreen';
 import { Toasts } from '../components/common/Common';
 import { UiIcon } from '../components/common/Icons';
-import { ProfileSheet } from '../components/player/ProfileSheet';
+import { NickDialog, ProfileSheet } from '../components/player/ProfileSheet';
 import { GameScreen } from '../components/game/GameScreen';
 import { MenuScreen } from '../components/game/MenuScreen';
 import { BossRewardModal, OfflineRewardModal, ResultScreen } from '../components/game/ResultScreen';
@@ -61,6 +61,8 @@ function Main() {
   const setScreen = useUi((s) => s.setScreen);
   const result = useUi((s) => s.result);
   const profile = useProfile((s) => s.profile)!;
+  const tgName = useProfile((s) => s.tg?.first_name);
+  const setPlayer = useProfile((s) => s.setPlayer);
   const better = useMemo(() => upgradeHints(profile).size, [profile]);
   const canResearch = useProfile((s) => techConfig.some((t) => !researchBlock(s.profile!, t)));
   const canUpgrade = useProfile((s) => {
@@ -86,6 +88,15 @@ function Main() {
         {profileOpen && <ProfileSheet onClose={() => setProfileOpen(false)} />}
         <BossRewardModal />
         {!introOpen && <OfflineRewardModal />}
+        {!introOpen && !profile.player.nick && (
+          <NickDialog
+            title="Как зовут командира бункера?"
+            initial={tgName ?? ''}
+            onSave={(n) => {
+              setPlayer({ nick: n });
+            }}
+          />
+        )}
         <Toasts />
       </div>
       {introOpen && <Intro onDone={() => setIntroOpen(false)} />}

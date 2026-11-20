@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { fusionConfig } from '../../game/config/partsConfig';
 import { formatStatValue } from '../../game/items/statInfo';
-import { extractCost, fusableCount, fusionChance, fusionGroup, getPartTemplate, nextRarity } from '../../game/items/Parts';
+import { extractCost, partStatRoll, fusableCount, fusionChance, fusionGroup, getPartTemplate, nextRarity } from '../../game/items/Parts';
 import { rarityIndex } from '../../game/items/ItemRarity';
 import { slotOf } from '../../game/profile/Profile';
 import { RARITIES, type Item, type Part, type Rarity } from '../../game/types';
@@ -13,6 +13,7 @@ import { rarityColor } from '../../ui/theme';
 import { ConfirmDialog } from '../common/Common';
 import { ItemIcon, PartGlyph, ResourceIcon } from '../common/Icons';
 import { Sheet } from '../common/Sheet';
+import { RollLine } from '../inventory/Roll';
 
 export function partStatsText(p: Part): string {
   return p.stats.map((s) => `${statLabel(s.stat)} ${formatStatValue(s.stat, s.value)}`).join(' · ');
@@ -139,12 +140,23 @@ export function PartCard({ partId, onClose }: { partId: string; onClose: () => v
             {t.description}
           </div>
           <div className="stat-list">
-            {part.stats.map((s, i) => (
-              <div className="stat-line" key={i}>
-                <span>{statLabel(s.stat)}</span>
-                <span className="pos">{formatStatValue(s.stat, s.value)}</span>
-              </div>
-            ))}
+            {part.stats.map((s, i) => {
+              const r = partStatRoll(part.rarity, s);
+              return (
+                <RollLine
+                  key={i}
+                  label={statLabel(s.stat)}
+                  value={formatStatValue(s.stat, s.value)}
+                  valueClass="pos"
+                  min={r ? formatStatValue(s.stat, r.min) : undefined}
+                  max={r ? formatStatValue(s.stat, r.max) : undefined}
+                  quality={r?.quality}
+                />
+              );
+            })}
+          </div>
+          <div className="small muted" style={{ marginTop: 6 }}>
+            Под каждым свойством — диапазон для этой редкости и качество броска: 100% — лучшее возможное значение.
           </div>
           <div className="small muted" style={{ marginTop: 8 }}>
             Подходит для: {t.fits.map((c) => ru.category[c].toLowerCase()).join(', ')}
