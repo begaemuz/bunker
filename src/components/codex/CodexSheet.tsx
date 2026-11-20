@@ -15,6 +15,7 @@ import { CategoryGlyph, PartGlyph, ResourceIcon } from '../common/Icons';
 import { CONSUMABLES, consumableInfo } from '../../game/consumables';
 import { Sheet } from '../common/Sheet';
 
+const SHORT: Partial<Record<Rarity, string>> = { common: 'Белые', uncommon: 'Зелёные', rare: 'Синие', epic: 'Фиолет.', legendary: 'Золотые' };
 const GRADES: Rarity[] = RARITIES.filter((r) => r !== 'unique' && r !== 'mythic');
 
 function Range({ stat, min, max }: { stat: StatKey; min: number; max: number }) {
@@ -244,21 +245,27 @@ export function CodexSheet({ onClose }: { onClose: () => void }) {
         </button>
       </div>
       {tab !== 'other' && (
-      <div className="cx-grades cx-scroll">
+      <div className="cx-rar">
         {GRADES.map((r) => (
-          <button key={r} className={`cx-grade${rarity === r ? ' on' : ''}`} style={{ ['--rc' as string]: rarityColor[r] }} onClick={() => setRarity(r)}>
-            {ru.rarity[r]}
+          <button key={r} className={`cx-rar-b${rarity === r ? ' on' : ''}`} style={{ ['--rc' as string]: rarityColor[r] }} onClick={() => setRarity(r)}>
+            <i />
+            {SHORT[r]}
           </button>
         ))}
       </div>
       )}
       {tab === 'items' && (
-        <div className="cx-grades cx-scroll">
-          {Array.from({ length: 20 }, (_, i) => i + 1).map((t) => (
-            <button key={t} className={`cx-grade tier${tier === t ? ' on' : ''}`} onClick={() => setTier(t)}>
-              Т{t}
-            </button>
-          ))}
+        <div className="cx-tier">
+          <button className="cx-tier-b" disabled={tier <= 1} onClick={() => setTier(tier - 1)} aria-label="Меньше">
+            ‹
+          </button>
+          <span className="grow">
+            <b>Т{tier}</b>
+            <span className="small muted"> · вещи зоны {tier}</span>
+          </span>
+          <button className="cx-tier-b" disabled={tier >= 20} onClick={() => setTier(tier + 1)} aria-label="Больше">
+            ›
+          </button>
         </div>
       )}
       {tab === 'other' && (

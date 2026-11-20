@@ -4973,3 +4973,24 @@ button.pavatar:active {
 .cx-body { padding: 2px 14px 14px; }
 .cx-entry.unknown .cx-head { padding: 6px 12px; }
 .cx-entry.unknown .cx-icon { width: 30px; height: 30px; }
+
+/* База: фильтры без прокрутки */
+.cx-rar { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 12px 0 8px; }
+.cx-rar-b { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 2px; border-radius: 10px; border: 1px solid #2e363e; background: #12161a; color: #9aa4ad; font-size: 11px; min-width: 0; }
+.cx-rar-b i { width: 10px; height: 10px; border-radius: 50%; background: var(--rc); }
+.cx-rar-b.on { color: var(--rc); border-color: var(--rc); background: color-mix(in srgb, var(--rc) 14%, #12161a); }
+.cx-tier { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 4px; border-radius: 12px; background: #12161a; border: 1px solid #2e363e; text-align: center; }
+.cx-tier b { font-family: var(--display); font-weight: 400; font-size: 16px; color: var(--amber); }
+.cx-tier-b { width: 40px; height: 34px; border-radius: 9px; background: #1d232a; color: #e6ebef; font-size: 22px; line-height: 1; }
+.cx-tier-b:disabled { opacity: 0.3; }
+
+/* База: карточки с нормальными отступами */
+.cx-entry { margin-bottom: 10px; }
+.cx-head { padding: 12px 16px; gap: 14px; }
+.cx-body { padding: 4px 16px 16px; }
+.cx-body > .small.muted:first-child { display: block; margin-bottom: 10px !important; line-height: 1.5; }
+.cx-h { margin: 14px 0 6px; font-size: 13px; }
+.cx-line { padding: 7px 0; font-size: 13px; gap: 16px; }
+.cx-line > span:first-child { min-width: 0; }
+.cx-entry.unknown { margin-bottom: 6px; }
+.cx-entry.unknown .cx-head { padding: 8px 16px; }
