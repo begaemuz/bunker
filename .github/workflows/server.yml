@@ -30,7 +30,8 @@ jobs:
           echo "Токен бота действителен"
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.67.1
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Link project
         run: supabase link --project-ref "$REF"
       - name: Database migrations
