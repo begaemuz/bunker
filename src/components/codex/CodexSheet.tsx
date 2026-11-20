@@ -15,7 +15,7 @@ import { CategoryGlyph, PartGlyph, ResourceIcon } from '../common/Icons';
 import { CONSUMABLES, consumableInfo } from '../../game/consumables';
 import { Sheet } from '../common/Sheet';
 
-const GRADES: Rarity[] = RARITIES.filter((r) => r !== 'unique');
+const GRADES: Rarity[] = RARITIES.filter((r) => r !== 'unique' && r !== 'mythic');
 
 function Range({ stat, min, max }: { stat: StatKey; min: number; max: number }) {
   const a = formatStatValue(stat, min);
@@ -36,7 +36,7 @@ function num(a: number, b: number, d = 1, unit = ''): string {
 
 function ItemEntry({ t, rarity, tier }: { t: ItemTemplate; rarity: Rarity; tier: number }) {
   const [open, setOpen] = useState(false);
-  const r: Rarity = t.unique ? 'unique' : rarity;
+  const r: Rarity = t.unique ? 'legendary' : rarity;
   const col = rarityColor[r];
   const coil = coilRangesAt(t, r, tier);
   const energy = energyCostAt(t, r, tier);
@@ -56,7 +56,7 @@ function ItemEntry({ t, rarity, tier }: { t: ItemTemplate; rarity: Rarity; tier:
             {t.name}
           </span>
           <span className="cx-sub">
-            {t.unique ? 'Уникальное · трофей босса' : `${ru.rarity[r]} · Т${tier}`}
+            {t.unique ? 'Золотое · эксклюзив VIP' : `${ru.rarity[r]} · Т${tier}`}
           </span>
         </span>
         <span className="cx-chev">{open ? '−' : '+'}</span>
@@ -266,7 +266,7 @@ export function CodexSheet({ onClose }: { onClose: () => void }) {
       {tab !== 'other' && (
       <div className="small muted" style={{ margin: '4px 2px 10px' }}>
         {tab === 'items'
-          ? 'Белая — 1 основная характеристика, зелёная — 2, синяя — 3, фиолетовая — 3 + 1 случайная, золотая — 3 + 2. Значения выпадают в указанных пределах, без учёта заточки и буста. Т — технический уровень локации.'
+          ? 'Вещи одинаковые во всех зонах, отличается Т-уровень зоны. С роботов падают белые и зелёные, синие — редко; с боссов — синие, фиолетовые и очень редко золотые. Белая — 1 основная характеристика, зелёная — 2, синяя — 3, фиолетовая — 3 + 1 случайная, золотая — 3 + 2. Значения без учёта заточки и буста.'
           : 'У модификации один эффект: он меняет поведение бункера. Редкость усиливает эффект, качество показывает, насколько удачно он выпал.'}
       </div>
       )}
@@ -275,7 +275,7 @@ export function CodexSheet({ onClose }: { onClose: () => void }) {
           <div key={c}>
             <div className="section-title">{ru.category[c]}</div>
             {itemTemplates
-              .filter((t) => t.category === c)
+              .filter((t) => t.category === c && (!t.unique || t.id.startsWith('v_')))
               .sort((a, b) => Number(!!a.unique) - Number(!!b.unique))
               .map((t) => (
                 <ItemEntry key={t.id} t={t} rarity={rarity} tier={tier} />

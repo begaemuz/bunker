@@ -66,7 +66,7 @@ console.log('— Оборудование');
   check('Технологический уровень усиливает катушку', t3.coil!.power > c.coil!.power);
   check('Мощная катушка дороже по энергии', l.coil!.energyPerPulse > c.coil!.energyPerPulse);
   const u = generateItem({ templateId: 'u_twins', rarity: 'common', tier: 2, source: { kind: 'start' } });
-  check('Уникальный шаблон: редкость «Уникальное» и особое свойство', u.rarity === 'unique' && u.unique?.kind === 'dualCoil');
+  check('Особый шаблон (VIP): золотой и с особым свойством', u.rarity === 'legendary' && u.unique?.kind === 'dualCoil');
 }
 
 console.log('— Слоты и экипировка');
@@ -434,10 +434,18 @@ console.log('— Бой');
   const won = registerBossKill(pr, 1);
   check('Победа над боссом открывает следующую локацию', won.unlocked === 2 && won.profile.locations.unlocked.includes(2));
   check('Можно вернуться на предыдущую локацию', setCurrentLocation(setCurrentLocation(won.profile, 2), 1).locations.current === 1);
-  let uniques = 0;
-  for (let i = 0; i < 500; i++)
-    uniques += rollBossLoot('colossus', { location: getLocation(1), decay: 1, dropChanceMult: 1, coinMult: 1 }).items.filter((x) => x.rarity === 'unique').length;
-  check(`Уникальные предметы босса выпадают с настраиваемым шансом (${uniques}/500)`, uniques > 60 && uniques < 160);
+  const cnt = { rare: 0, epic: 0, legendary: 0, other: 0 };
+  for (let i = 0; i < 3000; i++) {
+    for (const it of rollBossLoot('colossus', { location: getLocation(1), decay: 1, dropChanceMult: 1, coinMult: 1 }).items) {
+      if (it.rarity === 'rare' || it.rarity === 'epic' || it.rarity === 'legendary') cnt[it.rarity]++;
+      else cnt.other++;
+    }
+  }
+  const tot = cnt.rare + cnt.epic + cnt.legendary + cnt.other;
+  check(`Босс: синие/фиолетовые/золотые ${Math.round((cnt.rare / tot) * 100)}/${Math.round((cnt.epic / tot) * 100)}/${((cnt.legendary / tot) * 100).toFixed(1)}%`, cnt.other === 0 && cnt.legendary / tot < 0.05 && cnt.legendary > 0);
+  let robotHigh = 0;
+  for (const l of locationsConfig) robotHigh += l.rarity.epic + l.rarity.legendary + l.rarity.unique + l.rarity.mythic;
+  check('С роботов не падают фиолетовые, золотые и выше', robotHigh === 0);
   check('Снижение наград за слабых противников', rewardDecay(30, getLocation(1)) < rewardDecay(5, getLocation(1)));
 }
 
@@ -463,7 +471,7 @@ console.log('— Сохранения');
   check('Миграция: победа над боссом открыла 2-ю локацию', m.locations.unlocked.includes(2));
   check('Миграция: стоит катушка №1', m.equipment.coil1 === 'a');
   check('Миграция v2 → v5: модификации и автопродажа', !!m.parts && m.autoSell.maxRarity === null && m.resources.expansionKeys === 0);
-  check('Миграция v5: магазин, обмен, награды, задания', !!m.shop && !!m.exchange && !!m.daily && !!m.quests && m.version === 8);
+  check('Миграция v5: магазин, обмен, награды, задания', !!m.shop && !!m.exchange && !!m.daily && !!m.quests && m.version === 9);
   check('Миграция v6: профиль игрока и VIP', m.player.frame === 'steel' && m.vip.points === 0);
   check('Миграция v7: задания по периодам', !!m.quests.day && !!m.quests.week && !!m.quests.month);
 }
@@ -511,7 +519,7 @@ console.log(`— Баланс: автоигрок, ${HOURS} ч игрового 
       const id = p.equipment[slot];
       if (!id) continue;
       const it = p.items[id];
-      if (it.level < 5 && !upgradeBlock(p, it, false)) p = tryUpgrade(p, id, false).profile;
+      if (it.level < 3 && !upgradeBlock(p, it, false)) p = tryUpgrade(p, id, false).profile;
       else if (!upgradeBlock(p, it, true)) p = tryUpgrade(p, id, true).profile;
     }
     p = ensureMinimumKit(p).profile;

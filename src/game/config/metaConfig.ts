@@ -10,7 +10,7 @@ export const shopConfig = {
     equipment: 4,
     parts: 1,
     resources: 2,
-    rarity: { common: 0.35, uncommon: 0.35, rare: 0.2, epic: 0.08, legendary: 0.02, unique: 0, mythic: 0 } as Record<Rarity, number>,
+    rarity: { common: 0.55, uncommon: 0.4, rare: 0.05, epic: 0, legendary: 0, unique: 0, mythic: 0 } as Record<Rarity, number>,
     /** Цена оборудования = цена продажи × множитель. */
     priceMult: 4,
   },
@@ -29,7 +29,7 @@ export const shopConfig = {
   ] as { give: Partial<Resources>; price: Partial<Resources> }[],
   /** Специальный магазин за кристаллы — постоянный ассортимент. */
   special: [
-    { id: 'sp_legend', title: 'Легендарное оборудование', description: 'Случайное легендарное оборудование вашего тех. уровня.', price: { crystals: 120 }, kind: 'legendary' as const },
+    { id: 'sp_legend', title: 'Легендарное оборудование', description: 'Случайное легендарное оборудование вашего тех. уровня.', price: { crystals: 500 }, kind: 'legendary' as const },
     { id: 'sp_epicpart', title: 'Эпическая модификация', description: 'Случайная эпическая модификация.', price: { crystals: 45 }, kind: 'epicPart' as const },
     { id: 'sp_pass', title: 'Пропуск вызова босса', description: 'Вызов босса без уничтожения групп.', price: { crystals: 30 }, kind: 'pass' as const },
     { id: 'sp_stab', title: 'Стабилизаторы ×3', description: 'Защита оборудования при улучшении.', price: { crystals: 20 }, kind: 'stabilizers' as const },

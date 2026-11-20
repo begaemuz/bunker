@@ -28,13 +28,13 @@ export interface DropContext {
   coinMult: number;
 }
 
-/** Таблица редкости наград босса: только редкое и выше. */
+/** Награды босса: синие, фиолетовые и очень редко золотые. Красные — позже, из особого места. */
 export const bossRarity: Record<Rarity, number> = {
   common: 0,
   uncommon: 0,
-  rare: 0.62,
-  epic: 0.28,
-  legendary: 0.1,
+  rare: 0.7,
+  epic: 0.27,
+  legendary: 0.03,
   unique: 0,
   mythic: 0,
 };
@@ -116,10 +116,6 @@ export function rollBossLoot(bossId: string, ctx: DropContext): Loot {
   const items: Item[] = [];
   const n = randInt(boss.itemCount[0], boss.itemCount[1]);
   for (let i = 0; i < n; i++) items.push(generateItem({ rarity: rollRarity(bossRarity), tier: loc.tier, source }));
-  if (boss.mythicChance && chance(boss.mythicChance)) items.push(generateItem({ rarity: 'mythic', tier: loc.tier, source }));
-  for (const u of boss.uniques) {
-    if (chance(u.chance)) items.push(generateItem({ templateId: u.template, rarity: 'unique', tier: loc.tier, source }));
-  }
   const parts: Part[] = [];
   const pn = randInt(partDrops.bossCount[0], partDrops.bossCount[1]);
   for (let i = 0; i < pn; i++) parts.push(generatePart(rollRarity(partDrops.rarity, 0.6 + 0.1 * loc.tier)));

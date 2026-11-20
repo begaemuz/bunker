@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { bossesConfig } from '../../game/config/bossesConfig';
 import { robotsConfig } from '../../game/config/enemiesConfig';
-import { itemTemplates } from '../../game/config/itemsConfig';
+import { bossRarity } from '../../game/economy/DropSystem';
 import { locationsConfig, type LocationDef } from '../../game/config/locationsConfig';
 import { canSummonBoss, isLocationUnlocked, locationProgress } from '../../game/profile/Profile';
 import type { Profile } from '../../game/profile/Profile';
@@ -204,12 +204,11 @@ function ZoneSheet({ loc: l, onClose }: { loc: LocationDef; onClose: () => void 
             </div>
           )}
           <div className="zone-row">
-            <span className="muted">Трофеи босса</span>
+            <span className="muted">Вещи Т{l.tier}</span>
             <span>
-              {[
-                ...boss.uniques.map((u) => `${itemTemplates.find((t) => t.id === u.template)?.name} (${Math.round(u.chance * 100)}%)`),
-                ...(boss.mythicChance ? [`красная вещь (${Math.round(boss.mythicChance * 100)}%)`] : []),
-              ].join(', ')}
+              роботы: белые, зелёные, синие — редко
+              <br />
+              босс: синие {Math.round(bossRarity.rare * 100)}%, фиолетовые {Math.round(bossRarity.epic * 100)}%, золотые {Math.round(bossRarity.legendary * 100)}%
             </span>
           </div>
           {decay < 1 && <div className="warn-box" style={{ marginTop: 10 }}>Зона слишком лёгкая для вас: награды за роботов снижены до {Math.round(decay * 100)}%.</div>}

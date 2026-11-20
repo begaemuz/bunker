@@ -26,6 +26,7 @@ export interface LocationDef {
   special?: 'rift';
 }
 
+/** Редкость вещей с обычных роботов: белые, иногда зелёные, синие — очень редко. Фиолетовые и золотые — только с боссов. */
 const R = (common: number, uncommon: number, rare: number, epic: number, legendary: number): Record<Rarity, number> => ({
   common,
   uncommon,
@@ -55,7 +56,7 @@ export const locationsConfig: LocationDef[] = [
     minibossEvery: 12,
     boss: 'colossus',
     resourceMult: {},
-    rarity: R(0.55, 0.27, 0.13, 0.04, 0.01),
+    rarity: R(0.85, 0.145, 0.005, 0, 0),
     palette: { ground: '#16181b', groundAlt: '#1d2024', debris: '#2b2f35', accent: '#3a3128', fog: '#0b0c0e' },
   },
   {
@@ -77,7 +78,7 @@ export const locationsConfig: LocationDef[] = [
     minibossEvery: 10,
     boss: 'smith',
     resourceMult: { scrap: 1.6, techParts: 1.2 },
-    rarity: R(0.5, 0.28, 0.15, 0.055, 0.015),
+    rarity: R(0.83, 0.16, 0.01, 0, 0),
     palette: { ground: '#1a1714', groundAlt: '#221d18', debris: '#3a3028', accent: '#5a3a1c', fog: '#0d0b09' },
   },
   {
@@ -98,7 +99,7 @@ export const locationsConfig: LocationDef[] = [
     minibossEvery: 10,
     boss: 'worm',
     resourceMult: { coins: 1.3, scrap: 1.2 },
-    rarity: R(0.46, 0.29, 0.17, 0.06, 0.02),
+    rarity: R(0.81, 0.175, 0.015, 0, 0),
     palette: { ground: '#2a2318', groundAlt: '#352c1e', debris: '#4a3d28', accent: '#6b5230', fog: '#120e08' },
   },
   {
@@ -119,7 +120,7 @@ export const locationsConfig: LocationDef[] = [
     minibossEvery: 8,
     boss: 'icebreaker',
     resourceMult: { techParts: 1.4, energyCores: 1.3 },
-    rarity: R(0.42, 0.3, 0.18, 0.075, 0.025),
+    rarity: R(0.79, 0.19, 0.02, 0, 0),
     palette: { ground: '#1c2228', groundAlt: '#25303a', debris: '#3a4652', accent: '#5a6b7a', fog: '#0a0e12' },
   },
   {
@@ -140,7 +141,7 @@ export const locationsConfig: LocationDef[] = [
     minibossEvery: 8,
     boss: 'isotope',
     resourceMult: { energyCores: 1.8, blueprints: 1.3 },
-    rarity: R(0.38, 0.3, 0.2, 0.09, 0.03),
+    rarity: R(0.77, 0.205, 0.025, 0, 0),
     palette: { ground: '#171c14', groundAlt: '#1f2619', debris: '#2f3a24', accent: '#4a5a1c', fog: '#090b07' },
   },
   {
@@ -162,7 +163,7 @@ export const locationsConfig: LocationDef[] = [
     minibossEvery: 7,
     boss: 'prototype',
     resourceMult: { blueprints: 1.8, techParts: 1.3 },
-    rarity: R(0.34, 0.3, 0.22, 0.1, 0.04),
+    rarity: R(0.75, 0.22, 0.03, 0, 0),
     palette: { ground: '#18171d', groundAlt: '#211f29', debris: '#322e3d', accent: '#4a3a5a', fog: '#0a090d' },
   },
   {
@@ -185,33 +186,8 @@ export const locationsConfig: LocationDef[] = [
     minibossEvery: 6,
     boss: 'core',
     resourceMult: { coins: 1.5, energyCores: 1.5, crystals: 2 },
-    rarity: R(0.3, 0.3, 0.24, 0.11, 0.05),
+    rarity: R(0.72, 0.245, 0.035, 0, 0),
     palette: { ground: '#1a1416', groundAlt: '#24191c', debris: '#3a2228', accent: '#5a1c24', fog: '#0d0809' },
-  },
-  {
-    // Особая зона после победы над Ядром ИИ: здесь и только здесь падают красные вещи.
-    id: 8,
-    name: 'Красный разлом',
-    description: 'Трещина в земле, откуда ИИ поднимает экспериментальные машины. Единственное место, где находят красное оборудование.',
-    tier: 8,
-    groupsForBoss: 20,
-    levelCap: 99,
-    recommendedLevel: 45,
-    special: 'rift',
-    enemies: [
-      { kind: 'armored', weight: 5 },
-      { kind: 'shielded', weight: 5 },
-      { kind: 'heavy', weight: 4 },
-      { kind: 'ranged', weight: 3 },
-      { kind: 'support', weight: 3 },
-      { kind: 'kamikaze', weight: 3 },
-    ],
-    minibossEvery: 5,
-    boss: 'rift',
-    resourceMult: { crystals: 2.5, energyCores: 2, stabilizers: 1.5 },
-    // Красная вещь с обычного робота — примерно одна на 2000 находок.
-    rarity: { common: 0.2, uncommon: 0.3, rare: 0.28, epic: 0.14, legendary: 0.0795, unique: 0, mythic: 0.0005 },
-    palette: { ground: '#1c1012', groundAlt: '#2a1215', debris: '#40181d', accent: '#7a1420', fog: '#0e0607' },
   },
 ];
 

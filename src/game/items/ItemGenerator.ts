@@ -49,7 +49,8 @@ export interface GenerateOptions {
 export function generateItem(opts: GenerateOptions): Item {
   const pool = itemTemplates.filter((t) => t.weight > 0 && (!opts.category || t.category === opts.category));
   const tpl = opts.templateId ? getTemplate(opts.templateId) : pickWeighted(pool, (t) => t.weight);
-  const rarity = tpl.unique ? 'unique' : opts.rarity;
+  // Особые шаблоны (эксклюзив VIP) — золотые с особым свойством.
+  const rarity: Rarity = tpl.unique ? 'legendary' : opts.rarity;
   const tier = Math.max(1, opts.tier);
   const idx = rarityIndex(rarity);
   const costMult = balanceConfig.rarityCostMult[rarity] * (1 + balanceConfig.tier.costPerTier * (tier - 1));

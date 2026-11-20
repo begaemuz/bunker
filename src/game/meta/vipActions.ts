@@ -29,7 +29,7 @@ export function claimVipGift(p: Profile, level: number): { profile: Profile; ite
     if (g.kind === 'res') q = addResources(q, g.res);
     if (g.kind === 'parts') for (let i = 0; i < g.count; i++) parts.push(generatePart(g.rarity));
     if (g.kind === 'item') items.push(generateItem({ rarity: g.rarity, category: g.category, tier, source: { kind: 'drop', location: Math.max(...p.locations.unlocked), enemy: `подарок VIP ${level}` } }));
-    if (g.kind === 'unique') items.push(generateItem({ templateId: g.templateId, rarity: 'unique', tier, source: { kind: 'drop', location: Math.max(...p.locations.unlocked), enemy: `подарок VIP ${level}` } }));
+    if (g.kind === 'unique') items.push(generateItem({ templateId: g.templateId, rarity: 'legendary', tier, source: { kind: 'drop', location: Math.max(...p.locations.unlocked), enemy: `подарок VIP ${level}` } }));
   }
   if (items.length) q = addItems(q, items).profile;
   if (parts.length) q = addParts(q, parts);

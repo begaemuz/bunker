@@ -136,6 +136,14 @@ const migrations: Record<number, (s: AnySave) => AnySave> = {
     // Задания пересоздаются с новыми, более серьёзными целями.
     return { ...s, items, parts, quests: emptyQuests(), version: 8 };
   },
+  // v8 → v9: «уникальная» (голубая) редкость убрана — такие вещи стали золотыми.
+  8: (s) => {
+    const items = { ...((s.items ?? {}) as Record<string, Item>) };
+    for (const [id, it] of Object.entries(items)) if ((it.rarity as string) === 'unique') items[id] = { ...it, rarity: 'legendary' };
+    const loc = (s.locations ?? null) as { current: number; unlocked: number[] } | null;
+    const locations = loc ? { ...loc, current: Math.min(7, loc.current), unlocked: loc.unlocked.filter((x) => x <= 7) } : loc;
+    return { ...s, items, ...(locations ? { locations } : {}), version: 9 };
+  },
 };
 
 /** Приводит сохранение любой версии к текущей и заполняет пропуски. */

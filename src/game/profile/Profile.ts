@@ -17,7 +17,7 @@ import {
   type SlotId,
 } from '../types';
 
-export const SAVE_VERSION = 8;
+export const SAVE_VERSION = 9;
 
 export interface GlobalStats {
   robotsKilled: number;
@@ -154,7 +154,7 @@ export function createNewProfile(): Profile {
   const items: Record<string, Item> = {};
   const equipment = emptyEquipment();
   for (const k of starterKit) {
-    const item = generateItem({ templateId: k.template, rarity: 'common', tier: 1, source: { kind: 'start' } });
+    const item = generateItem({ templateId: k.template, rarity: 'uncommon', tier: 1, source: { kind: 'start' } });
     items[item.id] = item;
     equipment[k.slot] = item.id;
   }
