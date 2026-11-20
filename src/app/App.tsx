@@ -62,6 +62,7 @@ function Main() {
   const result = useUi((s) => s.result);
   const profile = useProfile((s) => s.profile)!;
   const tgName = useProfile((s) => s.tg?.first_name);
+  const offlinePending = useProfile((s) => !!s.offlineReward);
   const setPlayer = useProfile((s) => s.setPlayer);
   const better = useMemo(() => upgradeHints(profile).size, [profile]);
   const canResearch = useProfile((s) => techConfig.some((t) => !researchBlock(s.profile!, t)));
@@ -88,7 +89,7 @@ function Main() {
         {profileOpen && <ProfileSheet onClose={() => setProfileOpen(false)} />}
         <BossRewardModal />
         {!introOpen && <OfflineRewardModal />}
-        {!introOpen && !profile.player.nick && (
+        {!introOpen && !offlinePending && !profile.player.nick && (
           <NickDialog
             title="Как зовут командира бункера?"
             initial={tgName ?? ''}
