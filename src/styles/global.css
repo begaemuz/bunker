@@ -4601,3 +4601,18 @@ button.pavatar:active {
 .auc-input {
   min-width: 0;
 }
+.fuse-pick {
+  grid-template-columns: minmax(0, 1fr);
+}
+.fuse-row {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.fuse-row > .grow {
+  min-width: 0;
+  overflow: hidden;
+}
+.fuse-row b {
+  flex: none;
+}
