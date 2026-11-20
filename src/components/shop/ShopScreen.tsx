@@ -12,7 +12,7 @@ import { sfx } from '../../services/sound';
 import { useProfile } from '../../stores/profileStore';
 import { useUi } from '../../stores/uiStore';
 import { rarityColor } from '../../ui/theme';
-import { CategoryGlyph, PartGlyph, ResourceIcon, UiIcon } from '../common/Icons';
+import { ItemSprite, PartGlyph, ResourceIcon, UiIcon } from '../common/Icons';
 import { Sheet } from '../common/Sheet';
 import { AuctionTab } from './Auction';
 import { shortStats } from '../inventory/ItemRow';
@@ -52,7 +52,7 @@ function OfferCard({ o, section, onOpen }: { o: Offer; section: 'regular' | 'rar
       <button className="ware-look" onClick={onOpen} disabled={o.sold}>
         <span className="ware-stand">
           {o.item ? (
-            <CategoryGlyph category={o.item.category} color={t.color} size={44} />
+            <ItemSprite category={o.item.category} rarity={o.item.rarity} size={64} />
           ) : o.part ? (
             <PartGlyph color={t.color} size={42} />
           ) : k ? (

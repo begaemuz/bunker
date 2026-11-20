@@ -6,7 +6,7 @@ import { formatStatValue } from '../../game/items/statInfo';
 import type { Item } from '../../game/types';
 import { ru, statLabel } from '../../i18n/ru';
 import { rarityColor } from '../../ui/theme';
-import { CategoryGlyph, ItemIcon } from '../common/Icons';
+import { ItemIcon, ItemSprite } from '../common/Icons';
 
 export function SlotDots({ item }: { item: Item }) {
   if (item.slots.length === 0) return null;
@@ -70,12 +70,11 @@ export function ItemTile({ item, better, onClick }: { item: Item; better?: boole
   const q = itemQuality(item);
   return (
     <button
-      className="item-tile"
-      style={{ borderColor: col, boxShadow: `inset 0 0 18px ${col}2a${item.rarity === 'legendary' || item.rarity === 'unique' || item.rarity === 'mythic' ? `, 0 0 10px ${col}55` : ''}` }}
+      className="item-tile bare"
       onClick={onClick}
     >
       <span className="tile-glyph">
-        <CategoryGlyph category={item.category} color={col} size={34} />
+        <ItemSprite category={item.category} rarity={item.rarity} size={58} />
       </span>
       <span className="tile-lvl">{item.level}</span>
       <span className="tile-tier">

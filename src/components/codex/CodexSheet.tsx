@@ -12,7 +12,7 @@ import { ELEMENTS, EQUIP_CATEGORIES, RARITIES, type Rarity, type StatKey } from 
 import { ru, statLabel, uniqueText } from '../../i18n/ru';
 import { useProfile } from '../../stores/profileStore';
 import { rarityColor } from '../../ui/theme';
-import { CategoryGlyph, PartGlyph, ResourceIcon } from '../common/Icons';
+import { CategoryGlyph, ItemSprite, PartGlyph, ResourceIcon } from '../common/Icons';
 import { CONSUMABLES, consumableInfo } from '../../game/consumables';
 import { Sheet } from '../common/Sheet';
 
@@ -66,7 +66,7 @@ function ItemEntry({ t, rarity, tier }: { t: ItemTemplate; rarity: Rarity; tier:
     <div className={`cx-entry${open ? ' open' : ''}`} style={{ ['--rc' as string]: col }}>
       <button className="cx-head" onClick={() => setOpen(!open)}>
         <span className="cx-icon">
-          <CategoryGlyph category={t.category} color={col} size={26} />
+          <ItemSprite category={t.category} rarity={r} size={34} />
         </span>
         <span className="grow" style={{ minWidth: 0 }}>
           <span className="cx-name" style={{ color: col }}>

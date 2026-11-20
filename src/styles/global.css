@@ -5054,3 +5054,9 @@ button.pavatar:active {
 .lang-first { position: absolute; inset: 0; z-index: 60; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at 50% 30%, #1b2530, #07090b 70%); }
 .lang-card { width: 100%; max-width: 340px; padding: 22px; border-radius: 18px; background: linear-gradient(180deg, #20262d, #14181c); box-shadow: inset 0 0 0 1px #2e363e; }
 .lang-title { margin-bottom: 16px; text-align: center; font-family: var(--display); font-size: 20px; color: #e6ebef; }
+
+/* Рисунки оборудования */
+.item-sprite { display: block; flex: none; background-repeat: no-repeat; image-rendering: auto; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.55)); }
+.item-icon.bare { border: 0 !important; background: none !important; box-shadow: none !important; display: grid; place-items: center; position: relative; }
+.item-tile.bare { border: 1px solid #2a3138 !important; box-shadow: none !important; background: radial-gradient(circle at 50% 42%, #232a31, #12161a 75%); }
+.item-tile.bare .tile-glyph { display: grid; place-items: center; }

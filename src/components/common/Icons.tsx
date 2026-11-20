@@ -1,5 +1,5 @@
+import itemsAtlas from '../../assets/items.webp';
 import type { EquipCategory, Rarity, ResourceKey } from '../../game/types';
-import { rarityColor } from '../../ui/theme';
 
 // Все игровые иконки — SVG. Цвет и свечение задают редкость.
 
@@ -75,20 +75,31 @@ export function PartGlyph({ color, size = 26 }: { color: string; size?: number }
   );
 }
 
-export function ItemIcon({ category, rarity, level, size = 44 }: { category: EquipCategory; rarity: Rarity; level?: number; size?: number }) {
-  const col = rarityColor[rarity];
-  const strong = rarity === 'legendary' || rarity === 'epic' || rarity === 'unique' || rarity === 'mythic';
+/** Рисунки оборудования: строка — тип, столбец — цвет редкости. */
+const SPRITE_ROW: Record<EquipCategory, number> = { coil: 0, generator: 1, capacitor: 2, converter: 3, cooling: 4, sensor: 5, shield: 6 };
+const SPRITE_COL: Record<Rarity, number> = { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4, unique: 4, mythic: 5 };
+
+/** Цветной рисунок вещи по типу и редкости. */
+export function ItemSprite({ category, rarity, size = 44 }: { category: EquipCategory; rarity: Rarity; size?: number }) {
   return (
-    <div
-      className="item-icon"
+    <span
+      className="item-sprite"
       style={{
         width: size,
         height: size,
-        borderColor: col,
-        boxShadow: strong ? `0 0 12px ${col}66, inset 0 0 14px ${col}33` : `inset 0 0 8px ${col}22`,
+        backgroundImage: `url(${itemsAtlas})`,
+        backgroundSize: `${size * 6}px ${size * 7}px`,
+        backgroundPosition: `${-SPRITE_COL[rarity] * size}px ${-SPRITE_ROW[category] * size}px`,
       }}
-    >
-      <CategoryGlyph category={category} color={col} size={Math.round(size * 0.62)} />
+      aria-hidden
+    />
+  );
+}
+
+export function ItemIcon({ category, rarity, level, size = 44 }: { category: EquipCategory; rarity: Rarity; level?: number; size?: number }) {
+  return (
+    <div className="item-icon bare" style={{ width: size, height: size }}>
+      <ItemSprite category={category} rarity={rarity} size={size} />
       {level !== undefined && <span className="item-lvl">{level}</span>}
     </div>
   );

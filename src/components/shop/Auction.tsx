@@ -9,7 +9,7 @@ import { auctionBid, auctionCancel, auctionCreate, auctionList, serverAvailable,
 import { useProfile } from '../../stores/profileStore';
 import { useUi } from '../../stores/uiStore';
 import { rarityColor } from '../../ui/theme';
-import { CategoryGlyph, PartGlyph, ResourceIcon } from '../common/Icons';
+import { ItemSprite, PartGlyph, ResourceIcon } from '../common/Icons';
 import { Sheet } from '../common/Sheet';
 import { shortStats } from '../inventory/ItemRow';
 import { qualityColor } from '../inventory/Roll';
@@ -49,7 +49,7 @@ function LotGlyph({ payload, size = 26 }: { payload: LotPayload; size?: number }
   if ('res' in payload) return <ResourceIcon type={payload.res} size={size} />;
   const info = lotInfo(payload);
   const col = rarityColor[info.rarity];
-  return 'part' in payload ? <PartGlyph color={col} size={size} /> : <CategoryGlyph category={info.category!} color={col} size={size} />;
+  return 'part' in payload ? <PartGlyph color={col} size={size} /> : <ItemSprite category={info.category!} rarity={info.rarity} size={size + 8} />;
 }
 
 function QualityText({ q }: { q: number | null }) {
@@ -509,7 +509,7 @@ function ListingSheet({ onClose, onDone }: { onClose: () => void; onDone: () => 
             const on = pick?.id === g.id;
             return (
               <button key={g.id} className={`auc-good${on ? ' on' : ''}`} style={{ ['--rc' as string]: col }} onClick={() => setPick({ kind: g.kind, id: g.id })}>
-                {g.kind === 'res' ? <ResourceIcon type={g.id as 'skillResets'} size={24} /> : g.kind === 'part' ? <PartGlyph color={col} size={24} /> : <CategoryGlyph category={g.category!} color={col} size={26} />}
+                {g.kind === 'res' ? <ResourceIcon type={g.id as 'skillResets'} size={24} /> : g.kind === 'part' ? <PartGlyph color={col} size={24} /> : <ItemSprite category={g.category!} rarity={g.rarity} size={34} />}
                 <span className="auc-good-q" style={{ color: g.kind === 'res' ? col : qualityColor(g.q) }}>
                   {g.kind === 'res' ? `×${profile.resources[g.id as 'skillResets']}` : `${Math.round(g.q * 100)}%`}
                 </span>
