@@ -4869,3 +4869,22 @@ button.pavatar:active {
 .auc-facts b { display: inline-flex; align-items: center; gap: 4px; font-family: var(--display); font-weight: 400; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .auc-bid-row { display: flex; align-items: center; gap: 8px; }
 .auc-bid-row .auc-input { flex: 1; min-width: 0; }
+
+/* ═════ Карта зон ═════ */
+.map-legend { display: flex; justify-content: center; gap: 12px; padding: 8px 10px 6px; font-size: 11.5px; color: #aeb7bf; background: #0d1115; }
+.map-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.map-legend i { width: 9px; height: 9px; border-radius: 50%; }
+.map-body { padding: 0; background: #0d1115; }
+.world-map { display: block; }
+.map-node { cursor: pointer; }
+.map-node:active circle { opacity: 0.85; }
+.map-num { font-family: var(--display); font-size: 20px; }
+.map-label { font-size: 11px; fill: #e6ebef; paint-order: stroke; stroke: #0b0e11; stroke-width: 3px; }
+.map-sub { font-size: 10px; paint-order: stroke; stroke: #0b0e11; stroke-width: 3px; }
+.map-here { transform-box: fill-box; transform-origin: center; animation: map-pulse 1.8s ease-out infinite; }
+@keyframes map-pulse { from { transform: scale(0.8); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .map-here { animation: none; } }
+.zone-danger { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border-radius: 12px; background: color-mix(in srgb, var(--dc) 12%, #0f1418); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dc) 50%, transparent); }
+.zone-danger b { font-family: var(--display); font-weight: 400; font-size: 16px; color: var(--dc); }
+.zone-row { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid #222a31; font-size: 13px; }
+.zone-row > :last-child { text-align: right; }
