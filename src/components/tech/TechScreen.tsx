@@ -3,7 +3,7 @@ import { computeBunkerStats } from '../../game/bunker/BunkerStats';
 import { ConfirmDialog } from '../common/Common';
 import { getTech, techBranches, techConfig, type TechBranch, type TechEffect, type TechNode } from '../../game/config/techConfig';
 import { formatStatValue } from '../../game/items/statInfo';
-import { branchPoints, effectValue, research, researchBlock, researchCost, skillPointsFree, skillPointsSpent, skillPointsTotal, techLevel } from '../../game/progression/TechnologyTree';
+import { branchPoints, effectValue, researchBlock, researchCost, skillPointsFree, skillPointsSpent, skillPointsTotal, techLevel } from '../../game/progression/TechnologyTree';
 import { RESOURCE_KEYS, type StatKey } from '../../game/types';
 import { fmtNum } from '../../i18n/ru';
 import { sfx } from '../../services/sound';
@@ -35,11 +35,9 @@ function NodeSheet({ node, onClose }: { node: TechNode; onClose: () => void }) {
 
   // Как изменится бункер после изучения: урон, энергия, охлаждение.
   const impact = useMemo(() => {
-    if (block) return null;
-    const next = research(profile, node.id);
-    if (next.error) return null;
+    // Прогноз считаем даже без ресурсов: просто +1 уровень навыка.
     const a = computeBunkerStats(profile);
-    const b = computeBunkerStats(next.profile);
+    const b = computeBunkerStats({ ...profile, techs: { ...profile.techs, [node.id]: lvl + 1 } });
     const advice: string[] = [];
     if (b.energyFactor < 0.98 && b.energyFactor < a.energyFactor - 0.005)
       advice.push(
@@ -50,7 +48,7 @@ function NodeSheet({ node, onClose }: { node: TechNode; onClose: () => void }) {
         `Охлаждение не справится: катушки будут перегреваться и работать на ${Math.round(b.heatFactor * 100)}%. Нужна система охлаждения сильнее или навыки на теплоотвод.`,
       );
     return { dps0: a.sustainedDps, dps1: b.sustainedDps, e0: a.energyFactor, e1: b.energyFactor, h0: a.heatFactor, h1: b.heatFactor, advice };
-  }, [profile, node.id, block]);
+  }, [profile, node.id, lvl]);
   const [confirmRisk, setConfirmRisk] = useState(false);
 
   const learn = (times: number) => {
@@ -72,10 +70,7 @@ function NodeSheet({ node, onClose }: { node: TechNode; onClose: () => void }) {
       onClose={onClose}
       actions={
         <>
-          <button className="btn btn-ghost" onClick={onClose}>
-            Закрыть
-          </button>
-          <button className="btn btn-primary btn-hazard" style={{ flex: 2 }} disabled={!!block} onClick={() => (impact?.advice.length ? setConfirmRisk(true) : learn(1))}>
+          <button className="btn btn-primary btn-hazard" style={{ flex: 1 }} disabled={!!block} onClick={() => (impact?.advice.length ? setConfirmRisk(true) : learn(1))}>
             Изучить
           </button>
         </>

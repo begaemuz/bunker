@@ -239,7 +239,7 @@ export function CodexSheet({ onClose }: { onClose: () => void }) {
           Вещи {itemFound}/{itemTotal}
         </button>
         <button className={tab === 'parts' ? 'on' : ''} onClick={() => setTab('parts')}>
-          Модиф. {partFound}/{partTemplates.length}
+          Мод. {partFound}/{partTemplates.length}
         </button>
         <button className={tab === 'other' ? 'on' : ''} onClick={() => setTab('other')}>
           Предметы
