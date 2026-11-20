@@ -259,11 +259,18 @@ export class GameSession {
     const prof = useProfile.getState();
     prof.addStats({ defeats: 1 });
     if (duringBoss) prof.refundSummon(this.engine.location.id, this.summonedWithPass);
+    // Поражение в обычном бою — бункер отступает в предыдущую зону.
+    let retreatedTo: number | undefined;
+    const locId = this.engine.location.id;
+    if (!duringBoss && locId > 1) {
+      prof.setLocation(locId - 1);
+      if (useProfile.getState().profile?.locations.current === locId - 1) retreatedTo = locId - 1;
+    }
     sfx.defeat();
     void prof.saveNow();
     this.publishHud();
     setTimeout(() => {
-      useUi.getState().setResult({ locationId: this.engine.location.id, duringBoss, run: this.engine.run });
+      useUi.getState().setResult({ locationId: this.engine.location.id, duringBoss, run: this.engine.run, retreatedTo });
     }, 900);
   }
 

@@ -24,6 +24,11 @@ export function ResultScreen() {
             ? 'Босс оказался сильнее. Вызов сохранён — усильте бункер и попробуйте снова.'
             : 'Роботы прорвались к бункеру. Всё добытое осталось у вас.'}
         </p>
+        {result.retreatedTo && (
+          <div className="info-box" style={{ marginBottom: 12, textAlign: 'left' }}>
+            Бункер отступил в зону {result.retreatedTo} — «{getLocation(result.retreatedTo).name}». Усильтесь и возвращайтесь через карту.
+          </div>
+        )}
         <button className="btn btn-gold btn-hazard btn-block" onClick={newRun}>
           Попробовать ещё раз
         </button>

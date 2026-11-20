@@ -53,6 +53,8 @@ export interface HudSnapshot {
 export interface RunResult {
   locationId: number;
   duringBoss: boolean;
+  /** Куда бункер отступил после поражения (предыдущая зона). */
+  retreatedTo?: number;
   run: RunStats;
 }
 
