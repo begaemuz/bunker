@@ -5015,3 +5015,10 @@ button.pavatar:active {
 .zmap-name.sm { font-size: 7.5px; }
 .zmap-name.off { fill: #7c868f; }
 .zmap-body .map-legend { flex-wrap: wrap; gap: 8px 12px; padding: 10px 12px 14px; background: none; }
+
+/* Поле боя: зона слева, угроза справа — просто текст */
+.field-loc, .field-threat { position: absolute; top: 8px; z-index: 4; font-size: 12px; font-weight: 700; color: #c9d1d8; text-shadow: 0 1px 2px #000, 0 0 6px #000; pointer-events: none; }
+.field-loc { left: 12px; max-width: 62%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.field-threat { right: 12px; }
+.field-threat.hot { color: #ff6b5a; }
+.boss-bar { left: 12px; right: 12px; top: 30px; }

@@ -22,10 +22,11 @@ import { LeadersScreen } from '../components/leaders/LeadersScreen';
 import { ShopScreen } from '../components/shop/ShopScreen';
 import { LoginSheet, QuestsSheet } from '../components/shop/QuestsSheet';
 
-const navItems: { id: Screen; label: string; icon: 'battle' | 'bunker' | 'tech' | 'trophy' | 'menu' }[] = [
+const navItems: { id: Screen; label: string; icon: 'battle' | 'bunker' | 'tech' | 'trophy' | 'menu' | 'map' }[] = [
   { id: 'game', label: 'Бой', icon: 'battle' },
   { id: 'bunker', label: 'Бункер', icon: 'bunker' },
   { id: 'tech', label: 'Наука', icon: 'tech' },
+  { id: 'locations', label: 'Карта', icon: 'map' },
   { id: 'leaders', label: 'Лидеры', icon: 'trophy' },
 ];
 

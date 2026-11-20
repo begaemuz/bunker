@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLoginBadge, useQuestBadge } from '../shop/QuestsSheet';
 import { gameConfig, modeConfig } from '../../game/config/gameConfig';
 import { getLocation } from '../../game/config/locationsConfig';
-import { canSummonBoss, locationProgress, xpForLevel } from '../../game/profile/Profile';
+import { canSummonBoss, xpForLevel } from '../../game/profile/Profile';
 import { GameSession } from '../../game/session';
 import { fmtNum } from '../../i18n/ru';
 import { unlockAudio } from '../../services/sound';
@@ -99,36 +99,19 @@ function TopBar() {
   );
 }
 
-/** Уголок локации: название, прогресс до босса, угроза и переход ко всем локациям. */
+/** Название зоны слева и угроза справа — простым текстом над полем. */
 function LocCorner() {
   const profile = useProfile((s) => s.profile)!;
   const hud = useUi((s) => s.hud);
-  const setScreen = useUi((s) => s.setScreen);
   const loc = getLocation(profile.locations.current);
-  const prog = locationProgress(profile, loc.id);
-  const ready = canSummonBoss(profile, loc.id);
-  const k = Math.min(1, prog.groups / loc.groupsForBoss);
   const threat = Math.round((hud?.threat ?? 0) * 100);
-  const boss = hud?.mode === 'boss';
   return (
-    <button className={`loc-corner${ready ? ' ready' : ''}`} onClick={() => setScreen('locations')} aria-label="Все локации">
-      <span className="lc-top">
-        <UiIcon kind="map" size={12} />
-        <span className="lc-name">Лок. {loc.id}</span>
-        <span className="lc-chev">›</span>
-      </span>
-      <span className="lc-row">
-        <UiIcon kind="skull" size={11} /> {boss ? 'босс' : `${Math.min(prog.groups, loc.groupsForBoss)}/${loc.groupsForBoss}`}
-      </span>
-      {!boss && (
-        <span className="lc-bar">
-          <i style={{ width: `${k * 100}%` }} />
-        </span>
-      )}
-      <span className="lc-row" style={{ color: threat > 40 ? '#ff6b5a' : undefined }}>
-        угроза {threat}%
-      </span>
-    </button>
+    <>
+      <div className="field-loc">
+        Т{loc.tier} · {loc.name}
+      </div>
+      <div className={`field-threat${threat > 40 ? ' hot' : ''}`}>угроза {threat}%</div>
+    </>
   );
 }
 
