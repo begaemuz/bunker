@@ -196,6 +196,16 @@ console.log('— Модификации по редкости и объедин�
   check('Объединение берёт выбранную и две самые слабые', pick.length === 3 && pick[0].id === b[0].id);
   const r = fuseParts(p, b[0].id);
   check('После объединения остаются ровно 3 из 6 исходных', Object.values(r.profile.parts).filter((x) => x.rarity === 'rare').length === 3);
+  {
+    let p2 = createNewProfile();
+    const pool = [0, 1, 2, 3].map(() => generatePart('epic', 'p_power'));
+    p2 = addParts(p2, pool);
+    const keep = pool[0];
+    const pickIds = [pool[1].id, pool[2].id, pool[3].id];
+    const rr = fuseParts(p2, pool[1].id, pickIds);
+    check('Ручной выбор: в объединение уходят только выбранные', !!rr.profile.parts[keep.id] && pickIds.every((id) => !rr.profile.parts[id]));
+    check('Нельзя смешать разные модификации', fuseParts(addParts(p2, [generatePart('epic', 'p_lens')]), pool[1].id, [pool[1].id, pool[2].id, Object.values(addParts(p2, [generatePart('epic', 'p_lens')]).parts).find((x) => x.templateId === 'p_lens')!.id]).error !== undefined);
+  }
   const q = partQuality(a[0]);
   check('Качество модификации в пределах 0..100%', q >= 0 && q <= 1);
 }

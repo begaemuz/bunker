@@ -9,8 +9,10 @@ export function getPartTemplate(id: string): PartTemplate {
   return partTemplates.find((t) => t.id === id) ?? partTemplates[0];
 }
 
-function rollStat(t: PartTemplate, rarity: Rarity, mult = 1): StatMod {
-  const v = randFloat(t.range[0], t.range[1]) * partRarityMult[rarity] * mult;
+function rollStat(t: PartTemplate, rarity: Rarity, mult = 1, bias?: number): StatMod {
+  // bias — качество исходных деталей при объединении: сдвигает бросок к лучшему краю
+  const k = bias === undefined ? randFloat(0, 1) : fusionRoll(bias);
+  const v = (t.range[0] + (t.range[1] - t.range[0]) * k) * partRarityMult[rarity] * mult;
   return { stat: t.stat, value: Math.round(v * 1000) / 1000 };
 }
 
@@ -19,15 +21,26 @@ export function partExtraPool(t: PartTemplate): PartTemplate[] {
   return partTemplates.filter((x) => x.id !== t.id && x.stat !== t.stat);
 }
 
-export function generatePart(rarity: Rarity, templateId?: string): Part {
+/** Качество свойства после объединения: половина — от исходных деталей, половина — случай. */
+export function fusionRoll(avgQuality: number): number {
+  return avgQuality * 0.5 + randFloat(0, 0.5);
+}
+
+/** Ожидаемый диапазон качества результата объединения. */
+export function fusionQualityRange(parts: Part[]): [number, number] {
+  const avg = parts.reduce((s, x) => s + partQuality(x), 0) / Math.max(1, parts.length);
+  return [avg * 0.5, avg * 0.5 + 0.5];
+}
+
+export function generatePart(rarity: Rarity, templateId?: string, bias?: number): Part {
   const t = templateId ? getPartTemplate(templateId) : pickWeighted(partTemplates, (x) => x.weight);
-  const stats: StatMod[] = [rollStat(t, rarity)];
+  const stats: StatMod[] = [rollStat(t, rarity, 1, bias)];
   const pool = [...partExtraPool(t)];
   const want = Math.min(partStatCount[rarity] - 1, pool.length);
   for (let i = 0; i < want; i++) {
     const pick = pickWeighted(pool, (x) => x.weight);
     pool.splice(pool.indexOf(pick), 1);
-    stats.push(rollStat(pick, rarity, partExtraMult));
+    stats.push(rollStat(pick, rarity, partExtraMult, bias));
   }
   return { id: uid(), templateId: t.id, name: t.name, rarity, stats, installedIn: null, obtainedAt: Date.now() };
 }
@@ -158,14 +171,31 @@ export function nextRarity(r: Rarity): Rarity | null {
  * Объединение трёх одинаковых деталей. Исходные детали уничтожаются
  * в любом случае; при успехе появляется деталь следующей редкости.
  */
-export function fuseParts(p: Profile, partId: string): { profile: Profile; result?: Part; success?: boolean; error?: 'count' | 'max' } {
+export type FuseError = 'count' | 'max' | 'mismatch' | 'installed';
+
+/**
+ * Объединение трёх выбранных деталей одного шаблона и редкости.
+ * Исходные детали уничтожаются в любом случае; при успехе появляется
+ * деталь следующей редкости, качество которой зависит от качества исходных.
+ * Если ids не переданы, берутся выбранная и две самые слабые.
+ */
+export function fuseParts(p: Profile, partId: string, ids?: string[]): { profile: Profile; result?: Part; success?: boolean; error?: FuseError } {
   const part = p.parts[partId];
   if (!part) return { profile: p, error: 'count' };
   const next = nextRarity(part.rarity);
   if (!next || !fusionConfig.chance[part.rarity]) return { profile: p, error: 'max' };
-  const group = fusionGroup(p, part);
-  if (group.length < fusionConfig.count) return { profile: p, error: 'count' };
-  const use = fusionPick(p, part);
+  let use: Part[];
+  if (ids) {
+    const uniq = [...new Set(ids)];
+    use = uniq.map((id) => p.parts[id]).filter((x): x is Part => !!x);
+    if (use.length !== fusionConfig.count) return { profile: p, error: 'count' };
+    if (use.some((x) => x.installedIn)) return { profile: p, error: 'installed' };
+    if (use.some((x) => x.templateId !== part.templateId || x.rarity !== part.rarity)) return { profile: p, error: 'mismatch' };
+  } else {
+    if (fusionGroup(p, part).length < fusionConfig.count) return { profile: p, error: 'count' };
+    use = fusionPick(p, part);
+  }
+  const avgQ = use.reduce((s, x) => s + partQuality(x), 0) / use.length;
   const parts = { ...p.parts };
   for (const x of use) delete parts[x.id];
   let q: Profile = { ...p, parts };
@@ -173,8 +203,8 @@ export function fuseParts(p: Profile, partId: string): { profile: Profile; resul
     q = { ...q, history: pushHistory(q, { at: Date.now(), itemName: part.name, rarity: part.rarity, action: 'destroyed', detail: 'неудачное объединение' }) };
     return { profile: q, success: false };
   }
-  // Новая деталь следующей редкости: больше свойств, всё бросается заново.
-  const res = generatePart(next, part.templateId);
+  // Новая деталь следующей редкости: больше свойств, качество тянется за исходными.
+  const res = generatePart(next, part.templateId, avgQ);
   q = {
     ...q,
     parts: { ...q.parts, [res.id]: res },

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { fusionConfig } from '../../game/config/partsConfig';
 import { formatStatValue } from '../../game/items/statInfo';
-import { extractCost, partStatRoll, partQuality, fusionPick, fusableCount, fusionChance, fusionGroup, getPartTemplate, nextRarity } from '../../game/items/Parts';
+import { extractCost, fusionQualityRange, partStatRoll, partQuality, fusionPick, fusableCount, fusionChance, fusionGroup, getPartTemplate, nextRarity } from '../../game/items/Parts';
 import { rarityIndex } from '../../game/items/ItemRarity';
 import { slotOf } from '../../game/profile/Profile';
 import { RARITIES, type Item, type Part, type Rarity } from '../../game/types';
@@ -67,7 +67,6 @@ export function PartsGrid({ onOpen, bare }: { onOpen: (id: string) => void; bare
 /** Карточка модификации: установка, объединение, разборка. */
 export function PartCard({ partId, onClose }: { partId: string; onClose: () => void }) {
   const profile = useProfile((s) => s.profile)!;
-  const fuse = useProfile((s) => s.fuse);
   const scrap = useProfile((s) => s.scrapPart);
   const install = useProfile((s) => s.installPart);
   const toast = useUi((s) => s.toast);
@@ -214,27 +213,7 @@ export function PartCard({ partId, onClose }: { partId: string; onClose: () => v
           )}
 
     </Sheet>
-      {confirmFuse && next && (
-        <ConfirmDialog
-          title="Объединить модификации?"
-          text={`${fusionConfig.count} × «${part.name}» (${ru.rarity[part.rarity].toLowerCase()}) → 1 ${ru.rarity[next].toLowerCase()}. Шанс успеха ${Math.round(fusionChance(part.rarity, profile) * 100)}%.`}
-          warning="При неудаче все три детали будут уничтожены."
-          confirmLabel="Объединить"
-          onConfirm={() => {
-            setConfirmFuse(false);
-            const r = fuse(part.id);
-            if (r.success && r.result) {
-              sfx.levelUp();
-              toast(`Успех: ${ru.rarity[r.result.rarity]} «${r.result.name}»`, 'rare');
-            } else {
-              sfx.defeat();
-              toast('Объединение не удалось, детали потеряны', 'bad');
-            }
-            onClose();
-          }}
-          onCancel={() => setConfirmFuse(false)}
-        />
-      )}
+      {confirmFuse && next && <FusionPicker part={part} onDone={onClose} onCancel={() => setConfirmFuse(false)} />}
     </>
   );
 }
@@ -429,5 +408,95 @@ export function MassFuseSheet({ onClose }: { onClose: () => void }) {
         />
       )}
     </>
+  );
+}
+
+/** Выбор трёх модификаций для объединения: игрок сам решает, какие отдать. */
+function FusionPicker({ part, onDone, onCancel }: { part: Part; onDone: () => void; onCancel: () => void }) {
+  const profile = useProfile((s) => s.profile)!;
+  const fuse = useProfile((s) => s.fuse);
+  const toast = useUi((s) => s.toast);
+  const next = nextRarity(part.rarity)!;
+  const group = fusionGroup(profile, part).sort((a, b) => partQuality(b) - partQuality(a));
+  const [sel, setSel] = useState<string[]>(() => fusionPick(profile, part).map((x) => x.id));
+  const chosen = group.filter((x) => sel.includes(x.id));
+  const ready = chosen.length === fusionConfig.count;
+  const [lo, hi] = fusionQualityRange(chosen);
+  const toggle = (id: string) => setSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : s.length >= fusionConfig.count ? s : [...s, id]));
+  const chance = Math.round(fusionChance(part.rarity, profile) * 100);
+
+  return (
+    <Sheet
+      title="Объединение"
+      subtitle={`Выберите ${fusionConfig.count}: «${part.name}», ${ru.rarity[part.rarity].toLowerCase()}`}
+      onClose={onCancel}
+      actions={
+        <>
+          <button className="btn btn-ghost" onClick={onCancel}>
+            Отмена
+          </button>
+          <button
+            className="btn btn-gold btn-hazard"
+            style={{ flex: 2 }}
+            disabled={!ready}
+            onClick={() => {
+              const r = fuse(part.id, sel);
+              if (r.error) {
+                toast('Выберите три подходящие модификации', 'bad');
+                return;
+              }
+              if (r.success && r.result) {
+                sfx.levelUp();
+                toast(`Успех: ${ru.rarity[r.result.rarity]} «${r.result.name}» · ${Math.round(partQuality(r.result) * 100)}%`, 'rare');
+              } else {
+                sfx.defeat();
+                toast('Объединение не удалось, детали потеряны', 'bad');
+              }
+              onDone();
+            }}
+          >
+            Объединить {chosen.length}/{fusionConfig.count}
+          </button>
+        </>
+      }
+    >
+      <div className="fuse-flow" style={{ marginTop: 0 }}>
+        <div className="fuse-side" style={{ color: rarityColor[part.rarity] }}>
+          <PartGlyph color={rarityColor[part.rarity]} size={28} />
+          <span>{chosen.length}/{fusionConfig.count}</span>
+        </div>
+        <div className="fuse-arrow">
+          <span>{chance}%</span>
+        </div>
+        <div className="fuse-side" style={{ color: rarityColor[next] }}>
+          <PartGlyph color={rarityColor[next]} size={28} />
+          <span>{ready ? `${Math.round(lo * 100)}–${Math.round(hi * 100)}%` : '?'}</span>
+        </div>
+      </div>
+      <div className="small muted" style={{ margin: '10px 2px' }}>
+        Качество новой {ru.rarity[next].toLowerCase()} модификации зависит от качества выбранных: чем они лучше, тем выше результат. Свои сильные экземпляры можно оставить себе.
+      </div>
+      <div className="fuse-pick">
+        {group.map((x) => {
+          const q = partQuality(x);
+          const on = sel.includes(x.id);
+          return (
+            <button key={x.id} className={`fuse-row${on ? ' on' : ''}`} onClick={() => toggle(x.id)}>
+              <span className="fuse-check">{on ? '✓' : ''}</span>
+              <span className="grow" style={{ minWidth: 0 }}>
+                <span className="fuse-row-t" style={{ color: rarityColor[x.rarity] }}>
+                  {x.name}
+                </span>
+                <span className="fuse-row-s">{partStatsText(x)}</span>
+              </span>
+              <b style={{ color: qualityColor(q) }}>{Math.round(q * 100)}%</b>
+            </button>
+          );
+        })}
+      </div>
+      <div className="warn-box" style={{ marginTop: 10 }}>
+        При неудаче все три выбранные детали будут уничтожены.
+      </div>
+    </Sheet>
   );
 }

@@ -78,7 +78,7 @@ interface ProfileState {
   setAutoSell: (r: Rarity | null) => void;
   installPart: (partId: string, itemId: string, slot: number) => InstallError | null;
   unlockSlot: (itemId: string, slot: number) => boolean;
-  fuse: (partId: string) => { success?: boolean; result?: Part; error?: string };
+  fuse: (partId: string, ids?: string[]) => { success?: boolean; result?: Part; error?: string };
   scrapPart: (partId: string) => number;
   extractPart: (itemId: string, slot: number) => string | null;
   setPlayer: (patch: Partial<Profile['player']>) => void;
@@ -385,10 +385,10 @@ export const useProfile = create<ProfileState>((set, get) => {
       return true;
     },
 
-    fuse: (partId) => {
+    fuse: (partId, ids) => {
       const p = get().profile;
       if (!p) return { error: 'not_loaded' };
-      const r = fuseParts(p, partId);
+      const r = fuseParts(p, partId, ids);
       if (r.error) return { error: r.error };
       commit(r.profile, false, true);
       return { success: r.success, result: r.result };
