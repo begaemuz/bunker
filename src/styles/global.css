@@ -4228,3 +4228,176 @@ button.pavatar:active {
   font-family: var(--display);
   font-size: 10px;
 }
+.slot-q {
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  transform: translateX(-50%);
+  padding: 0 5px;
+  border-radius: 7px;
+  font-family: var(--display);
+  font-size: 10px;
+  line-height: 14px;
+  background: #0b0e11;
+  box-shadow: 0 0 0 1px #2e363e;
+}
+.doll-slot .sname {
+  margin-top: 6px;
+}
+
+/* ═════ Уголок локации на экране боя ═════ */
+.loc-corner {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  max-width: 62%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 10px 7px;
+  border-radius: 12px;
+  border: 1px solid #2c343c;
+  background: rgba(10, 13, 16, 0.85);
+  color: var(--bone);
+  text-align: left;
+  font-family: var(--display);
+}
+.loc-corner.ready {
+  border-color: #5fd16a;
+}
+.lc-top {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  min-width: 0;
+}
+.lc-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lc-chev {
+  margin-left: 2px;
+  color: var(--amber);
+  font-size: 15px;
+  line-height: 1;
+}
+.lc-row {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: #b7c0c8;
+}
+.lc-row span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.lc-bar {
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+  background: #1a1f24;
+  overflow: hidden;
+}
+.lc-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #d9772e, #ffb347);
+}
+.loc-corner.ready .lc-bar i {
+  background: #5fd16a;
+}
+
+/* ═════ Лидеры ═════ */
+.lb-podium {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: end;
+  gap: 8px;
+  margin-top: 6px;
+}
+.lb-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  padding-top: 10px;
+  border-radius: 12px 12px 4px 4px;
+  background: linear-gradient(180deg, #2a323a, #161a1f);
+  box-shadow: inset 0 0 0 1px #343d46;
+}
+.lb-step.p1 {
+  height: 120px;
+  background: linear-gradient(180deg, rgba(255, 208, 106, 0.25), #161a1f);
+  box-shadow: inset 0 0 0 1px rgba(255, 208, 106, 0.5);
+}
+.lb-step.p2 {
+  height: 96px;
+}
+.lb-step.p3 {
+  height: 82px;
+}
+.lb-place {
+  font-family: var(--display);
+  font-size: 24px;
+  color: var(--amber);
+}
+.lb-step.p2 .lb-place {
+  color: #d4dbe1;
+}
+.lb-step.p3 .lb-place {
+  color: #e0a46a;
+}
+.lb-empty {
+  font-size: 11px;
+  color: #6b757e;
+}
+.lb-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid #2e363e;
+  background: linear-gradient(180deg, #232a31, #171c21);
+  color: inherit;
+  text-align: left;
+}
+.lb-row.me {
+  border-color: var(--amber);
+}
+.lb-rank {
+  width: 22px;
+  font-family: var(--display);
+  font-size: 16px;
+  color: #8f99a2;
+  text-align: center;
+}
+.lb-who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.lb-who b {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lb-val {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--display);
+  font-size: 15px;
+  color: var(--amber);
+}
+.boss-bar {
+  top: 74px;
+}

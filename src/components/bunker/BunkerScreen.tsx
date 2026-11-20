@@ -17,6 +17,8 @@ import { ItemCard } from '../inventory/ItemCard';
 import { ItemTile } from '../inventory/ItemRow';
 import { PartCard, PartsGrid } from '../parts/Parts';
 import { BunkerArt } from './BunkerArt';
+import { itemQuality } from '../../game/items/ItemGenerator';
+import { qualityColor } from '../inventory/Roll';
 import { ConsumableSheet, ConsumableTiles } from '../inventory/Consumables';
 import { CONSUMABLES, type ConsumableKey } from '../../game/consumables';
 import { Sheet } from '../common/Sheet';
@@ -58,6 +60,11 @@ function SlotTile({ slot, profile, side, onClick }: { slot: SlotId; profile: Pro
         {canUp && (
           <span className="up" title="Можно улучшить">
             <UiIcon kind="up" size={10} />
+          </span>
+        )}
+        {it && (
+          <span className="slot-q" style={{ color: qualityColor(itemQuality(it)) }}>
+            {Math.round(itemQuality(it) * 100)}%
           </span>
         )}
       </span>

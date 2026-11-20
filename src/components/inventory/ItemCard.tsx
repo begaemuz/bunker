@@ -218,6 +218,7 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
               <div className="section-title">Режим: {modeConfig[coil.mode].name}</div>
               <div className="small muted" style={{ marginBottom: 6, lineHeight: 1.4 }}>
                 {modeConfig[coil.mode].description}
+                {modeConfig[coil.mode].area && ' Бьёт всех в радиусе, но слабее точечного разряда: чем больше целей, тем меньше урон по каждой (до −40%).'}
               </div>
               <div className="stat-list">
                 <RollLine label="Мощность импульса" value={coil.power.toFixed(1)} min={cr?.power.min.toFixed(1)} max={cr?.power.max.toFixed(1)} quality={cr?.power.quality} />

@@ -176,7 +176,7 @@ export function ResourceIcon({ type, size = 14 }: { type: ResourceKey; size?: nu
   }
 }
 
-type UiKind = 'shop' | 'gift' | 'battle' | 'bunker' | 'inventory' | 'tech' | 'map' | 'menu' | 'pause' | 'play' | 'close' | 'skull' | 'lock' | 'up' | 'bolt' | 'refresh' | 'calendar' | 'tasks' | 'info';
+type UiKind = 'shop' | 'gift' | 'battle' | 'bunker' | 'inventory' | 'tech' | 'map' | 'menu' | 'pause' | 'play' | 'close' | 'skull' | 'lock' | 'up' | 'bolt' | 'refresh' | 'calendar' | 'tasks' | 'info' | 'trophy';
 
 export function UiIcon({ kind, size = 22 }: { kind: UiKind; size?: number }) {
   const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -278,6 +278,14 @@ export function UiIcon({ kind, size = 22 }: { kind: UiKind; size?: number }) {
       return (
         <svg {...p}>
           <path d="M12 19V5M6 11l6-6 6 6" />
+        </svg>
+      );
+    case 'trophy':
+      return (
+        <svg {...p}>
+          <path d="M8 4h8v5a4 4 0 0 1-8 0z" />
+          <path d="M8 6H4.5v1.5A3.5 3.5 0 0 0 8 11M16 6h3.5v1.5A3.5 3.5 0 0 1 16 11" />
+          <path d="M12 13v4M8.5 20h7M10 17h4v3h-4z" />
         </svg>
       );
     case 'info':

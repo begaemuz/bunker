@@ -6,6 +6,12 @@ export const gameConfig = {
   fixedStep: 1 / 60,
   maxStepsPerFrame: 12,
   speeds: [1, 2, 3] as const,
+  /** Рассеивание импульса по площади: −6% за каждую цель сверх первой, не ниже 60%. */
+  areaSpreadPerTarget: 0.06,
+  areaSpreadMin: 0.6,
+  /** Фокус точечного разряда: +15% за разряд подряд по той же цели, до 4 раз. */
+  focusPerStack: 0.15,
+  focusMaxStacks: 4,
 
   /** Видимая область по ширине в игровых единицах. */
   viewWidth: 440,
@@ -85,13 +91,13 @@ export const modeConfig: Record<CoilMode, ModeDef> = {
   highVoltage: {
     name: 'Высоковольтный разряд',
     short: 'ВВР',
-    description: 'Мощный удар по одной самой прочной цели в радиусе. Эффективен против крупных машин.',
+    description: 'Точечный разряд в одну цель: бьёт в разы сильнее импульсов по площади, пробивает броню и щиты. Пока цель жива, каждый следующий разряд по ней сильнее (фокус до +60%).',
     area: false,
-    armorWeight: 0.8,
+    armorWeight: 0.3,
     hullMult: 1,
-    shieldMult: 0.8,
+    shieldMult: 1,
     electronicMult: 1,
-    heavyFrameMult: 1.1,
+    heavyFrameMult: 1.3,
     effect: { kind: 'chain', chance: 0.15 },
     color: '#e6f3ff',
   },

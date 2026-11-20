@@ -22,6 +22,12 @@ import { haptic } from '../services/telegram';
  * Связка движка, цикла, отрисовки и хранилищ. Одна сессия — один заход
  * на локацию. Бой продолжается, пока игрок открывает другие разделы.
  */
+/** Боевые уведомления показываются только на экране боя. */
+function battleToast(text: string, tone: 'good' | 'bad' | 'info' | 'rare'): void {
+  const ui = useUi.getState();
+  if (ui.screen === 'game') ui.toast(text, tone);
+}
+
 export class GameSession {
   readonly engine: GameEngine;
   private loop: GameLoop;
@@ -125,7 +131,7 @@ export class GameSession {
     if (!this.engine.retreatFromBoss()) return false;
     useProfile.getState().refundSummon(this.engine.location.id, this.summonedWithPass);
     setMusicMode('calm');
-    useUi.getState().toast('Вы вышли из боя с боссом. Вызов можно повторить', 'info');
+    battleToast('Вы вышли из боя с боссом. Вызов можно повторить', 'info');
     this.publishHud();
     return true;
   }
@@ -179,7 +185,7 @@ export class GameSession {
             // VIP: босс вызывается сам
             setTimeout(() => this.summonBoss(false), 1200);
           } else {
-            ui.toast('Можно вызвать босса', 'good');
+            battleToast('Можно вызвать босса', 'good');
             haptic('success');
           }
         }
@@ -192,10 +198,10 @@ export class GameSession {
         sfx.hit();
         break;
       case 'overheat':
-        ui.toast('Перегрев: катушки остывают', 'bad');
+        battleToast('Перегрев: катушки остывают', 'bad');
         break;
       case 'emergencyRepair':
-        ui.toast('Аварийный ремонт', 'good');
+        battleToast('Аварийный ремонт', 'good');
         break;
       case 'bossRetreat':
         break;
@@ -203,10 +209,10 @@ export class GameSession {
         setMusicMode('boss');
         sfx.boss();
         haptic('heavy');
-        ui.toast(`${e.name} вступает в бой`, 'bad');
+        battleToast(`${e.name} вступает в бой`, 'bad');
         break;
       case 'minibossSpawn':
-        ui.toast(`${e.name} на подходе`, 'bad');
+        battleToast(`${e.name} на подходе`, 'bad');
         break;
       case 'bossKilled': {
         const s = this.engine.stats;

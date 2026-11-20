@@ -82,6 +82,9 @@ export interface CoilRuntime {
   jamT: number;
   /** Захваченная цель одиночного разряда: держится, пока жива и в радиусе. */
   lockId?: number | null;
+  /** Фокус: сколько разрядов подряд ушло в одну цель. */
+  focusId?: number | null;
+  focus?: number;
 }
 
 export interface BunkerRuntime {
@@ -620,6 +623,16 @@ export class GameEngine {
     if (s.firstPulseBonus > 0 && rt.idle >= FIRST_PULSE_IDLE) power *= 1 + s.firstPulseBonus;
     const crit = chance(s.critChance);
     if (crit) power *= s.critMultiplier;
+    const md = modeConfig[c.mode];
+    if (md.area) {
+      // Импульс по площади рассеивается: чем больше целей, тем слабее по каждой.
+      power *= Math.max(gameConfig.areaSpreadMin, 1 - gameConfig.areaSpreadPerTarget * (targets.length - 1));
+    } else if (targets[0]) {
+      // Точечный разряд набирает фокус на одной цели.
+      rt.focus = rt.focusId === targets[0].id ? Math.min(gameConfig.focusMaxStacks, (rt.focus ?? 0) + 1) : 0;
+      rt.focusId = targets[0].id;
+      power *= 1 + gameConfig.focusPerStack * rt.focus;
+    }
     b.energy -= c.energyPerPulse;
     b.heat += c.heatPerPulse;
     this.run.pulses++;

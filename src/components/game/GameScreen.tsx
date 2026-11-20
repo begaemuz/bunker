@@ -119,21 +119,38 @@ function TopBar() {
   );
 }
 
-function BossChip() {
+/** Уголок локации: название, прогресс до босса, угроза и переход ко всем локациям. */
+function LocCorner() {
   const profile = useProfile((s) => s.profile)!;
+  const hud = useUi((s) => s.hud);
+  const setScreen = useUi((s) => s.setScreen);
   const loc = getLocation(profile.locations.current);
   const prog = locationProgress(profile, loc.id);
   const ready = canSummonBoss(profile, loc.id);
   const k = Math.min(1, prog.groups / loc.groupsForBoss);
+  const threat = Math.round((hud?.threat ?? 0) * 100);
+  const boss = hud?.mode === 'boss';
   return (
-    <span className={`chip boss-chip${ready ? ' ready' : ''}`}>
-      <span className="boss-chip-t">
-        Лок. {loc.id} · <UiIcon kind="skull" size={12} /> {Math.min(prog.groups, loc.groupsForBoss)}/{loc.groupsForBoss}
+    <button className={`loc-corner${ready ? ' ready' : ''}`} onClick={() => setScreen('locations')} aria-label="Все локации">
+      <span className="lc-top">
+        <UiIcon kind="map" size={13} />
+        <span className="lc-name">
+          Лок. {loc.id} · {loc.name}
+        </span>
+        <span className="lc-chev">›</span>
       </span>
-      <span className="boss-chip-bar">
-        <i style={{ width: `${k * 100}%` }} />
+      <span className="lc-row">
+        <span>
+          <UiIcon kind="skull" size={11} /> {boss ? 'бой с боссом' : `${Math.min(prog.groups, loc.groupsForBoss)}/${loc.groupsForBoss}`}
+        </span>
+        <span style={{ color: threat > 40 ? '#ff6b5a' : undefined }}>угроза {threat}%</span>
       </span>
-    </span>
+      {!boss && (
+        <span className="lc-bar">
+          <i style={{ width: `${k * 100}%` }} />
+        </span>
+      )}
+    </button>
   );
 }
 
@@ -224,12 +241,7 @@ function FieldOverlay() {
   if (!hud) return null;
   return (
     <>
-      <div className="overlay-info">
-        {hud.mode !== 'boss' && <BossChip />}
-        <span className="chip">
-          Угроза <b style={{ color: hud.threat > 0.4 ? '#ff6b5a' : undefined }}>{Math.round(hud.threat * 100)}%</b>
-        </span>
-      </div>
+      <LocCorner />
       {hud.boss && (
         <div className="boss-bar">
           <div className="boss-name">{hud.boss.name}</div>

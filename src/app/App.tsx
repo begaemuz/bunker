@@ -18,15 +18,16 @@ import { Intro } from '../components/intro/Intro';
 import { introSeen } from '../services/storage';
 import { LocationsScreen } from '../components/locations/LocationsScreen';
 import { TechScreen } from '../components/tech/TechScreen';
+import { LeadersScreen } from '../components/leaders/LeadersScreen';
 import { ShopScreen } from '../components/shop/ShopScreen';
 import { LoginSheet, QuestsSheet } from '../components/shop/QuestsSheet';
 
-const navItems: { id: Screen; label: string; icon: 'battle' | 'bunker' | 'tech' | 'shop' | 'map' | 'menu' }[] = [
+const navItems: { id: Screen; label: string; icon: 'battle' | 'bunker' | 'tech' | 'shop' | 'trophy' }[] = [
   { id: 'game', label: 'Бой', icon: 'battle' },
   { id: 'bunker', label: 'Бункер', icon: 'bunker' },
   { id: 'tech', label: 'Наука', icon: 'tech' },
   { id: 'shop', label: 'Магазин', icon: 'shop' },
-  { id: 'locations', label: 'Локации', icon: 'map' },
+  { id: 'leaders', label: 'Лидеры', icon: 'trophy' },
 ];
 
 export function App() {
@@ -83,6 +84,7 @@ function Main() {
         {screen === 'shop' && <ShopScreen />}
         {screen === 'locations' && <LocationsScreen />}
         {screen === 'menu' && <MenuScreen />}
+        {screen === 'leaders' && <LeadersScreen />}
         {result && <ResultScreen />}
         {questsOpen && <QuestsSheet onClose={() => setQuestsOpen(false)} />}
         {loginOpen && <LoginSheet onClose={() => setLoginOpen(false)} />}

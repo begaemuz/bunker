@@ -5,7 +5,7 @@ import type { CoilMode, Item, SlotId } from '../game/types';
 import { loadSettings, saveSettings, type Settings } from '../services/storage';
 import { setSoundEnabled, setVolumes } from '../services/sound';
 
-export type Screen = 'game' | 'bunker' | 'tech' | 'shop' | 'locations' | 'menu';
+export type Screen = 'game' | 'bunker' | 'tech' | 'shop' | 'locations' | 'menu' | 'leaders';
 
 export interface Toast {
   id: number;
