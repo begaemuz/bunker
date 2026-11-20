@@ -174,6 +174,16 @@ function StatsSheet({ profile, stats, onClose }: { profile: Profile; stats: Bunk
   );
 }
 
+type SortKey = 'better' | 'quality' | 'rarity' | 'level' | 'tier' | 'new';
+const SORTS: [SortKey, string, string][] = [
+  ['better', 'Сначала лучшие', 'Вещи, которые лучше установленных, — первыми'],
+  ['quality', 'По качеству', 'От самого высокого процента к низкому'],
+  ['rarity', 'По редкости', 'Уникальные и легендарные сверху'],
+  ['level', 'По уровню улучшения', 'Самые прокачанные сверху'],
+  ['tier', 'По тех. уровню', 'Т7 → Т1'],
+  ['new', 'Сначала новые', 'Недавно полученные сверху'],
+];
+
 const LEFT: SlotId[] = ['coil1', 'generator', 'capacitor', 'converter'];
 const RIGHT: SlotId[] = ['coil2', 'cooling', 'sensor', 'shield'];
 
@@ -189,6 +199,8 @@ export function BunkerScreen() {
   const [massSell, setMassSell] = useState(false);
   const [cons, setCons] = useState<ConsumableKey | null>(null);
   const [autoOpen, setAutoOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>('better');
   const [kind, setKind] = useState<'all' | 'gear' | 'parts' | 'cons'>('all');
   const freeParts = Object.values(profile.parts).filter((p) => !p.installedIn).length;
   const listRef = useRef<HTMLDivElement>(null);
@@ -202,8 +214,17 @@ export function BunkerScreen() {
     let list = Object.values(profile.items).filter((i) => !isEquipped(profile, i.id));
     if (forSlot) list = list.filter((i) => i.category === forSlot);
     const byRarity = (a: Item, b: Item) => rarityIndex(b.rarity) - rarityIndex(a.rarity) || b.tier - a.tier || b.level - a.level;
-    return list.sort((a, b) => (hints.get(b.id)?.gain ?? -1) - (hints.get(a.id)?.gain ?? -1) || byRarity(a, b));
-  }, [profile, forSlot, hints]);
+    const q = new Map(list.map((i) => [i.id, itemQuality(i)]));
+    const cmp: Record<SortKey, (a: Item, b: Item) => number> = {
+      better: (a, b) => (hints.get(b.id)?.gain ?? -1) - (hints.get(a.id)?.gain ?? -1) || byRarity(a, b),
+      quality: (a, b) => q.get(b.id)! - q.get(a.id)! || byRarity(a, b),
+      rarity: byRarity,
+      level: (a, b) => b.level - a.level || byRarity(a, b),
+      tier: (a, b) => b.tier - a.tier || byRarity(a, b),
+      new: (a, b) => b.obtainedAt - a.obtainedAt,
+    };
+    return list.sort(cmp[sortKey]);
+  }, [profile, forSlot, hints, sortKey]);
 
   /** Показать на складе предметы для пустого слота. */
   const pickFor = (slot: SlotId) => {
@@ -264,6 +285,10 @@ export function BunkerScreen() {
           <button className="btn btn-rust btn-sm" onClick={() => setMassSell(true)}>
             Продать
           </button>
+          <button className="btn btn-sm gear-btn" onClick={() => setSortOpen(true)} aria-label="Сортировка">
+            <UiIcon kind="filter" size={18} />
+            {sortKey !== 'better' && <span className="gear-dot" style={{ background: '#f2a93b' }} />}
+          </button>
           <button className="btn btn-sm gear-btn" onClick={() => setAutoOpen(true)} aria-label="Автопродажа">
             <UiIcon kind="menu" size={18} />
             {profile.autoSell.maxRarity && <span className="gear-dot" style={{ background: rarityColor[profile.autoSell.maxRarity] }} />}
@@ -314,7 +339,7 @@ export function BunkerScreen() {
           return (
             <div className="item-grid">
               {showGear && items.map((it) => <ItemTile key={it.id} item={it} better={hints.has(it.id)} onClick={() => selectItem(it.id)} />)}
-              {showParts && <PartsGrid bare onOpen={setPartId} />}
+              {showParts && <PartsGrid bare onOpen={setPartId} sort={sortKey} />}
               {showCons && <ConsumableTiles onOpen={setCons} />}
             </div>
           );
@@ -322,6 +347,30 @@ export function BunkerScreen() {
       </div>
 
       {massSell && <MassSellSheet onClose={() => setMassSell(false)} hints={hints} />}
+      {sortOpen && (
+        <Sheet title="Сортировка склада" onClose={() => setSortOpen(false)}>
+          <div className="option-list">
+            {SORTS.map(([k, label, hint]) => (
+              <button
+                key={k}
+                className={`option${sortKey === k ? ' on' : ''}`}
+                onClick={() => {
+                  setSortKey(k);
+                  setSortOpen(false);
+                }}
+              >
+                <span className="radio" />
+                <span className="grow">
+                  <span style={{ fontWeight: 800 }}>{label}</span>
+                  <span className="small muted" style={{ display: 'block' }}>
+                    {hint}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </Sheet>
+      )}
       {autoOpen && (
         <Sheet title="Автопродажа" onClose={() => setAutoOpen(false)}>
           <div className="small muted" style={{ marginBottom: 10 }}>

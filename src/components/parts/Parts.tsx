@@ -43,7 +43,7 @@ export function PartTile({ part, canFuse, onClick }: { part: Part; canFuse?: boo
 }
 
 /** Свободные модификации: каждая отдельной плиткой, как вещи. */
-export function PartsGrid({ onOpen, bare }: { onOpen: (id: string) => void; bare?: boolean }) {
+export function PartsGrid({ onOpen, bare, sort }: { onOpen: (id: string) => void; bare?: boolean; sort?: string }) {
   const profile = useProfile((s) => s.profile)!;
   const list = useMemo(() => {
     const free = Object.values(profile.parts).filter((p) => !p.installedIn);
@@ -51,8 +51,14 @@ export function PartsGrid({ onOpen, bare }: { onOpen: (id: string) => void; bare
     for (const p of free) groups.set(`${p.templateId}|${p.rarity}`, (groups.get(`${p.templateId}|${p.rarity}`) ?? 0) + 1);
     return free
       .map((p) => ({ p, q: partQuality(p), fuse: (groups.get(`${p.templateId}|${p.rarity}`) ?? 0) >= fusionConfig.count && !!nextRarity(p.rarity) }))
-      .sort((a, b) => rarityIndex(b.p.rarity) - rarityIndex(a.p.rarity) || a.p.templateId.localeCompare(b.p.templateId) || b.q - a.q);
-  }, [profile.parts]);
+      .sort((a, b) =>
+        sort === 'quality'
+          ? b.q - a.q
+          : sort === 'new'
+            ? b.p.obtainedAt - a.p.obtainedAt
+            : rarityIndex(b.p.rarity) - rarityIndex(a.p.rarity) || a.p.templateId.localeCompare(b.p.templateId) || b.q - a.q,
+      );
+  }, [profile.parts, sort]);
   const tiles = list.map(({ p, fuse }) => <PartTile key={p.id} part={p} canFuse={fuse} onClick={() => onOpen(p.id)} />);
   if (bare) return <>{tiles}</>;
   if (!list.length)

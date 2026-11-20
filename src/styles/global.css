@@ -4616,3 +4616,8 @@ button.pavatar:active {
 .fuse-row b {
   flex: none;
 }
+/* Нижнее меню: у активной вкладки без подложки, только цвет */
+.nav button.on .nav-ic {
+  background: none;
+  box-shadow: none;
+}

@@ -176,7 +176,7 @@ export function ResourceIcon({ type, size = 14 }: { type: ResourceKey; size?: nu
   }
 }
 
-type UiKind = 'shop' | 'gift' | 'battle' | 'bunker' | 'inventory' | 'tech' | 'map' | 'menu' | 'pause' | 'play' | 'close' | 'skull' | 'lock' | 'up' | 'bolt' | 'refresh' | 'calendar' | 'tasks' | 'info' | 'trophy';
+type UiKind = 'shop' | 'gift' | 'battle' | 'bunker' | 'inventory' | 'tech' | 'map' | 'menu' | 'pause' | 'play' | 'close' | 'skull' | 'lock' | 'up' | 'bolt' | 'refresh' | 'calendar' | 'tasks' | 'info' | 'trophy' | 'filter';
 
 export function UiIcon({ kind, size = 22 }: { kind: UiKind; size?: number }) {
   const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -278,6 +278,12 @@ export function UiIcon({ kind, size = 22 }: { kind: UiKind; size?: number }) {
       return (
         <svg {...p}>
           <path d="M12 19V5M6 11l6-6 6 6" />
+        </svg>
+      );
+    case 'filter':
+      return (
+        <svg {...p}>
+          <path d="M4 6h16M7 12h10M10 18h4" />
         </svg>
       );
     case 'trophy':
