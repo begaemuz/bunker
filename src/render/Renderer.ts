@@ -15,6 +15,10 @@ export const TILT = 0.56;
 const VIS = 1.35;
 /** Визуальный размер бункера относительно его хитбокса. */
 const BUNKER_VIS = 1.15;
+import bunkerUrl from '../assets/bunker.webp';
+
+/** Рисунок бункера. */
+const BUNKER_IMG = typeof Image !== 'undefined' ? Object.assign(new Image(), { src: bunkerUrl }) : ({ complete: false, naturalWidth: 0, naturalHeight: 0 } as HTMLImageElement);
 
 // Старые WebView без roundRect: рисуем обычный прямоугольник.
 if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
@@ -414,55 +418,6 @@ export class Renderer {
     c.fill();
   }
 
-  /** Восьмигранный ярус: видимые грани + крыша. */
-  private prism(r: number, base: number, h: number, rgb: [number, number, number], face?: (x1: number, y1: number, x2: number, y2: number, top: number, bottom: number, mid: number) => void): void {
-    const c = this.ctx;
-    const n = 8;
-    const pts = Array.from({ length: n }, (_, i) => {
-      const a = (i / n) * Math.PI * 2 + Math.PI / n;
-      return [Math.cos(a) * r, Math.sin(a) * r * TILT, a] as const;
-    });
-    const faces: { i: number; mid: number }[] = [];
-    for (let i = 0; i < n; i++) {
-      const mid = (i / n) * Math.PI * 2 + (Math.PI * 2) / n;
-      if (Math.sin(mid) > -0.05) faces.push({ i, mid });
-    }
-    faces.sort((a, b) => Math.sin(a.mid) - Math.sin(b.mid));
-    const light = (mid: number) => 0.55 + 0.4 * Math.cos(mid - Math.PI * 0.75);
-    for (const f of faces) {
-      const p1 = pts[f.i];
-      const p2 = pts[(f.i + 1) % n];
-      const k = light(f.mid);
-      c.fillStyle = `rgb(${rgb[0] * k | 0},${rgb[1] * k | 0},${rgb[2] * k | 0})`;
-      c.strokeStyle = 'rgba(10,12,14,0.85)';
-      c.lineWidth = 1;
-      c.beginPath();
-      c.moveTo(p1[0], p1[1] - base);
-      c.lineTo(p2[0], p2[1] - base);
-      c.lineTo(p2[0], p2[1] - base - h);
-      c.lineTo(p1[0], p1[1] - base - h);
-      c.closePath();
-      c.fill();
-      c.stroke();
-      face?.(p1[0], p1[1], p2[0], p2[1], base + h, base, f.mid);
-    }
-    // крыша
-    c.fillStyle = `rgb(${Math.min(255, rgb[0] * 1.18) | 0},${Math.min(255, rgb[1] * 1.18) | 0},${Math.min(255, rgb[2] * 1.18) | 0})`;
-    c.beginPath();
-    pts.forEach(([x, y], i) => (i ? c.lineTo(x, y - base - h) : c.moveTo(x, y - base - h)));
-    c.closePath();
-    c.fill();
-    c.strokeStyle = 'rgba(10,12,14,0.85)';
-    c.stroke();
-    c.strokeStyle = 'rgba(255,255,255,0.12)';
-    c.beginPath();
-    c.moveTo(pts[4][0], pts[4][1] - base - h);
-    c.lineTo(pts[5][0], pts[5][1] - base - h);
-    c.lineTo(pts[6][0], pts[6][1] - base - h);
-    c.stroke();
-  }
-
-  /** Бункер-крепость: ярусы из стальных плит, светящиеся окна и шпиль-излучатель. */
   private drawBunker(e: GameEngine): void {
     const c = this.ctx;
     const R = gameConfig.bunkerBodyRadius * BUNKER_VIS;
@@ -472,121 +427,25 @@ export class Renderer {
     const glow = supp ? '#c27bff' : '#5fd2ff';
     const pulse = 0.65 + 0.35 * Math.sin(this.time * 3);
 
-    // светящаяся панель на грани
-    const panel = (w: number, hk: number, alpha: number) => (x1: number, y1: number, x2: number, y2: number, top: number, bottom: number, mid: number) => {
-      if (Math.sin(mid) < 0.3) return;
-      const cx = (x1 + x2) / 2;
-      const cy = (y1 + y2) / 2;
-      const hw = Math.abs(x2 - x1) * w * 0.5;
-      const ph = (top - bottom) * hk;
-      const yc = cy - (top + bottom) / 2;
-      const slope = (y2 - y1) / (x2 - x1 || 1);
+    void heat;
+    void pulse;
+    // Рисунок бункера: основание стоит на земле, вершина — шпиль.
+    const W = R * 3.1;
+    const H = W * (BUNKER_IMG.naturalHeight / Math.max(1, BUNKER_IMG.naturalWidth) || 1.01);
+    const bottom = R * 0.95;
+    if (BUNKER_IMG.complete && BUNKER_IMG.naturalWidth > 0) {
+      c.drawImage(BUNKER_IMG, -W / 2, bottom - H, W, H);
+      // свечение окон усиливается с зарядом
       c.save();
-      c.shadowColor = glow;
-      c.shadowBlur = 10;
-      c.globalAlpha = alpha;
-      c.fillStyle = glow;
-      c.beginPath();
-      c.moveTo(cx - hw, yc - ph / 2 - slope * hw);
-      c.lineTo(cx + hw, yc - ph / 2 + slope * hw);
-      c.lineTo(cx + hw, yc + ph / 2 + slope * hw);
-      c.lineTo(cx - hw, yc + ph / 2 - slope * hw);
-      c.closePath();
-      c.fill();
+      c.globalCompositeOperation = 'lighter';
+      const g = c.createRadialGradient(0, bottom - H * 0.45, 0, 0, bottom - H * 0.45, W * 0.55);
+      g.addColorStop(0, supp ? `rgba(194,123,255,${0.12 + 0.18 * charge})` : `rgba(95,210,255,${0.06 + 0.16 * charge * (0.7 + 0.3 * Math.sin(this.time * 3))})`);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = g;
+      c.fillRect(-W / 2, bottom - H, W, H);
       c.restore();
-    };
-
-    // фундамент
-    this.prism(R * 1.38, 0, R * 0.22, [70, 76, 82]);
-    // нижний ярус с вентиляционными огнями
-    this.prism(R * 1.12, R * 0.22, R * 0.5, [96, 106, 116], panel(0.55, 0.22, 0.55 + 0.4 * charge));
-    // средний ярус с окнами
-    this.prism(R * 0.82, R * 0.72, R * 0.5, [110, 120, 132], panel(0.5, 0.45, (0.6 + 0.4 * charge) * pulse));
-    // верхний ярус
-    this.prism(R * 0.48, R * 1.22, R * 0.3, [124, 134, 146], panel(0.45, 0.4, 0.8));
-
-    // гермодверь
-    c.fillStyle = '#1d2226';
-    c.strokeStyle = '#0b0d0f';
-    c.lineWidth = 1;
-    c.beginPath();
-    c.roundRect(-R * 0.22, R * 1.12 * TILT - R * 0.62, R * 0.44, R * 0.42, R * 0.05);
-    c.fill();
-    c.stroke();
-    c.save();
-    c.shadowColor = glow;
-    c.shadowBlur = 8;
-    c.fillStyle = glow;
-    c.globalAlpha = 0.8;
-    c.fillRect(-R * 0.16, R * 1.12 * TILT - R * 0.34, R * 0.32, R * 0.05);
-    c.restore();
-
-    // катушки-излучатели по бокам верхнего яруса
-    const towers = [-0.62, 0.62];
-    e.stats.coils.slice(0, 2).forEach((coil, i) => {
-      const tx = towers[i] * R;
-      const ty = -R * 1.22 - R * 0.05;
-      const col = supp ? '#b04dff' : modeConfig[coil.mode].color;
-      c.fillStyle = '#3d454d';
-      c.fillRect(tx - R * 0.06, ty - R * 0.5, R * 0.12, R * 0.5);
-      for (let k = 0; k < 3; k++) {
-        c.fillStyle = col;
-        c.globalAlpha = 0.5 + 0.5 * charge;
-        c.beginPath();
-        c.ellipse(tx, ty - R * (0.12 + k * 0.13), R * 0.13, R * 0.05, 0, 0, Math.PI * 2);
-        c.fill();
-      }
-      c.globalAlpha = 1;
-      c.save();
-      c.shadowColor = col;
-      c.shadowBlur = 8 + charge * 12;
-      c.fillStyle = col;
-      c.beginPath();
-      c.arc(tx, ty - R * 0.56, R * 0.09, 0, Math.PI * 2);
-      c.fill();
-      c.restore();
-    });
-
-    // центральный шпиль
-    const top = -R * 1.52;
-    const tip = -R * 2.45;
-    c.fillStyle = '#4a535c';
-    c.beginPath();
-    c.moveTo(-R * 0.13, top);
-    c.lineTo(R * 0.13, top);
-    c.lineTo(R * 0.04, tip);
-    c.lineTo(-R * 0.04, tip);
-    c.closePath();
-    c.fill();
-    c.fillStyle = 'rgba(255,255,255,0.18)';
-    c.fillRect(-R * 0.1, top - R * 0.02, R * 0.06, (tip - top) * 0.95);
-    for (let k = 0; k < 3; k++) {
-      c.fillStyle = glow;
-      c.globalAlpha = 0.5 + 0.5 * charge;
-      c.fillRect(-R * (0.12 - k * 0.025), top - R * (0.2 + k * 0.22), R * (0.24 - k * 0.05), R * 0.05);
     }
-    c.globalAlpha = 1;
-    c.save();
-    c.shadowColor = glow;
-    c.shadowBlur = 14 + 16 * charge;
-    c.fillStyle = '#eaffff';
-    c.beginPath();
-    c.arc(0, tip, R * (0.07 + 0.04 * charge * pulse), 0, Math.PI * 2);
-    c.fill();
-    c.restore();
-    // антенна сенсоров
-    if (e.stats.detectRange > 0) {
-      c.strokeStyle = '#8f9aa3';
-      c.lineWidth = 1.2;
-      c.beginPath();
-      c.moveTo(R * 0.3, -R * 1.5);
-      c.lineTo(R * 0.36, -R * 1.95);
-      c.stroke();
-      c.fillStyle = '#5fe08a';
-      c.beginPath();
-      c.arc(R * 0.36, -R * 1.97, R * 0.05, 0, Math.PI * 2);
-      c.fill();
-    }
+    void glow;
 
     // перегрев и попадания — подсветка силуэта
     const tint = (rgba: string) => {
