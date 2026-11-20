@@ -15,7 +15,7 @@ export const CURRENCIES: ResourceKey[] = ['coins', 'crystals'];
 export const consumableInfo: Record<ConsumableKey, { color: string; description: string; use: string }> = {
   scrap: {
     color: '#a8b0b8',
-    description: 'Металл с разбитых роботов. Основной материал для ремонта и улучшений.',
+    description: 'Металл с разбитых роботов и разобранных вещей. Основной материал для ремонта и улучшений.',
     use: 'Тратится при улучшении оборудования, исследованиях и обмене в магазине.',
   },
   techParts: {

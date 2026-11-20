@@ -15,6 +15,7 @@ import {
   registerBossKill,
   restoreSummon,
   sellItem,
+  dismantleItem,
   setCurrentLocation,
   unequipItem,
   type GlobalStats,
@@ -80,6 +81,8 @@ interface ProfileState {
   equip: (itemId: string, slot: SlotId) => string | null;
   unequip: (itemId: string) => void;
   sell: (itemId: string) => { coins: number; error?: string };
+  /** Разобрать вещь на металл (и иногда тех. компоненты). */
+  dismantleItem: (itemId: string) => { scrap: number; techParts: number; error?: string };
   upgrade: (itemId: string, useStabilizer: boolean) => { outcome?: UpgradeOutcome; error?: string; granted: Item[] };
   research: (techId: string) => string | null;
   /** Применить предмет «Сброс навыков». */
@@ -428,6 +431,15 @@ export const useProfile = create<ProfileState>((set, get) => {
       if (r.error) return { coins: 0, error: r.error };
       commit(r.profile, false, true);
       return { coins: r.coins };
+    },
+
+    dismantleItem: (itemId) => {
+      const p = get().profile;
+      if (!p) return { scrap: 0, techParts: 0, error: 'not_loaded' };
+      const r = dismantleItem(p, itemId);
+      if (r.error) return { scrap: 0, techParts: 0, error: r.error };
+      commit(r.profile, false, true);
+      return { scrap: r.scrap, techParts: r.techParts };
     },
 
     upgrade: (itemId, useStabilizer) => {

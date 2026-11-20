@@ -4961,3 +4961,15 @@ button.pavatar:active {
 .tile-fuse { position: absolute; top: 22px; right: 4px; font-family: var(--display); font-size: 10px; padding: 0 4px; border-radius: 5px; color: #241500; background: linear-gradient(#ffe7a3, #d99b1c); box-shadow: 0 0 8px rgba(242, 181, 58, 0.6); }
 .cx-entry.unknown { opacity: 0.55; filter: grayscale(1); }
 .cx-entry.unknown .cx-name { color: #6b757e; letter-spacing: 0.1em; }
+
+/* База: аккуратные ряды фильтров и отступы */
+.cx-scroll { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -12px 8px; padding: 2px 12px; }
+.cx-scroll::-webkit-scrollbar { display: none; }
+.cx-scroll .cx-grade { flex: none; }
+.quest-tabs + .cx-scroll { margin-top: 10px; }
+.cx-intro { margin: 2px 0 14px; padding: 9px 11px; border-radius: 10px; background: #12171c; box-shadow: inset 0 0 0 1px #2a3138; font-size: 12px; line-height: 1.45; color: #9aa4ad; }
+.cx-entry { margin-bottom: 8px; }
+.cx-head { padding: 10px 12px; gap: 12px; }
+.cx-body { padding: 2px 14px 14px; }
+.cx-entry.unknown .cx-head { padding: 6px 12px; }
+.cx-entry.unknown .cx-icon { width: 30px; height: 30px; }

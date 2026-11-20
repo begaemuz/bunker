@@ -1,8 +1,9 @@
+import { chance } from '../rng';
 import { balanceConfig } from '../config/balanceConfig';
 import { starterKit } from '../config/itemsConfig';
 import { getLocation, locationsConfig } from '../config/locationsConfig';
 import { generateItem, sellPrice } from '../items/ItemGenerator';
-import { isAtLeast } from '../items/ItemRarity';
+import { isAtLeast, rarityIndex } from '../items/ItemRarity';
 import { dropItemParts } from '../items/Parts';
 import { emptyQuests, type DailyState, type ExchangeState, type QuestState, type ShopState } from '../meta/Meta';
 import {
@@ -327,6 +328,38 @@ export function sellItem(p: Profile, itemId: string): { profile: Profile; coins:
       history: pushHistory(p, { at: Date.now(), itemName: item.name, rarity: item.rarity, action: 'sold', detail: `+${coins} монет` }),
     },
     coins,
+  };
+}
+
+/** Что даёт разбор вещи: металл всегда, тех. компоненты — с синих и выше. */
+export function dismantleItemYield(item: Item): { scrap: number; techParts: number; techChance: number } {
+  const idx = rarityIndex(item.rarity);
+  const tierK = Math.pow(1.3, item.tier - 1);
+  const scrap = Math.max(1, Math.round((3 + 4 * idx) * tierK * (1 + 0.1 * (item.level - 1))));
+  const techChance = [0, 0, 0.15, 0.5, 1, 1, 1][idx] ?? 0;
+  const techParts = idx >= 2 ? Math.max(1, Math.round((idx - 1) * tierK)) : 0;
+  return { scrap, techParts, techChance };
+}
+
+/** Разбор вещи на металл (и иногда тех. компоненты). Установленные модификации пропадают вместе с вещью. */
+export function dismantleItem(p: Profile, itemId: string): { profile: Profile; scrap: number; techParts: number; error?: SellError } {
+  const item = p.items[itemId];
+  if (!item) return { profile: p, scrap: 0, techParts: 0, error: 'not_found' };
+  if (isEquipped(p, itemId)) return { profile: p, scrap: 0, techParts: 0, error: 'equipped' };
+  const y = dismantleItemYield(item);
+  const techParts = y.techParts > 0 && chance(y.techChance) ? y.techParts : 0;
+  const base = dropItemParts(p, itemId);
+  const items = { ...base.items };
+  delete items[itemId];
+  return {
+    profile: {
+      ...base,
+      items,
+      resources: { ...p.resources, scrap: p.resources.scrap + y.scrap, techParts: p.resources.techParts + techParts },
+      history: pushHistory(p, { at: Date.now(), itemName: item.name, rarity: item.rarity, action: 'scrapped', detail: `разобрано: +${y.scrap} металла${techParts ? `, +${techParts} тех. компонентов` : ''}` }),
+    },
+    scrap: y.scrap,
+    techParts,
   };
 }
 

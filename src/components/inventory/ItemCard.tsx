@@ -7,7 +7,7 @@ import { coilProps, coilRolls, itemQuality, itemModifiers, itemStatRolls, sellPr
 import { QualityLine, RollLine } from './Roll';
 import { upgradeBlock } from '../../game/items/ItemUpgrade';
 import { formatStatValue, lowerIsBetter } from '../../game/items/statInfo';
-import { defaultSlotFor, equipItem, needsSellWarning, slotOf } from '../../game/profile/Profile';
+import { defaultSlotFor, equipItem, needsSellWarning, slotOf, dismantleItemYield } from '../../game/profile/Profile';
 import { SLOT_CATEGORY, SLOT_IDS, type ItemSource, type SlotId, type StatMod } from '../../game/types';
 import { ru, statLabel, uniqueText } from '../../i18n/ru';
 import { useProfile } from '../../stores/profileStore';
@@ -92,6 +92,8 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
   const setEquipTarget = useUi((s) => s.setEquipTarget);
   const toast = useUi((s) => s.toast);
   const [confirmSell, setConfirmSell] = useState(false);
+  const [confirmScrap, setConfirmScrap] = useState(false);
+  const dismantle = useProfile((s) => s.dismantleItem);
   const [upgrading, setUpgrading] = useState(false);
   const [boosting, setBoosting] = useState(false);
   const hasBooster = BOOSTERS.some((k) => profile.resources[k] > 0);
@@ -120,6 +122,7 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
   const replacing = replacingId ? profile.items[replacingId] : null;
   const coil = coilProps(item);
   const price = sellPrice(item);
+  const dy = dismantleItemYield(item);
   const canUpgrade = !upgradeBlock(profile, item, false) || !upgradeBlock(profile, item, true);
   const mods = itemModifiers(item);
   const rolls = itemStatRolls(item);
@@ -169,9 +172,14 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
       actions={
         <>
           {!equippedSlot && (
-            <button className="btn btn-rust" onClick={() => setConfirmSell(true)}>
-              Продать <ResourceIcon type="coins" /> {price}
-            </button>
+            <>
+              <button className="btn btn-rust" style={{ flexBasis: 'calc(50% - 4px)' }} onClick={() => setConfirmSell(true)}>
+                Продать <ResourceIcon type="coins" /> {price}
+              </button>
+              <button className="btn" style={{ flexBasis: 'calc(50% - 4px)' }} onClick={() => setConfirmScrap(true)}>
+                Разобрать <ResourceIcon type="scrap" /> {dy.scrap}
+              </button>
+            </>
           )}
           {item.boost == null && (
             <>
@@ -319,6 +327,37 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
 
       {upgrading && <UpgradeDialog itemId={item.id} onClose={() => setUpgrading(false)} onDestroyed={onClose} />}
       {boosting && <BoostDialog itemId={item.id} onClose={() => setBoosting(false)} />}
+      {confirmScrap && (
+        <ConfirmDialog
+          title="Разобрать на металл?"
+          text={
+            <>
+              <span style={{ color: col }}>{item.name}</span> будет разобрано: +{dy.scrap} металла
+              {dy.techParts > 0 && (dy.techChance >= 1 ? ` и +${dy.techParts} тех. компонентов` : ` и с шансом ${Math.round(dy.techChance * 100)}% +${dy.techParts} тех. компонентов`)}. Отменить нельзя.
+            </>
+          }
+          warning={
+            [
+              needsSellWarning(item) ? `Это ${ru.rarity[item.rarity].toLowerCase()} оборудование. Такое выпадает редко.` : '',
+              item.slots.some((x) => x.partId) ? 'Установленные модификации будут потеряны.' : '',
+            ]
+              .filter(Boolean)
+              .join(' ') || undefined
+          }
+          confirmLabel="Разобрать"
+          danger
+          onConfirm={() => {
+            setConfirmScrap(false);
+            const r = dismantle(item.id);
+            if (r.error) toast('Сначала снимите оборудование с бункера', 'bad');
+            else {
+              toast(`Разобрано: +${r.scrap} металла${r.techParts ? `, +${r.techParts} тех. компонентов` : ''}`, 'good');
+              onClose();
+            }
+          }}
+          onCancel={() => setConfirmScrap(false)}
+        />
+      )}
       {confirmSell && (
         <ConfirmDialog
           title="Продать оборудование?"

@@ -42,7 +42,7 @@ function Unknown({ part, category }: { part?: boolean; category?: ItemTemplate['
         <span className="cx-icon">{part ? <PartGlyph color="#3a434b" size={24} /> : <CategoryGlyph category={category!} color="#3a434b" size={26} />}</span>
         <span className="grow" style={{ minWidth: 0 }}>
           <span className="cx-name">???</span>
-          <span className="cx-sub">Ещё не найдено — выбейте, чтобы узнать характеристики</span>
+          <span className="cx-sub">не найдено</span>
         </span>
       </div>
     </div>
@@ -231,11 +231,6 @@ export function CodexSheet({ onClose }: { onClose: () => void }) {
     <Sheet
       title="База"
       onClose={onClose}
-      actions={
-        <button className="btn btn-ghost grow" onClick={onClose}>
-          Закрыть
-        </button>
-      }
     >
       <div className="seg quest-tabs">
         <button className={tab === 'items' ? 'on' : ''} onClick={() => setTab('items')}>
@@ -249,7 +244,7 @@ export function CodexSheet({ onClose }: { onClose: () => void }) {
         </button>
       </div>
       {tab !== 'other' && (
-      <div className="cx-grades">
+      <div className="cx-grades cx-scroll">
         {GRADES.map((r) => (
           <button key={r} className={`cx-grade${rarity === r ? ' on' : ''}`} style={{ ['--rc' as string]: rarityColor[r] }} onClick={() => setRarity(r)}>
             {ru.rarity[r]}
@@ -258,7 +253,7 @@ export function CodexSheet({ onClose }: { onClose: () => void }) {
       </div>
       )}
       {tab === 'items' && (
-        <div className="cx-grades">
+        <div className="cx-grades cx-scroll">
           {Array.from({ length: 20 }, (_, i) => i + 1).map((t) => (
             <button key={t} className={`cx-grade tier${tier === t ? ' on' : ''}`} onClick={() => setTier(t)}>
               Т{t}
@@ -283,7 +278,7 @@ export function CodexSheet({ onClose }: { onClose: () => void }) {
         </div>
       )}
       {tab !== 'other' && (
-      <div className="small muted" style={{ margin: '4px 2px 10px' }}>
+      <div className="cx-intro">
         {tab === 'items'
           ? 'Вещи одинаковые во всех зонах, отличается Т-уровень зоны. С роботов падают белые и зелёные, синие — редко; с боссов — синие, фиолетовые и очень редко золотые. Белая — 1 основная характеристика, зелёная — 2, синяя — 3, фиолетовая — 3 + 1 случайная, золотая — 3 + 2. Значения без учёта заточки и буста.'
           : 'У модификации один эффект: он меняет поведение бункера. Редкость усиливает эффект, качество показывает, насколько удачно он выпал.'}
