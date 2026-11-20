@@ -54,6 +54,9 @@ function translateCore(s: string, depth = 0): string {
   const hit = exact[s];
   if (hit !== undefined) return hit;
   if (depth > 2) return s;
+  // «Название ×3», «+5 Название» и части через « · » переводим по кусочкам.
+  const mult = /^(.*?)( ×[\d.,]+[KMBT]?)$/.exec(s);
+  if (mult && exact[mult[1]] !== undefined) return exact[mult[1]] + mult[2];
   for (const t of templates) {
     const m = t.re.exec(s);
     if (!m) continue;
@@ -61,6 +64,11 @@ function translateCore(s: string, depth = 0): string {
       const v = m[Number(i) + 1] ?? '';
       return CYR.test(v) ? translateCore(v.trim(), depth + 1) : v;
     });
+  }
+  if (s.includes(' · ')) {
+    const parts = s.split(' · ');
+    const out = parts.map((x) => (CYR.test(x) ? translateCore(x.trim(), depth + 1) : x));
+    if (out.some((x, i) => x !== parts[i])) return out.join(' · ');
   }
   return s;
 }

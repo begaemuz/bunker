@@ -1,3 +1,4 @@
+import { tr } from '../../i18n/lang';
 import { useEffect, useRef, useState } from 'react';
 import { bossesConfig } from '../../game/config/bossesConfig';
 import { robotsConfig } from '../../game/config/enemiesConfig';
@@ -136,7 +137,7 @@ export function LocationsScreen() {
             const danger = dangerOf(profile, l);
             const col = DANGER[danger].color;
             const here = current === l.id;
-            const lines = splitName(l.name);
+            const lines = splitName(tr(l.name));
             const small = r.r < 24;
             return (
               <g key={r.id} className="zmap-label" onClick={() => setOpen(l)}>
