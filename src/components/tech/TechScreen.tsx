@@ -147,7 +147,7 @@ function TechGlyph({ id, color, size = 30 }: { id: string; color: string; size?:
   );
 }
 
-const ROW_H = 132;
+const ROW_H = 156;
 
 function shortValue(n: TechNode, lvl: number): string {
   return n.effects.length ? fmtEffect(n.effects[0], lvl) : '';
@@ -173,8 +173,8 @@ function BranchTree({ branch, onOpen }: { branch: (typeof techBranches)[number];
             const met = techLevel(profile, r.id) >= r.level;
             const x1 = X[parent.col];
             const x2 = X[n.col];
-            const y1 = cy(parent.tier) + 34;
-            const y2 = cy(n.tier) - 34;
+            const y1 = cy(parent.tier) + 80; // под подписью узла
+            const y2 = cy(n.tier) - 40;
             const d = x1 === x2 ? `M${x1} ${y1} V${y2}` : `M${x1} ${y1} V${(y1 + y2) / 2} H${x2} V${y2}`;
             return (
               <g key={`${r.id}-${n.id}`}>
@@ -259,7 +259,7 @@ export function TechScreen() {
           </div>
           <span className="small muted skill-branch-pts">в ветке {branchPoints(profile, branch.id)}</span>
         </div>
-        {free < 0 && <div className="warn-box" style={{ marginBottom: 8 }}>Вложено больше очков, чем даёт уровень бункера. Изученное сохранится, но новые уровни откроются, когда уровень бункера догонит. Можно сбросить навыки и распределить заново.</div>}
+        {free < 0 && <div className="warn-box skill-warn">Вложено больше очков, чем даёт уровень бункера. Изученное сохранится, но новые уровни откроются, когда уровень бункера догонит. Можно сбросить навыки и распределить заново.</div>}
 
         <BranchTree branch={branch} onOpen={setOpen} />
         <div className="small muted" style={{ margin: '4px 0 12px', textAlign: 'center' }}>
