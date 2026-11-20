@@ -117,7 +117,7 @@ function VipTab() {
   const next = vipNext(profile.vip.points);
   const firstGift = Array.from({ length: max }, (_, i) => i + 1).find((l) => giftClaimable(profile, l));
   const [view, setView] = useState(firstGift ?? Math.min(max, Math.max(1, cur + 1)));
-  const touch = useRef<number | null>(null);
+  const touch = useRef<{ x: number; y: number } | null>(null);
   const pct = next ? ((profile.vip.points - next.from) / (next.need - next.from)) * 100 : 100;
   const chestReady = canClaimVipChest(profile);
   const chest = vipChest(Math.max(1, cur));
@@ -174,13 +174,21 @@ function VipTab() {
 
       <div
         className={`vip-sheet${reached ? ' got' : ''}${view === cur ? ' current' : ''}`}
-        onTouchStart={(e) => (touch.current = e.touches[0].clientX)}
-        onTouchEnd={(e) => {
-          if (touch.current === null) return;
-          const dx = e.changedTouches[0].clientX - touch.current;
-          if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1);
-          touch.current = null;
+        onTouchStart={(e) => {
+          // свайп только с самой карточки, не с кнопок
+          if ((e.target as HTMLElement).closest('button')) return;
+          touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         }}
+        onTouchEnd={(e) => {
+          const t = touch.current;
+          touch.current = null;
+          if (!t) return;
+          const dx = e.changedTouches[0].clientX - t.x;
+          const dy = e.changedTouches[0].clientY - t.y;
+          // только явный горизонтальный свайп: прокрутка окна вверх-вниз уровень не меняет
+          if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 2.5) go(dx < 0 ? 1 : -1);
+        }}
+        onTouchCancel={() => (touch.current = null)}
       >
         <div className="vip-sheet-head">
           <button className="vip-arr" disabled={view <= 1} onClick={() => go(-1)} aria-label="Предыдущий VIP">
