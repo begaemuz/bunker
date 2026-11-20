@@ -1,4 +1,4 @@
-// Серверная функция игры: вход через Telegram, сохранения, таблица лидеров.
+// Серверная функция игры: вход через Telegram, сохранения, таблица лидеров, аукцион.
 // Каждый запрос подписан Telegram (initData) — подделать игрока нельзя.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -121,6 +121,106 @@ Deno.serve(async (req) => {
           value: r[col],
         })),
         rank,
+      });
+    }
+
+    // ═════ Аукцион за кристаллы ═════
+    case 'auction_list': {
+      await db.rpc('auction_settle');
+      const cols = 'id, seller, seller_nick, kind, payload, name, rarity, category, quality, start_price, buyout, bid, bidder, bidder_nick, bids, ends_at, status';
+      const [market, mine, bids] = await Promise.all([
+        db.from('lots').select(cols).eq('status', 'open').neq('seller', user.id).order('ends_at', { ascending: true }).limit(200),
+        db.from('lots').select(cols).eq('seller', user.id).order('created_at', { ascending: false }).limit(30),
+        db.from('lots').select(cols).eq('bidder', user.id).eq('status', 'open').limit(50),
+      ]);
+      if (market.error || mine.error || bids.error) return json({ error: 'db' }, 500);
+      const pub = (r: Record<string, unknown>) => ({
+        id: r.id,
+        kind: r.kind,
+        payload: r.payload,
+        sellerNick: r.seller_nick,
+        start: r.start_price,
+        buyout: r.buyout,
+        bid: r.bid,
+        bids: r.bids,
+        leading: r.bidder === user.id,
+        bidderNick: r.bidder_nick,
+        endsAt: r.ends_at,
+        status: r.status,
+        mine: r.seller === user.id,
+      });
+      return json({ market: (market.data ?? []).map(pub), mine: (mine.data ?? []).map(pub), bids: (bids.data ?? []).map(pub), fee: 0.1 });
+    }
+
+    case 'auction_create': {
+      const kind = ['item', 'part', 'res'].includes(body.kind) ? (body.kind as string) : null;
+      const payload = body.payload;
+      const start = Math.floor(Number(body.start) || 0);
+      const buyout = Math.floor(Number(body.buyout) || 0);
+      const hours = [12, 24, 48].includes(Number(body.hours)) ? Number(body.hours) : 24;
+      if (!kind || !payload || typeof payload !== 'object') return json({ error: 'bad' }, 400);
+      if (start < 1 || buyout <= start || buyout > 1_000_000) return json({ error: 'price' }, 400);
+      if (JSON.stringify(payload).length > 50_000) return json({ error: 'too_big' }, 413);
+      const { count } = await db.from('lots').select('id', { count: 'exact', head: true }).eq('seller', user.id).eq('status', 'open');
+      if ((count ?? 0) >= 5) return json({ error: 'limit' });
+      const RES_NAMES: Record<string, string> = { skillResets: 'Сброс навыков' };
+      const main =
+        kind === 'item'
+          ? payload.item
+          : kind === 'part'
+            ? payload.part
+            : RES_NAMES[payload.res] && Number(payload.amount) === 1
+              ? { name: RES_NAMES[payload.res], rarity: 'legendary' }
+              : null;
+      if (!main || typeof main !== 'object') return json({ error: 'bad' }, 400);
+      const { data: me } = await db.from('players').select('nick').eq('tg_id', user.id).maybeSingle();
+      const { data, error } = await db
+        .from('lots')
+        .insert({
+          seller: user.id,
+          seller_nick: String(me?.nick || user.first_name || 'Инженер').slice(0, 16),
+          kind,
+          payload,
+          name: String(main.name ?? '').slice(0, 60),
+          rarity: String(main.rarity ?? 'common').slice(0, 16),
+          category: kind === 'item' ? String(main.category ?? '').slice(0, 16) : kind,
+          quality: Math.max(0, Math.min(1, Number(body.quality) || 0)),
+          start_price: start,
+          buyout,
+          ends_at: new Date(Date.now() + hours * 3600_000).toISOString(),
+        })
+        .select('id')
+        .single();
+      if (error) return json({ error: 'db' }, 500);
+      return json({ ok: true, id: data.id });
+    }
+
+    case 'auction_bid': {
+      const amount = Math.floor(Number(body.amount) || 0);
+      if (amount < 1) return json({ error: 'bad' }, 400);
+      const { data: me } = await db.from('players').select('nick').eq('tg_id', user.id).maybeSingle();
+      const { data, error } = await db.rpc('auction_bid', {
+        p_lot: Number(body.id),
+        p_user: user.id,
+        p_nick: String(me?.nick || user.first_name || 'Инженер').slice(0, 16),
+        p_amount: amount,
+      });
+      if (error) return json({ error: 'db' }, 500);
+      return json({ result: data });
+    }
+
+    case 'auction_cancel': {
+      const { data, error } = await db.rpc('auction_cancel', { p_lot: Number(body.id), p_user: user.id });
+      if (error) return json({ error: 'db' }, 500);
+      return json({ result: data });
+    }
+
+    case 'deliveries': {
+      await db.rpc('auction_settle');
+      const { data, error } = await db.rpc('claim_deliveries', { p_user: user.id });
+      if (error) return json({ error: 'db' }, 500);
+      return json({
+        list: (data ?? []).map((d: Record<string, unknown>) => ({ id: d.id, kind: d.kind, amount: d.amount, payload: d.payload, note: d.note })),
       });
     }
 

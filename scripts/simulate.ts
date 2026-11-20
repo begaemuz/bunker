@@ -1,3 +1,4 @@
+import { applyDeliveries, minBid, putLot, takeForLot } from '../src/game/meta/auction';
 import { claimVipChest, claimVipGift } from '../src/game/meta/vipActions';
 /* Проверка игровой логики без браузера: тесты механик и прогон баланса.
    Запуск: npm run sim */
@@ -28,7 +29,7 @@ import {
   setCurrentLocation,
   unequipItem,
 } from '../src/game/profile/Profile';
-import { effectValue, resetSkills, research, researchBlock, researchCost } from '../src/game/progression/TechnologyTree';
+import { applySkillReset, effectValue, resetSkills, research, researchBlock, researchCost } from '../src/game/progression/TechnologyTree';
 import { LOGIN_DAYS, buyOffer, buySpecial, claimDaily, claimQuest, claimQuestBonus, doExchange, ensureQuests, ensureShop, exchangeUsed, questProgress, refreshShop } from '../src/game/meta/Meta';
 import { addParts, dismantleParts, massFusePlan, partPowerScore, extractPart, fuseAll, fuseParts, fusionPick, fusionQualityRange, generatePart, partQuality, partStatRoll, installPart, unlockSlot } from '../src/game/items/Parts';
 import { applyAutoSell } from '../src/game/economy/AutoSell';
@@ -238,6 +239,32 @@ console.log('— VIP');
   check('VIP даёт бонус к монетам в характеристиках', computeBunkerStats(p).coinMult > computeBunkerStats(createNewProfile()).coinMult);
 }
 
+console.log('— Аукцион');
+{
+  let p = createNewProfile();
+  const free = Object.values(p.items).find((i) => !isEquipped(p, i.id));
+  const eq = Object.values(p.items).find((i) => isEquipped(p, i.id))!;
+  check('Надетую вещь нельзя выставить', 'error' in takeForLot(p, 'item', eq.id));
+  if (free) {
+    const t = takeForLot(p, 'item', free.id);
+    check('Вещь уходит со склада под лот', !('error' in t) && !t.profile.items[free.id]);
+    if (!('error' in t)) {
+      const back = putLot(t.profile, t.payload);
+      check('Вещь возвращается со всеми данными', JSON.stringify(back.items[free.id]) === JSON.stringify(free));
+    }
+  }
+  p = addResources(p, { skillResets: 1 });
+  const r = takeForLot(p, 'res', 'skillResets');
+  check('«Сброс навыков» можно выставить на аукцион', !('error' in r) && r.profile.resources.skillResets === 0);
+  check('Нельзя выставить то, чего нет', 'error' in takeForLot(createNewProfile(), 'res', 'skillResets'));
+  const d = applyDeliveries(createNewProfile(), [
+    { id: 1, kind: 'crystals', amount: 90, payload: null, note: '' },
+    { id: 2, kind: 'lot', amount: 0, payload: { res: 'skillResets', amount: 1 }, note: '' },
+  ]);
+  check('Посылки аукциона: кристаллы и предмет', d.resources.crystals === createNewProfile().resources.crystals + 90 && d.resources.skillResets === 1);
+  check('Мин. ставка: старт, затем +5%', minBid(20, null) === 20 && minBid(100, 100) === 105 && minBid(5, 5) === 6);
+}
+
 console.log('— Бесконечные навыки');
 {
   let p = addResources(addXp(createNewProfile(), 1e9).profile, { coins: 1e15, techParts: 1e15, scrap: 1e15, blueprints: 1e15, energyCores: 1e15 });
@@ -248,6 +275,11 @@ console.log('— Бесконечные навыки');
     check(`Уровень 30 = 30 очков навыков (вложено ${spent})`, spent === 30 && research(q, 'm_power').error === 'points');
     const r = resetSkills(q);
     check('Сброс навыков возвращает очки и ресурсы', Object.keys(r.techs).length === 0 && r.resources.coins > q.resources.coins);
+    check('Без предмета «Сброс навыков» сбросить нельзя', applySkillReset(q) === null);
+    const withItem = addResources(q, { skillResets: 2 });
+    const used = applySkillReset(withItem);
+    check('Предмет «Сброс навыков» тратится и обнуляет навыки', !!used && used.resources.skillResets === 1 && Object.keys(used.techs).length === 0);
+    check('Нечего сбрасывать — предмет не тратится', applySkillReset({ ...withItem, techs: {} }) === null);
   }
   p = { ...p, bunker: { ...p.bunker, level: 100000 } };
   for (let i = 0; i < 60; i++) for (const t of techConfig) p = research(p, t.id).profile;

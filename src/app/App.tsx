@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { techConfig } from '../game/config/techConfig';
 import { upgradeBlock } from '../game/items/ItemUpgrade';
 import { upgradeHints } from '../game/bunker/compare';
-import { researchBlock } from '../game/progression/TechnologyTree';
+import { researchBlock, skillPointsFree } from '../game/progression/TechnologyTree';
 import { SLOT_IDS } from '../game/types';
 import { setSoundEnabled, setVolumes } from '../services/sound';
 import { useProfile } from '../stores/profileStore';
@@ -67,6 +67,24 @@ function Main() {
   const setPlayer = useProfile((s) => s.setPlayer);
   const better = useMemo(() => upgradeHints(profile).size, [profile]);
   const canResearch = useProfile((s) => techConfig.some((t) => !researchBlock(s.profile!, t)));
+  const freePoints = useProfile((s) => Math.max(0, skillPointsFree(s.profile!)));
+  const pullDeliveries = useProfile((s) => s.pullDeliveries);
+  const toastUi = useUi((s) => s.toast);
+  // Посылки с аукциона: при запуске и раз в 2 минуты.
+  useEffect(() => {
+    const run = () => {
+      if (document.hidden) return;
+      void pullDeliveries().then((list) => {
+        if (list.length) toastUi(`Аукцион: ${list.map((d) => d.note).join(' · ')}`, 'good');
+      });
+    };
+    const first = setTimeout(run, 4000);
+    const t = setInterval(run, 120_000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(t);
+    };
+  }, [pullDeliveries, toastUi]);
   const canUpgrade = useProfile((s) => {
     const p = s.profile!;
     return SLOT_IDS.some((slot) => {
@@ -109,7 +127,8 @@ function Main() {
             <button key={n.id} className={screen === n.id ? 'on' : ''} onClick={() => setScreen(n.id)}>
               <span className="nav-ic">
                 <UiIcon kind={n.icon} size={22} />
-                {n.id === 'tech' && canResearch && <span className="nav-dot" />}
+                {n.id === 'tech' && freePoints > 0 && <span className="nav-badge good">{freePoints}</span>}
+                {n.id === 'tech' && freePoints === 0 && canResearch && <span className="nav-dot" />}
                 {n.id === 'bunker' && better > 0 && <span className="nav-badge good">{better}</span>}
                 {n.id === 'bunker' && better === 0 && canUpgrade && <span className="nav-dot" />}
               </span>

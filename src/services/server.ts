@@ -1,5 +1,6 @@
 // Связь с сервером игры (Supabase Edge Function).
 // Работает только внутри Telegram: каждый запрос подписан данными запуска.
+import type { Delivery, LotKind, LotPayload } from '../game/meta/auction';
 import { tgInitData } from './telegram';
 
 const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env ?? {};
@@ -60,4 +61,48 @@ export interface LeaderRow {
 
 export async function serverLeaders(board: string): Promise<{ list: LeaderRow[]; rank: number | null } | null> {
   return call('leaders', { board });
+}
+
+// ═════ Аукцион ═════
+export interface Lot {
+  id: number;
+  kind: LotKind;
+  payload: LotPayload;
+  sellerNick: string;
+  start: number;
+  buyout: number;
+  bid: number | null;
+  bids: number;
+  leading: boolean;
+  bidderNick: string | null;
+  endsAt: string;
+  status: 'open' | 'sold' | 'expired' | 'cancelled';
+  mine: boolean;
+}
+
+export interface AuctionData {
+  market: Lot[];
+  mine: Lot[];
+  bids: Lot[];
+}
+
+export function auctionList(): Promise<AuctionData | null> {
+  return call('auction_list');
+}
+
+export function auctionCreate(args: { kind: LotKind; payload: LotPayload; start: number; buyout: number; hours: number; quality: number }): Promise<{ ok?: boolean; error?: string } | null> {
+  return call('auction_create', args);
+}
+
+export function auctionBid(id: number, amount: number): Promise<{ result?: string } | null> {
+  return call('auction_bid', { id, amount });
+}
+
+export function auctionCancel(id: number): Promise<{ result?: string } | null> {
+  return call('auction_cancel', { id });
+}
+
+export async function claimDeliveries(): Promise<Delivery[] | null> {
+  const r = await call<{ list: Delivery[] }>('deliveries');
+  return r?.list ?? null;
 }

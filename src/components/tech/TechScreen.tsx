@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { getTech, techBranches, techConfig, type TechBranch, type TechEffect, type TechNode } from '../../game/config/techConfig';
 import { formatStatValue } from '../../game/items/statInfo';
 import { branchPoints, effectValue, researchBlock, researchCost, skillPointsFree, skillPointsSpent, skillPointsTotal, techLevel } from '../../game/progression/TechnologyTree';
-import { ConfirmDialog } from '../common/Common';
 import { RESOURCE_KEYS, type StatKey } from '../../game/types';
 import { fmtNum } from '../../i18n/ru';
 import { sfx } from '../../services/sound';
@@ -221,9 +220,7 @@ export function TechScreen() {
   const profile = useProfile((s) => s.profile)!;
   const [open, setOpen] = useState<TechNode | null>(null);
   const [tab, setTab] = useState<TechBranch>('energy');
-  const [confirmReset, setConfirmReset] = useState(false);
-  const resetSkills = useProfile((s) => s.resetSkills);
-  const toast = useUi((s) => s.toast);
+
   const spent = skillPointsSpent(profile);
   const free = skillPointsFree(profile);
   const branch = techBranches.find((b) => b.id === tab)!;
@@ -235,9 +232,7 @@ export function TechScreen() {
         <span className="sp-chip" title={`Вложено ${spent} из ${skillPointsTotal(profile)}`}>
           Очки навыков <b>{Math.max(0, free)}</b>
         </span>
-        <button className="sp-reset" disabled={spent === 0} onClick={() => setConfirmReset(true)} aria-label="Сбросить навыки">
-          <UiIcon kind="refresh" size={15} /> Сброс
-        </button>
+
       </div>
       <div className="tabs skill-tabs">
         {techBranches.map((b) => {
@@ -259,7 +254,7 @@ export function TechScreen() {
           </div>
           <span className="small muted skill-branch-pts">в ветке {branchPoints(profile, branch.id)}</span>
         </div>
-        {free < 0 && <div className="warn-box skill-warn">Вложено больше очков, чем даёт уровень бункера. Изученное сохранится, но новые уровни откроются, когда уровень бункера догонит. Можно сбросить навыки и распределить заново.</div>}
+        {free < 0 && <div className="warn-box skill-warn">Вложено больше очков, чем даёт уровень бункера. Изученное сохранится, но новые уровни откроются, когда уровень бункера догонит. Чтобы распределить заново, примените предмет «Сброс навыков» со склада.</div>}
 
         <BranchTree branch={branch} onOpen={setOpen} />
         <div className="small muted" style={{ margin: '4px 0 12px', textAlign: 'center' }}>
@@ -267,20 +262,6 @@ export function TechScreen() {
         </div>
       </div>
       {open && <NodeSheet node={open} onClose={() => setOpen(null)} />}
-      {confirmReset && (
-        <ConfirmDialog
-          title="Сбросить навыки?"
-          text="Все уровни навыков обнулятся, очки и все потраченные на изучение ресурсы вернутся. Сброс бесплатный."
-          confirmLabel="Сбросить"
-          danger
-          onConfirm={() => {
-            setConfirmReset(false);
-            resetSkills();
-            toast('Навыки сброшены, ресурсы возвращены', 'good');
-          }}
-          onCancel={() => setConfirmReset(false)}
-        />
-      )}
     </div>
   );
 }

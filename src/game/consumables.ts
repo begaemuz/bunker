@@ -4,7 +4,7 @@ import type { ResourceKey } from './types';
  * Расходные предметы: хранятся в инвентаре стопками, а не как валюта.
  * Автопродажа их не трогает, лимит склада на них не распространяется.
  */
-export const CONSUMABLES = ['scrap', 'techParts', 'components', 'blueprints', 'energyCores', 'stabilizers', 'expansionKeys', 'bossPasses'] as const;
+export const CONSUMABLES = ['scrap', 'techParts', 'components', 'blueprints', 'energyCores', 'stabilizers', 'expansionKeys', 'bossPasses', 'skillResets'] as const;
 /** Частые ресурсы не показываются в ленте добычи, чтобы не засорять её. */
 export const FEED_SKIP: ConsumableKey[] = ['scrap', 'techParts'];
 export type ConsumableKey = (typeof CONSUMABLES)[number];
@@ -47,6 +47,11 @@ export const consumableInfo: Record<ConsumableKey, { color: string; description:
     color: '#b46bff',
     description: 'Редкое энергоядро. Нужно для высоких уровней оборудования, исследований и извлечения модификаций.',
     use: 'Тратится автоматически там, где требуется.',
+  },
+  skillResets: {
+    color: '#ff9de2',
+    description: 'Редчайший кристалл памяти. Изредка выпадает из боссов. Обнуляет все навыки «Науки» и возвращает очки, чтобы распределить их заново.',
+    use: 'Нажмите «Сбросить навыки». Можно продать на аукционе.',
   },
   bossPasses: {
     color: '#ff4d6a',

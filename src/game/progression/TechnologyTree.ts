@@ -41,6 +41,13 @@ export function skillPointsFree(p: Profile): number {
 }
 
 /** Сброс навыков: все очки и потраченные ресурсы возвращаются. */
+/** Применяет предмет «Сброс навыков»: тратит 1 штуку и обнуляет навыки. */
+export function applySkillReset(p: Profile): Profile | null {
+  if (p.resources.skillResets < 1 || skillPointsSpent(p) === 0) return null;
+  const q = resetSkills(p);
+  return { ...q, resources: { ...q.resources, skillResets: q.resources.skillResets - 1 } };
+}
+
 export function resetSkills(p: Profile): Profile {
   const refund: Partial<Resources> = {};
   for (const node of techConfig) {

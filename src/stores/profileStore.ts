@@ -24,7 +24,7 @@ import {
 import type { QuestPeriod } from '../game/config/metaConfig';
 import { claimVipChest, claimVipGift } from '../game/meta/vipActions';
 import { computeOfflineReward, type OfflineReward } from '../game/progression/offline';
-import { research , resetSkills } from '../game/progression/TechnologyTree';
+import { applySkillReset, research } from '../game/progression/TechnologyTree';
 import type { Item, Part, Rarity, Resources, SlotId } from '../game/types';
 import {
   buyOffer,
@@ -41,7 +41,8 @@ import {
 import { sellMany } from '../game/profile/Profile';
 import { migrate } from '../services/migrations';
 import { clearProfile, loadProfile, saveBackupSync, saveProfile, setStorageUser } from '../services/storage';
-import { serverAvailable, serverLoad, serverSave, type ServerSummary } from '../services/server';
+import { claimDeliveries, serverAvailable, serverLoad, serverSave, type ServerSummary } from '../services/server';
+import { applyDeliveries, putLot, takeForLot, type Delivery, type LotKind, type LotPayload } from '../game/meta/auction';
 import { combatPower } from '../game/bunker/compare';
 import { computeBunkerStats } from '../game/bunker/BunkerStats';
 import { cloudAvailable, cloudLoad, cloudSave, initTelegram, tgUser, type TgUser } from '../services/telegram';
@@ -75,7 +76,8 @@ interface ProfileState {
   sell: (itemId: string) => { coins: number; error?: string };
   upgrade: (itemId: string, useStabilizer: boolean) => { outcome?: UpgradeOutcome; error?: string; granted: Item[] };
   research: (techId: string) => string | null;
-  resetSkills: () => void;
+  /** Применить предмет «Сброс навыков». */
+  resetSkills: () => boolean;
   setLocation: (id: number) => void;
   setAutoSell: (r: Rarity | null) => void;
   installPart: (partId: string, itemId: string, slot: number) => InstallError | null;
@@ -89,6 +91,13 @@ interface ProfileState {
   fuseAll: (rarity: Rarity) => { success: number; failed: number; results: Part[] };
   dismantle: (ids: string[]) => { components: number; count: number };
   fuseMany: (triples: string[][]) => { success: number; failed: number; results: Part[] };
+  /** Аукцион: убрать вещь под лот (вернуть, если сервер отказал). */
+  lotTake: (kind: LotKind, id: string) => { payload: LotPayload; quality: number } | null;
+  lotReturn: (payload: LotPayload) => void;
+  /** Списать кристаллы за принятую сервером ставку. */
+  payCrystals: (n: number) => boolean;
+  /** Забрать посылки с сервера (выигрыши, оплата, возвраты). */
+  pullDeliveries: () => Promise<Delivery[]>;
   setRates: (r: OfflineRates) => void;
   touch: () => void;
   checkOffline: () => void;
@@ -111,6 +120,7 @@ function persistCloud(p: Profile, immediate = false): void {
   else cloudTimer = setTimeout(run, 20_000);
 }
 
+let pulling = false;
 let serverTimer: ReturnType<typeof setTimeout> | null = null;
 let lastServerSave = 0;
 
@@ -393,7 +403,10 @@ export const useProfile = create<ProfileState>((set, get) => {
 
     resetSkills: () => {
       const p = get().profile;
-      if (p) commit(resetSkills(p), true, true);
+      const q = p ? applySkillReset(p) : null;
+      if (!q) return false;
+      commit(q, true, true);
+      return true;
     },
 
     research: (techId) => {
@@ -478,6 +491,41 @@ export const useProfile = create<ProfileState>((set, get) => {
       const r = fuseAll(p, rarity);
       commit(r.profile, false, true);
       return { success: r.success, failed: r.failed, results: r.results };
+    },
+
+    lotTake: (kind, id) => {
+      const p = get().profile;
+      if (!p) return null;
+      const r = takeForLot(p, kind, id);
+      if ('error' in r) return null;
+      commit(r.profile, true, true);
+      return { payload: r.payload, quality: r.quality };
+    },
+
+    lotReturn: (payload) => {
+      const p = get().profile;
+      if (p) commit(putLot(p, payload), true, true);
+    },
+
+    payCrystals: (n) => {
+      const p = get().profile;
+      if (!p || p.resources.crystals < n) return false;
+      commit(addResources(p, { crystals: -n }), true, true);
+      return true;
+    },
+
+    pullDeliveries: async () => {
+      if (pulling || !serverAvailable()) return [];
+      pulling = true;
+      try {
+        const list = await claimDeliveries();
+        const p = get().profile;
+        if (!list?.length || !p) return [];
+        commit(applyDeliveries(p, list), true, true);
+        return list;
+      } finally {
+        pulling = false;
+      }
     },
 
     dismantle: (ids) => {

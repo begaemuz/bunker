@@ -105,6 +105,7 @@ const resColors: Record<ResourceKey, string> = {
   stabilizers: '#5fd16a',
   bossPasses: '#ff4d6a',
   expansionKeys: '#f2b53a',
+  skillResets: '#ff9de2',
 };
 
 export function ResourceIcon({ type, size = 14 }: { type: ResourceKey; size?: number }) {
@@ -172,6 +173,14 @@ export function ResourceIcon({ type, size = 14 }: { type: ResourceKey; size?: nu
           <rect x="6" y="6" width="12" height="12" rx="2" fill="none" stroke={c} strokeWidth="2" />
           <rect x="9.5" y="9.5" width="5" height="5" rx="1" fill={c} />
           <path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      );
+    case 'skillResets':
+      return (
+        <svg {...p}>
+          <path d="M8 1.5 14 5v6l-6 3.5L2 11V5z" fill={c} />
+          <path d="M10.6 6.2A3 3 0 1 0 11 8.6" fill="none" stroke="#3a0f2e" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M11.2 4.4v2.2H9" fill="none" stroke="#3a0f2e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
     case 'bossPasses':

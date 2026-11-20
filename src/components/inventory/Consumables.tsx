@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { skillPointsSpent } from '../../game/progression/TechnologyTree';
+import { ConfirmDialog } from '../common/Common';
 import { CONSUMABLES, consumableInfo, type ConsumableKey } from '../../game/consumables';
 import { canSummonBoss } from '../../game/profile/Profile';
 import { fmtNum, ru } from '../../i18n/ru';
@@ -35,6 +38,8 @@ export function ConsumableSheet({ k, onClose }: { k: ConsumableKey; onClose: () 
   const profile = useProfile((s) => s.profile)!;
   const setScreen = useUi((s) => s.setScreen);
   const toast = useUi((s) => s.toast);
+  const resetSkills = useProfile((s) => s.resetSkills);
+  const [confirm, setConfirm] = useState(false);
   const info = consumableInfo[k];
   const n = profile.resources[k];
   const canBoss = k === 'bossPasses' && n > 0 && !canSummonBoss(profile, profile.locations.current);
@@ -48,6 +53,16 @@ export function ConsumableSheet({ k, onClose }: { k: ConsumableKey; onClose: () 
           <button className="btn btn-ghost" onClick={onClose}>
             Закрыть
           </button>
+          {k === 'skillResets' && (
+            <button
+              className="btn btn-gold btn-hazard"
+              style={{ flex: 2 }}
+              disabled={n < 1 || skillPointsSpent(profile) === 0}
+              onClick={() => setConfirm(true)}
+            >
+              Сбросить навыки
+            </button>
+          )}
           {k === 'bossPasses' && (
             <button
               className="btn btn-danger btn-hazard"
@@ -76,6 +91,24 @@ export function ConsumableSheet({ k, onClose }: { k: ConsumableKey; onClose: () 
         {info.description}
       </p>
       <div className="info-box">{info.use}</div>
+      {k === 'skillResets' && n > 0 && skillPointsSpent(profile) === 0 && <div className="small muted" style={{ marginTop: 8 }}>Навыки ещё не изучены — сбрасывать нечего.</div>}
+      {confirm && (
+        <ConfirmDialog
+          title="Сбросить все навыки?"
+          text={`Все навыки «Науки» обнулятся, ${skillPointsSpent(profile)} очков и потраченные ресурсы вернутся. Будет использован 1 «Сброс навыков».`}
+          confirmLabel="Сбросить"
+          danger
+          onConfirm={() => {
+            setConfirm(false);
+            if (resetSkills()) {
+              toast('Навыки сброшены — распределите очки в «Науке»', 'good');
+              onClose();
+              setScreen('tech');
+            }
+          }}
+          onCancel={() => setConfirm(false)}
+        />
+      )}
       <div className="small muted" style={{ marginTop: 10 }}>
         Расходники не занимают место на складе и не продаются автопродажей.
       </div>

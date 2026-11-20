@@ -9,6 +9,9 @@ import type { Item, Part, Rarity, ResourceKey, Resources } from '../types';
 import { partDrops } from '../config/partsConfig';
 import { generatePart } from '../items/Parts';
 
+/** Шанс выпадения «Сброса навыков» с босса: очень редкая добыча. */
+export const SKILL_RESET_CHANCE = 0.01;
+
 export interface Loot {
   resources: Partial<Resources>;
   items: Item[];
@@ -99,6 +102,8 @@ export function rollBossLoot(bossId: string, ctx: DropContext): Loot {
   if (chance(0.6)) r.stabilizers = randInt(1, 2);
   if (chance(0.5)) r.crystals = randInt(3, 8) * loc.tier;
   if (chance(boss.passChance)) r.bossPasses = 1;
+  // Сброс навыков — редчайшая добыча с боссов.
+  if (chance(SKILL_RESET_CHANCE)) r.skillResets = 1;
 
   const source = { kind: 'boss' as const, location: loc.id, boss: boss.name };
   const items: Item[] = [];
