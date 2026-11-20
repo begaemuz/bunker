@@ -4,7 +4,7 @@ import { betterSlotFor } from '../../game/bunker/compare';
 import { modeConfig } from '../../game/config/gameConfig';
 import { getLocation } from '../../game/config/locationsConfig';
 import { coilProps, coilRolls, itemQuality, itemModifiers, itemStatRolls, sellPrice, type StatRoll } from '../../game/items/ItemGenerator';
-import { QualityBadge, RollLine } from './Roll';
+import { QualityLine, RollLine } from './Roll';
 import { upgradeBlock } from '../../game/items/ItemUpgrade';
 import { formatStatValue, lowerIsBetter } from '../../game/items/statInfo';
 import { defaultSlotFor, equipItem, needsSellWarning, slotOf } from '../../game/profile/Profile';
@@ -164,16 +164,16 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
               {item.boost != null && <BoostTag boost={item.boost} />}
             </div>
           </div>
-          <QualityBadge q={itemQuality(item)} />
         </div>
       }
       actions={
         <>
-
-          <button className="btn btn-ghost" onClick={onClose}>
-            Закрыть
-          </button>
-          {item.boost == null ? (
+          {!equippedSlot && (
+            <button className="btn btn-rust" onClick={() => setConfirmSell(true)}>
+              Продать <ResourceIcon type="coins" /> {price}
+            </button>
+          )}
+          {item.boost == null && (
             <>
               <button className="btn btn-gold" disabled={!canUpgrade} onClick={() => setUpgrading(true)}>
                 Улучшить
@@ -182,16 +182,17 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
                 Буст
               </button>
             </>
-          ) : null}
+          )}
           {equippedSlot ? (
             <>
               {onReplace && (
-                <button className="btn" onClick={() => onReplace(equippedSlot)}>
+                <button className="btn btn-primary" style={{ flexBasis: 'calc(50% - 4px)' }} onClick={() => onReplace(equippedSlot)}>
                   Заменить
                 </button>
               )}
               <button
                 className="btn btn-ghost"
+                style={{ flexBasis: onReplace ? 'calc(50% - 4px)' : '100%' }}
                 onClick={() => {
                   unequip(item.id);
                   toast(`Снято: ${item.name}`);
@@ -202,14 +203,9 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
               </button>
             </>
           ) : (
-            <>
-              <button className="btn btn-rust" onClick={() => setConfirmSell(true)}>
-                Продать <ResourceIcon type="coins" /> {price}
-              </button>
-              <button className="btn btn-primary" onClick={doEquip} style={{ flexBasis: '100%' }}>
-                {replacing ? `Заменить: ${ru.slot[slot!]}` : `Установить: ${ru.slot[slot!]}`}
-              </button>
-            </>
+            <button className="btn btn-primary" onClick={doEquip} style={{ flexBasis: '100%' }}>
+              {replacing ? `Заменить: ${ru.slot[slot!]}` : `Установить: ${ru.slot[slot!]}`}
+            </button>
           )}
         </>
       }
@@ -217,6 +213,7 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
           <div className="small muted" style={{ lineHeight: 1.45, marginBottom: 8 }}>
             {item.description}
           </div>
+          <QualityLine q={itemQuality(item)} />
 
           {!equippedSlot && betterHint && (
             <div className="warn-item ok" style={{ marginBottom: 8 }}>

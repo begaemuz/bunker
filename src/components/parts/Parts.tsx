@@ -15,7 +15,7 @@ import { rarityColor } from '../../ui/theme';
 import { ConfirmDialog } from '../common/Common';
 import { ItemIcon, PartGlyph, ResourceIcon } from '../common/Icons';
 import { Sheet } from '../common/Sheet';
-import { QualityBadge, qualityColor, RollLine } from '../inventory/Roll';
+import { QualityLine, qualityColor, RollLine } from '../inventory/Roll';
 
 export function partStatsText(p: Part): string {
   return p.stats.map((s) => `${statLabel(s.stat)} ${formatStatValue(s.stat, s.value)}`).join(' · ');
@@ -146,15 +146,10 @@ export function PartCard({ partId, onClose }: { partId: string; onClose: () => v
               {ru.rarity[part.rarity]} модификация {part.element && <ElementDot el={part.element} label />}
             </div>
           </div>
-          <QualityBadge q={partQuality(part)} />
         </div>
       }
       actions={
         <>
-
-          <button className="btn btn-ghost" onClick={onClose}>
-            Закрыть
-          </button>
           <button
             className="btn btn-rust"
             onClick={() => setConfirmScrap(true)}
@@ -173,6 +168,7 @@ export function PartCard({ partId, onClose }: { partId: string; onClose: () => v
           <div className="small muted" style={{ marginBottom: 8 }}>
             {t.description}
           </div>
+          <QualityLine q={partQuality(part)} />
           <div className="stat-list">
             {part.stats.map((s, i) => {
               const r = partStatRoll(part, i);

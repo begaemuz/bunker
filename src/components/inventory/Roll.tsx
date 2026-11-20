@@ -77,3 +77,19 @@ export function QualityBadge({ q }: { q: number }) {
     </div>
   );
 }
+
+/** Понятная строка качества под описанием вещи. */
+export function QualityLine({ q }: { q: number }) {
+  const col = qualityColor(q);
+  return (
+    <div className="quality-line" style={{ ['--qc' as string]: col }}>
+      <span>
+        Качество: <b>{Math.round(q * 100)}%</b> — {qualityWord(q).toLowerCase()}
+      </span>
+      <span className="quality-bar">
+        <i style={{ width: `${Math.round(q * 100)}%` }} />
+      </span>
+      <span className="small muted">Насколько удачно выпали характеристики: 100% — лучшее возможное.</span>
+    </div>
+  );
+}
