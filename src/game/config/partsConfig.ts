@@ -48,6 +48,24 @@ export const fusionConfig = {
   } as Partial<Record<Rarity, number>>,
 };
 
+/** Цена объединения трёх модификаций этой редкости. */
+export const fusionCost: Partial<Record<Rarity, { coins: number; components: number }>> = {
+  common: { coins: 300, components: 2 },
+  uncommon: { coins: 1200, components: 5 },
+  rare: { coins: 4000, components: 12 },
+  epic: { coins: 12000, components: 30 },
+};
+
+/** Компоненты при разборе: база по редкости, растёт с качеством (×0.5…×1.5). */
+export const dismantleYield: Record<Rarity, number> = {
+  common: 1,
+  uncommon: 3,
+  rare: 7,
+  epic: 16,
+  legendary: 35,
+  unique: 50,
+};
+
 /** Сколько свойств у модификации каждой редкости (первое — основное). */
 export const partStatCount: Record<Rarity, number> = {
   common: 1,

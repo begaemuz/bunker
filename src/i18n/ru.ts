@@ -59,6 +59,7 @@ export const ru = {
     stabilizers: 'Стабилизаторы',
     bossPasses: 'Пропуски вызова',
     expansionKeys: 'Ключи расширения',
+    components: 'Компоненты синтеза',
   } as Record<ResourceKey, string>,
   resourceHint: {
     coins: 'Основная валюта: улучшения и исследования.',
@@ -70,6 +71,7 @@ export const ru = {
     stabilizers: 'Защищают оборудование от уничтожения при неудачном улучшении.',
     bossPasses: 'Позволяют вызвать босса без уничтожения групп.',
     expansionKeys: 'Открывают заблокированный слот модификации в оборудовании.',
+    components: 'Нужны для объединения модификаций. Получаются при разборе модификаций.',
   } as Record<ResourceKey, string>,
   attack: {
     kinetic: 'Кинетические',

@@ -44,6 +44,7 @@ export const RESOURCE_KEYS = [
   'stabilizers',
   'bossPasses',
   'expansionKeys',
+  'components',
 ] as const;
 export type ResourceKey = (typeof RESOURCE_KEYS)[number];
 export type Resources = Record<ResourceKey, number>;

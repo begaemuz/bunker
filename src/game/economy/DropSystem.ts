@@ -78,6 +78,9 @@ export function rollEnemyLoot(e: Enemy, ctx: DropContext): Loot {
   if (chance(Math.min(1, pc))) parts.push(generatePart(rollRarity(partDrops.rarity, e.elite || e.isMiniboss ? 0.4 : 0.05 * (loc.tier - 1))));
   const kc = e.isMiniboss ? partDrops.keyMiniboss : e.elite ? partDrops.keyElite : 0;
   if (kc > 0 && chance(kc)) r.expansionKeys = 1;
+  // Компоненты синтеза — редкая находка.
+  const cc = e.isMiniboss ? 0.5 : e.elite ? 0.08 : 0.01;
+  if (chance(cc)) r.components = e.isMiniboss ? randInt(2, 4) : 1;
   return { resources: r, items, parts };
 }
 
@@ -108,5 +111,6 @@ export function rollBossLoot(bossId: string, ctx: DropContext): Loot {
   const pn = randInt(partDrops.bossCount[0], partDrops.bossCount[1]);
   for (let i = 0; i < pn; i++) parts.push(generatePart(rollRarity(partDrops.rarity, 0.6 + 0.1 * loc.tier)));
   if (chance(partDrops.keyBoss)) r.expansionKeys = 1;
+  r.components = randInt(3, 6) * loc.tier;
   return { resources: r, items, parts };
 }

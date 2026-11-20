@@ -4,7 +4,7 @@ import type { ResourceKey } from './types';
  * Расходные предметы: хранятся в инвентаре стопками, а не как валюта.
  * Автопродажа их не трогает, лимит склада на них не распространяется.
  */
-export const CONSUMABLES = ['scrap', 'techParts', 'blueprints', 'energyCores', 'stabilizers', 'expansionKeys', 'bossPasses'] as const;
+export const CONSUMABLES = ['scrap', 'techParts', 'components', 'blueprints', 'energyCores', 'stabilizers', 'expansionKeys', 'bossPasses'] as const;
 /** Частые ресурсы не показываются в ленте добычи, чтобы не засорять её. */
 export const FEED_SKIP: ConsumableKey[] = ['scrap', 'techParts'];
 export type ConsumableKey = (typeof CONSUMABLES)[number];
@@ -32,6 +32,11 @@ export const consumableInfo: Record<ConsumableKey, { color: string; description:
     color: '#5fd16a',
     description: 'Защищает оборудование от уничтожения при неудачном улучшении.',
     use: 'Включается в окне улучшения оборудования.',
+  },
+  components: {
+    color: '#3fe0c5',
+    description: 'Микросхемы и узлы для синтеза модификаций.',
+    use: 'Тратятся при объединении модификаций. Получить: разобрать ненужные модификации, изредка выпадают с роботов и боссов.',
   },
   blueprints: {
     color: '#4da3ff',

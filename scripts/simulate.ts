@@ -30,7 +30,7 @@ import {
 } from '../src/game/profile/Profile';
 import { effectValue, resetSkills, research, researchBlock, researchCost } from '../src/game/progression/TechnologyTree';
 import { LOGIN_DAYS, buyOffer, buySpecial, claimDaily, claimQuest, claimQuestBonus, doExchange, ensureQuests, ensureShop, exchangeUsed, questProgress, refreshShop } from '../src/game/meta/Meta';
-import { addParts, extractPart, fuseAll, fuseParts, fusionPick, fusionQualityRange, generatePart, partQuality, partStatRoll, installPart, unlockSlot } from '../src/game/items/Parts';
+import { addParts, dismantleParts, massFusePlan, partPowerScore, extractPart, fuseAll, fuseParts, fusionPick, fusionQualityRange, generatePart, partQuality, partStatRoll, installPart, unlockSlot } from '../src/game/items/Parts';
 import { applyAutoSell } from '../src/game/economy/AutoSell';
 import { computeOfflineReward } from '../src/game/progression/offline';
 import { rewardDecay } from '../src/game/progression/rewards';
@@ -129,7 +129,7 @@ console.log('— Модификации');
   check('Ключ открывает слот', unlockSlot(withKey, coil.id, 1)?.items[coil.id].slots[1].locked === false);
   const sold = sellItem(unequipItem(ins.profile, coil.id), coil.id);
   check('Детали теряются вместе с оборудованием', !sold.profile.parts[part.id]);
-  let q = createNewProfile();
+  let q = addResources(createNewProfile(), { coins: 1e9, components: 1e6 });
   q = addParts(q, [generatePart('common', 'p_lens'), generatePart('common', 'p_lens'), generatePart('common', 'p_lens')]);
   let ok = 0;
   let fails = 0;
@@ -146,7 +146,7 @@ console.log('— Модификации');
   const exr = extractPart(ex, coil.id, 0);
   check('Модификация извлекается за энергоядра', !exr.error && exr.profile.parts[part.id].installedIn === null && exr.profile.items[coil.id].slots[0].partId === null && exr.profile.resources.energyCores < 10);
   check('Без энергоядер извлечь нельзя', extractPart(ins.profile, coil.id, 0).error === 'resources');
-  ex = addParts(createNewProfile(), Array.from({ length: 9 }, () => generatePart('common', 'p_power')));
+  ex = addParts(addResources(createNewProfile(), { coins: 1e9, components: 1e6 }), Array.from({ length: 9 }, () => generatePart('common', 'p_power')));
   const fa = fuseAll(ex, 'common');
   check(`Массовое объединение (${fa.success} успех, ${fa.failed} неудач)`, fa.success + fa.failed === 3);
   check('Нельзя объединить меньше трёх', fuseParts(addParts(createNewProfile(), [generatePart('common', 'p_lens')]), Object.keys(addParts(createNewProfile(), [])).length ? '' : '').error === 'count');
@@ -188,7 +188,7 @@ console.log('— Технологии и уровень');
 console.log('— Модификации по редкости и объединение');
 {
   check('Обычная модификация — 1 свойство, легендарная — 5', generatePart('common', 'p_power').stats.length === 1 && generatePart('legendary', 'p_power').stats.length === 5);
-  let p = createNewProfile();
+  let p = addResources(createNewProfile(), { coins: 1e9, components: 1e6 });
   const a = [0, 1, 2].map(() => generatePart('rare', 'p_plate'));
   const b = [0, 1, 2].map(() => generatePart('rare', 'p_plate'));
   p = addParts(p, [...a, ...b]);
@@ -197,20 +197,26 @@ console.log('— Модификации по редкости и объедин�
   const r = fuseParts(p, b[0].id);
   check('После объединения остаются ровно 3 из 6 исходных', Object.values(r.profile.parts).filter((x) => x.rarity === 'rare').length === 3);
   {
-    let p2 = createNewProfile();
+    let p2 = addResources(createNewProfile(), { coins: 1e9, components: 1e6 });
     const pool = [0, 1, 2, 3].map(() => generatePart('epic', 'p_power'));
     p2 = addParts(p2, pool);
     const keep = pool[0];
     const pickIds = [pool[1].id, pool[2].id, pool[3].id];
     const rr = fuseParts(p2, pool[1].id, pickIds);
     check('Ручной выбор: в объединение уходят только выбранные', !!rr.profile.parts[keep.id] && pickIds.every((id) => !rr.profile.parts[id]));
+    check('Без монет и компонентов объединить нельзя', fuseParts(addParts(createNewProfile(), pool), pool[1].id, pickIds).error === 'resources');
+    const dm = dismantleParts(p2, [pool[0].id]);
+    check(`Разбор даёт компоненты (+${dm.components})`, dm.components > 0 && !dm.profile.parts[pool[0].id]);
+    const plan = massFusePlan(p2, 'epic', 0, 1);
+    check(`Массовая сборка: план из ${plan.triples.length} троек`, plan.triples.length === 1);
+    check('Белая 100% слабее жёлтой 80% в умной сортировке', partPowerScore({ ...generatePart('common', 'p_power'), stats: [{ stat: 'coilPowerPct', value: 0.06 }] }) < partPowerScore(generatePart('legendary', 'p_power')));
     check('Нельзя смешать разные модификации', fuseParts(addParts(p2, [generatePart('epic', 'p_lens')]), pool[1].id, [pool[1].id, pool[2].id, Object.values(addParts(p2, [generatePart('epic', 'p_lens')]).parts).find((x) => x.templateId === 'p_lens')!.id]).error !== undefined);
   }
   {
     const hi = generatePart('rare', 'p_plate');
-    hi.stats = hi.stats.map((x, i) => ({ ...x, value: partStatRoll(hi, i)!.max }));
+    hi.stats = [{ ...hi.stats[0], value: partStatRoll(hi, 0)!.max }];
     const lo = generatePart('rare', 'p_plate');
-    lo.stats = lo.stats.map((x, i) => ({ ...x, value: partStatRoll(lo, i)!.min }));
+    lo.stats = [{ ...lo.stats[0], value: partStatRoll(lo, 0)!.min }];
     const [mixLo, mixHi] = fusionQualityRange([hi, hi, lo]);
     const [goodLo] = fusionQualityRange([hi, hi, hi]);
     check(`Сильная + слабая не дают высокий процент (смесь до ${Math.round(mixHi * 100)}%, три сильные от ${Math.round(goodLo * 100)}%)`, mixHi < 0.6 && goodLo > 0.6 && mixLo >= 0);

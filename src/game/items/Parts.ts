@@ -1,5 +1,5 @@
 import { vipLevel, vipPerks } from '../meta/vip';
-import { fusionConfig, partExtraMult, partRarityMult, partStatCount, partTemplates, type PartTemplate } from '../config/partsConfig';
+import { dismantleYield, fusionConfig, fusionCost, partExtraMult, partRarityMult, partStatCount, partTemplates, type PartTemplate } from '../config/partsConfig';
 import { pushHistory, type Profile } from '../profile/Profile';
 import { chance, pickWeighted, randFloat, uid } from '../rng';
 import { RARITIES, type Part, type Rarity, type StatKey, type StatMod } from '../types';
@@ -184,7 +184,7 @@ export function nextRarity(r: Rarity): Rarity | null {
  * Объединение трёх одинаковых деталей. Исходные детали уничтожаются
  * в любом случае; при успехе появляется деталь следующей редкости.
  */
-export type FuseError = 'count' | 'max' | 'mismatch' | 'installed';
+export type FuseError = 'count' | 'max' | 'mismatch' | 'installed' | 'resources';
 
 /**
  * Объединение трёх выбранных деталей одного шаблона и редкости.
@@ -208,10 +208,13 @@ export function fuseParts(p: Profile, partId: string, ids?: string[]): { profile
     if (fusionGroup(p, part).length < fusionConfig.count) return { profile: p, error: 'count' };
     use = fusionPick(p, part);
   }
+  const cost = fusionCost[part.rarity];
+  if (cost && (p.resources.coins < cost.coins || p.resources.components < cost.components)) return { profile: p, error: 'resources' };
   const avgQ = fusionBase(use);
   const parts = { ...p.parts };
   for (const x of use) delete parts[x.id];
   let q: Profile = { ...p, parts };
+  if (cost) q = { ...q, resources: { ...q.resources, coins: q.resources.coins - cost.coins, components: q.resources.components - cost.components } };
   if (!chance(fusionChance(part.rarity, p))) {
     q = { ...q, history: pushHistory(q, { at: Date.now(), itemName: part.name, rarity: part.rarity, action: 'destroyed', detail: 'неудачное объединение' }) };
     return { profile: q, success: false };
@@ -281,4 +284,57 @@ export function fuseAll(p: Profile, rarity: Rarity): { profile: Profile; success
     } else failed++;
   }
   return { profile: q, success, failed, results };
+}
+
+/** «Сила» модификации для умной сортировки: редкость важнее процента. */
+export function partPowerScore(part: Part): number {
+  return partRarityMult[part.rarity] * (0.6 + 0.4 * partQuality(part));
+}
+
+/** Сколько компонентов даст разбор модификации. */
+export function dismantleValue(part: Part): number {
+  return Math.max(1, Math.round(dismantleYield[part.rarity] * (0.5 + partQuality(part))));
+}
+
+/** Разбор модификаций на компоненты синтеза. */
+export function dismantleParts(p: Profile, ids: string[]): { profile: Profile; components: number; count: number } {
+  const parts = { ...p.parts };
+  let components = 0;
+  let count = 0;
+  for (const id of ids) {
+    const x = parts[id];
+    if (!x || x.installedIn) continue;
+    components += dismantleValue(x);
+    delete parts[id];
+    count++;
+  }
+  return { profile: { ...p, parts, resources: { ...p.resources, components: p.resources.components + components } }, components, count };
+}
+
+/** Свободные модификации по редкости и диапазону качества (0..1). */
+export function partsInRange(p: Profile, rarities: Rarity[], qMin: number, qMax: number): Part[] {
+  return Object.values(p.parts).filter((x) => {
+    if (x.installedIn || !rarities.includes(x.rarity)) return false;
+    const q = partQuality(x);
+    return q >= qMin - 1e-9 && q <= qMax + 1e-9;
+  });
+}
+
+/**
+ * План массовой сборки: внутри каждого типа тройки собираются из
+ * соседних по качеству деталей (так результат лучше), сколько хватит ресурсов.
+ */
+export function massFusePlan(p: Profile, rarity: Rarity, qMin: number, qMax: number): { triples: string[][]; coins: number; components: number; limited: boolean } {
+  const cost = fusionCost[rarity];
+  if (!cost || !nextRarity(rarity)) return { triples: [], coins: 0, components: 0, limited: false };
+  const byTpl = new Map<string, Part[]>();
+  for (const x of partsInRange(p, [rarity], qMin, qMax)) byTpl.set(x.templateId, [...(byTpl.get(x.templateId) ?? []), x]);
+  const triples: string[][] = [];
+  for (const list of byTpl.values()) {
+    list.sort((a, b) => partQuality(b) - partQuality(a));
+    for (let i = 0; i + 3 <= list.length; i += 3) triples.push(list.slice(i, i + 3).map((x) => x.id));
+  }
+  const afford = Math.min(Math.floor(p.resources.coins / cost.coins), Math.floor(p.resources.components / cost.components));
+  const use = triples.slice(0, Math.max(0, afford));
+  return { triples: use, coins: use.length * cost.coins, components: use.length * cost.components, limited: use.length < triples.length };
 }

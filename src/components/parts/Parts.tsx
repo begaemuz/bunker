@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
-import { fusionConfig } from '../../game/config/partsConfig';
+import { fusionConfig, fusionCost } from '../../game/config/partsConfig';
 import { formatStatValue } from '../../game/items/statInfo';
-import { extractCost, fusionQualityRange, partStatRoll, partQuality, fusionPick, fusableCount, fusionChance, fusionGroup, getPartTemplate, nextRarity } from '../../game/items/Parts';
+import { dismantleValue, extractCost, fusionQualityRange, partPowerScore, partStatRoll, partQuality, fusionPick, fusableCount, fusionChance, fusionGroup, getPartTemplate, nextRarity } from '../../game/items/Parts';
 import { rarityIndex } from '../../game/items/ItemRarity';
 import { slotOf } from '../../game/profile/Profile';
 import { RARITIES, type Item, type Part, type Rarity } from '../../game/types';
-import { ru, statLabel } from '../../i18n/ru';
+import { fmtNum, ru, statLabel } from '../../i18n/ru';
 import { sfx } from '../../services/sound';
 import { useProfile } from '../../stores/profileStore';
 import { useUi } from '../../stores/uiStore';
@@ -56,7 +56,9 @@ export function PartsGrid({ onOpen, bare, sort }: { onOpen: (id: string) => void
           ? b.q - a.q
           : sort === 'new'
             ? b.p.obtainedAt - a.p.obtainedAt
-            : rarityIndex(b.p.rarity) - rarityIndex(a.p.rarity) || a.p.templateId.localeCompare(b.p.templateId) || b.q - a.q,
+            : sort === 'rarity'
+              ? rarityIndex(b.p.rarity) - rarityIndex(a.p.rarity) || b.q - a.q
+              : partPowerScore(b.p) - partPowerScore(a.p),
       );
   }, [profile.parts, sort]);
   const tiles = list.map(({ p, fuse }) => <PartTile key={p.id} part={p} canFuse={fuse} onClick={() => onOpen(p.id)} />);
@@ -121,11 +123,11 @@ export function PartCard({ partId, onClose }: { partId: string; onClose: () => v
             className="btn btn-rust"
             onClick={() => {
               const s = scrap(part.id);
-              toast(`Разобрано: +${s} металлолома`, 'good');
+              toast(`Разобрано: +${s} компонентов синтеза`, 'good');
               onClose();
             }}
           >
-            Разобрать
+            Разобрать +{dismantleValue(part)} <ResourceIcon type="components" />
           </button>
           <button className="btn btn-gold" disabled={!canFuse} onClick={() => setConfirmFuse(true)}>
             Объединить
@@ -430,6 +432,8 @@ function FusionPicker({ part, onDone, onCancel }: { part: Part; onDone: () => vo
   const [lo, hi] = fusionQualityRange(chosen);
   const toggle = (id: string) => setSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : s.length >= fusionConfig.count ? s : [...s, id]));
   const chance = Math.round(fusionChance(part.rarity, profile) * 100);
+  const cost = fusionCost[part.rarity];
+  const affordable = !cost || (profile.resources.coins >= cost.coins && profile.resources.components >= cost.components);
 
   return (
     <Sheet
@@ -444,11 +448,11 @@ function FusionPicker({ part, onDone, onCancel }: { part: Part; onDone: () => vo
           <button
             className="btn btn-gold btn-hazard"
             style={{ flex: 2 }}
-            disabled={!ready}
+            disabled={!ready || !affordable}
             onClick={() => {
               const r = fuse(part.id, sel);
               if (r.error) {
-                toast('Выберите три подходящие модификации', 'bad');
+                toast(r.error === 'resources' ? 'Не хватает монет или компонентов синтеза' : 'Выберите три подходящие модификации', 'bad');
                 return;
               }
               if (r.success && r.result) {
@@ -500,6 +504,17 @@ function FusionPicker({ part, onDone, onCancel }: { part: Part; onDone: () => vo
           );
         })}
       </div>
+      {cost && (
+        <div className={`fuse-cost${affordable ? '' : ' lack'}`}>
+          <span>Стоимость:</span>
+          <span className="res">
+            <ResourceIcon type="coins" /> {fmtNum(cost.coins)}
+          </span>
+          <span className="res">
+            <ResourceIcon type="components" /> {cost.components} <span className="muted">/ {fmtNum(profile.resources.components)}</span>
+          </span>
+        </div>
+      )}
       <div className="warn-box" style={{ marginTop: 10 }}>
         При неудаче все три выбранные детали будут уничтожены.
       </div>

@@ -4621,3 +4621,55 @@ button.pavatar:active {
   background: none;
   box-shadow: none;
 }
+
+/* Массовый разбор и сборка */
+.rar-chips.row {
+  grid-template-columns: 1fr 1fr;
+}
+.rar-chips.row .rar-chip {
+  padding: 10px 12px;
+  font-size: 13px;
+}
+.qrange {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 14px;
+  background: #0b0e11;
+  box-shadow: inset 0 0 0 1px #262d34;
+}
+.qrange-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-family: var(--display);
+  font-size: 13px;
+}
+.qrange-head b {
+  font-weight: 400;
+  color: var(--amber);
+}
+.qrange-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.qrange-row .range {
+  flex: 1;
+}
+.mass-sum,
+.fuse-cost {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin-top: 12px;
+  font-size: 13px;
+}
+.mass-sum b {
+  font-family: var(--display);
+  font-weight: 400;
+  color: var(--amber);
+}
+.fuse-cost.lack .res {
+  color: #ff8a7a;
+}

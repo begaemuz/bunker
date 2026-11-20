@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { applyAutoSell } from '../game/economy/AutoSell';
 import type { Loot } from '../game/economy/DropSystem';
 import { tryUpgrade, type UpgradeOutcome } from '../game/items/ItemUpgrade';
-import { addParts, extractPart, fuseAll, fuseParts, installPart, unlockSlot, type InstallError } from '../game/items/Parts';
+import { addParts, dismantleParts, extractPart, fuseAll, fuseParts, installPart, unlockSlot, type InstallError } from '../game/items/Parts';
 import {
   addGroupKill,
   addItems,
@@ -12,7 +12,6 @@ import {
   createNewProfile,
   ensureMinimumKit,
   equipItem,
-  pushHistory,
   registerBossKill,
   restoreSummon,
   sellItem,
@@ -85,6 +84,8 @@ interface ProfileState {
   claimVipChest: () => boolean;
   claimVipGift: (level: number) => boolean;
   fuseAll: (rarity: Rarity) => { success: number; failed: number; results: Part[] };
+  dismantle: (ids: string[]) => { components: number; count: number };
+  fuseMany: (triples: string[][]) => { success: number; failed: number; results: Part[] };
   setRates: (r: OfflineRates) => void;
   touch: () => void;
   checkOffline: () => void;
@@ -433,22 +434,40 @@ export const useProfile = create<ProfileState>((set, get) => {
       return { success: r.success, failed: r.failed, results: r.results };
     },
 
+    dismantle: (ids) => {
+      const p = get().profile;
+      if (!p) return { components: 0, count: 0 };
+      const r = dismantleParts(p, ids);
+      commit(r.profile, false, true);
+      return { components: r.components, count: r.count };
+    },
+
+    fuseMany: (triples) => {
+      let p = get().profile;
+      if (!p) return { success: 0, failed: 0, results: [] };
+      let success = 0;
+      let failed = 0;
+      const results: Part[] = [];
+      for (const t of triples) {
+        const r = fuseParts(p, t[0], t);
+        if (r.error) continue;
+        p = r.profile;
+        if (r.success && r.result) {
+          success++;
+          results.push(r.result);
+        } else failed++;
+      }
+      commit(p, false, true);
+      return { success, failed, results };
+    },
+
     scrapPart: (partId) => {
       const p = get().profile;
       const part = p?.parts[partId];
       if (!p || !part || part.installedIn) return 0;
-      const scrap = 5 * (['common', 'uncommon', 'rare', 'epic', 'legendary', 'unique'].indexOf(part.rarity) + 1) ** 2;
-      const parts = { ...p.parts };
-      delete parts[partId];
-      commit(
-        {
-          ...addResources({ ...p, parts }, { scrap }),
-          history: pushHistory(p, { at: Date.now(), itemName: part.name, rarity: part.rarity, action: 'scrapped', detail: `+${scrap} металлолома` }),
-        },
-        false,
-        true,
-      );
-      return scrap;
+      const r = dismantleParts(p, [partId]);
+      commit(r.profile, false, true);
+      return r.components;
     },
 
     setRates: (rates) => {

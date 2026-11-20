@@ -12,10 +12,11 @@ import { useProfile } from '../../stores/profileStore';
 import { useUi } from '../../stores/uiStore';
 import { colors, rarityColor } from '../../ui/theme';
 import { Bar, ResourceStrip } from '../common/Common';
-import { CategoryGlyph, ItemIcon, UiIcon } from '../common/Icons';
+import { CategoryGlyph, ItemIcon, ResourceIcon, UiIcon } from '../common/Icons';
 import { ItemCard } from '../inventory/ItemCard';
 import { ItemTile } from '../inventory/ItemRow';
 import { PartCard, PartsGrid } from '../parts/Parts';
+import { MassAssembleSheet, MassDismantleSheet } from '../parts/MassParts';
 import { BunkerArt } from './BunkerArt';
 import { itemQuality } from '../../game/items/ItemGenerator';
 import { qualityColor } from '../inventory/Roll';
@@ -200,6 +201,8 @@ export function BunkerScreen() {
   const [cons, setCons] = useState<ConsumableKey | null>(null);
   const [autoOpen, setAutoOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
+  const [massDismantle, setMassDismantle] = useState(false);
+  const [massAssemble, setMassAssemble] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('better');
   const [kind, setKind] = useState<'all' | 'gear' | 'parts' | 'cons'>('all');
   const freeParts = Object.values(profile.parts).filter((p) => !p.installedIn).length;
@@ -280,19 +283,39 @@ export function BunkerScreen() {
             <div className="storage-name">
               Склад {stored}/{balanceConfig.inventoryLimit}
             </div>
-            {hints.size > 0 && <div className="tab-up small">↑ {hints.size} лучше установленного</div>}
+            {kind === 'parts' ? (
+              <div className="small muted">
+                <ResourceIcon type="components" /> {fmtNum(profile.resources.components)} компонентов
+              </div>
+            ) : (
+              hints.size > 0 && <div className="tab-up small">↑ {hints.size} лучше установленного</div>
+            )}
           </div>
-          <button className="btn btn-rust btn-sm" onClick={() => setMassSell(true)}>
-            Продать
-          </button>
+          {(kind === 'gear' || forSlot) && (
+            <button className="btn btn-rust btn-sm" onClick={() => setMassSell(true)}>
+              Продать
+            </button>
+          )}
+          {kind === 'parts' && !forSlot && (
+            <>
+              <button className="btn btn-rust btn-sm" onClick={() => setMassDismantle(true)}>
+                Разобрать
+              </button>
+              <button className="btn btn-gold btn-sm" onClick={() => setMassAssemble(true)}>
+                Собрать
+              </button>
+            </>
+          )}
           <button className="btn btn-sm gear-btn" onClick={() => setSortOpen(true)} aria-label="Сортировка">
             <UiIcon kind="filter" size={18} />
             {sortKey !== 'better' && <span className="gear-dot" style={{ background: '#f2a93b' }} />}
           </button>
-          <button className="btn btn-sm gear-btn" onClick={() => setAutoOpen(true)} aria-label="Автопродажа">
-            <UiIcon kind="menu" size={18} />
-            {profile.autoSell.maxRarity && <span className="gear-dot" style={{ background: rarityColor[profile.autoSell.maxRarity] }} />}
-          </button>
+          {kind !== 'parts' && kind !== 'cons' && (
+            <button className="btn btn-sm gear-btn" onClick={() => setAutoOpen(true)} aria-label="Автопродажа">
+              <UiIcon kind="menu" size={18} />
+              {profile.autoSell.maxRarity && <span className="gear-dot" style={{ background: rarityColor[profile.autoSell.maxRarity] }} />}
+            </button>
+          )}
         </div>
         {forSlot && equipTarget ? (
           <div className="info-box" style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -347,6 +370,8 @@ export function BunkerScreen() {
       </div>
 
       {massSell && <MassSellSheet onClose={() => setMassSell(false)} hints={hints} />}
+      {massDismantle && <MassDismantleSheet onClose={() => setMassDismantle(false)} />}
+      {massAssemble && <MassAssembleSheet onClose={() => setMassAssemble(false)} />}
       {sortOpen && (
         <Sheet title="Сортировка склада" onClose={() => setSortOpen(false)}>
           <div className="option-list">

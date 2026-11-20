@@ -98,6 +98,7 @@ const resColors: Record<ResourceKey, string> = {
   coins: '#e0b23a',
   scrap: '#9aa4ad',
   techParts: '#6fd3ff',
+  components: '#3fe0c5',
   blueprints: '#4d8dff',
   energyCores: '#b46bff',
   crystals: '#4dffd2',
@@ -163,6 +164,14 @@ export function ResourceIcon({ type, size = 14 }: { type: ResourceKey; size?: nu
         <svg {...p}>
           <circle cx="5" cy="8" r="3.5" fill="none" stroke={c} strokeWidth="2" />
           <path d="M8.5 8H15M12 8v3M14.5 8v2" stroke={c} strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      );
+    case 'components':
+      return (
+        <svg {...p}>
+          <rect x="6" y="6" width="12" height="12" rx="2" fill="none" stroke={c} strokeWidth="2" />
+          <rect x="9.5" y="9.5" width="5" height="5" rx="1" fill={c} />
+          <path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
         </svg>
       );
     case 'bossPasses':
