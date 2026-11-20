@@ -4,7 +4,7 @@ import { getLocation, locationsConfig } from '../config/locationsConfig';
 import { generateItem, sellPrice } from '../items/ItemGenerator';
 import { isAtLeast } from '../items/ItemRarity';
 import { dropItemParts } from '../items/Parts';
-import type { DailyState, ExchangeState, QuestState, ShopState } from '../meta/Meta';
+import { emptyQuests, type DailyState, type ExchangeState, type QuestState, type ShopState } from '../meta/Meta';
 import {
   RESOURCE_KEYS,
   SLOT_CATEGORY,
@@ -17,7 +17,7 @@ import {
   type SlotId,
 } from '../types';
 
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 
 export interface GlobalStats {
   robotsKilled: number;
@@ -106,7 +106,7 @@ export function emptyMeta(): Pick<Profile, 'shop' | 'exchange' | 'daily' | 'ques
     shop: { refreshedAt: 0, refreshDay: '', refreshes: 0, regular: [], rare: [] },
     exchange: { day: '', used: {} },
     daily: { lastDay: null, cycle: 0 },
-    quests: { day: '', list: [], bonusClaimed: false },
+    quests: emptyQuests(),
   };
 }
 

@@ -1,3 +1,4 @@
+import { emptyQuests } from '../game/meta/Meta';
 import { generateItem } from '../game/items/ItemGenerator';
 import {
   createNewProfile,
@@ -110,6 +111,13 @@ const migrations: Record<number, (s: AnySave) => AnySave> = {
   4: (s) => ({ ...s, ...emptyMeta(), version: 5 }),
   // v5 → v6: карточка игрока и VIP.
   5: (s) => ({ ...s, player: { nick: '', avatar: 0, frame: 'steel' }, vip: { points: 0 }, version: 6 }),
+  // v6 → v7: задания на день, неделю и месяц; календарь входа на 30 дней.
+  6: (s) => {
+    const old = (s.quests ?? {}) as { day?: string; list?: unknown[]; bonusClaimed?: boolean };
+    const q = emptyQuests();
+    if (typeof old.day === 'string' && Array.isArray(old.list)) q.day = { key: old.day, list: old.list as never[], bonusClaimed: !!old.bonusClaimed };
+    return { ...s, quests: q, version: 7 };
+  },
 };
 
 /** Приводит сохранение любой версии к текущей и заполняет пропуски. */
@@ -143,7 +151,7 @@ export function migrate(raw: unknown): Profile {
     shop: p.shop ?? base.shop,
     exchange: p.exchange ?? base.exchange,
     daily: p.daily ?? base.daily,
-    quests: p.quests ?? base.quests,
+    quests: { ...base.quests, ...(p.quests ?? {}) },
     player: { ...base.player, ...(p.player ?? {}) },
     vip: p.vip ?? base.vip,
   };

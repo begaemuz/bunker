@@ -19,7 +19,7 @@ import { introSeen } from '../services/storage';
 import { LocationsScreen } from '../components/locations/LocationsScreen';
 import { TechScreen } from '../components/tech/TechScreen';
 import { ShopScreen } from '../components/shop/ShopScreen';
-import { QuestsSheet } from '../components/shop/QuestsSheet';
+import { LoginSheet, QuestsSheet } from '../components/shop/QuestsSheet';
 
 const navItems: { id: Screen; label: string; icon: 'battle' | 'bunker' | 'tech' | 'shop' | 'map' | 'menu' }[] = [
   { id: 'game', label: 'Бой', icon: 'battle' },
@@ -50,6 +50,8 @@ function Main() {
   const questsOpen = useUi((s) => s.questsOpen);
   const setQuestsOpen = useUi((s) => s.setQuestsOpen);
   const profileOpen = useUi((s) => s.profileOpen);
+  const loginOpen = useUi((s) => s.loginOpen);
+  const setLoginOpen = useUi((s) => s.setLoginOpen);
   const setProfileOpen = useUi((s) => s.setProfileOpen);
   const setIntroOpen = useUi((s) => s.setIntroOpen);
   useEffect(() => {
@@ -80,6 +82,7 @@ function Main() {
         {screen === 'menu' && <MenuScreen />}
         {result && <ResultScreen />}
         {questsOpen && <QuestsSheet onClose={() => setQuestsOpen(false)} />}
+        {loginOpen && <LoginSheet onClose={() => setLoginOpen(false)} />}
         {profileOpen && <ProfileSheet onClose={() => setProfileOpen(false)} />}
         <BossRewardModal />
         {!introOpen && <OfflineRewardModal />}

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { computeBunkerStats } from '../../game/bunker/BunkerStats';
 import { combatPower } from '../../game/bunker/compare';
-import { useQuestBadge } from '../shop/QuestsSheet';
+import { useLoginBadge, useQuestBadge } from '../shop/QuestsSheet';
 import { gameConfig, modeConfig } from '../../game/config/gameConfig';
 import { getLocation } from '../../game/config/locationsConfig';
 import { canSummonBoss, locationProgress, xpForLevel } from '../../game/profile/Profile';
@@ -66,6 +66,8 @@ function TopBar() {
   const lvl = profile.bunker.level;
   const setQuests = useUi((s) => s.setQuestsOpen);
   const badge = useQuestBadge();
+  const loginReady = useLoginBadge();
+  const setLogin = useUi((s) => s.setLoginOpen);
   const power = useMemo(
     () => combatPower(computeBunkerStats(profile)),
     // мощь зависит только от оборудования, деталей и исследований
@@ -101,8 +103,12 @@ function TopBar() {
             <span className="money-plus">+</span>
           </button>
         </div>
-        <button className="btn top-btn" onClick={() => setQuests(true)} aria-label="Задания и награды">
-          <UiIcon kind="gift" size={19} />
+        <button className="btn top-btn" onClick={() => setLogin(true)} aria-label="Ежедневный вход">
+          <UiIcon kind="calendar" size={19} />
+          {loginReady && <span className="nav-badge">!</span>}
+        </button>
+        <button className="btn top-btn" onClick={() => setQuests(true)} aria-label="Задания">
+          <UiIcon kind="tasks" size={19} />
           {badge > 0 && <span className="nav-badge">{badge}</span>}
         </button>
         <button className="btn top-btn" onClick={() => setScreen('menu')} aria-label="Настройки">

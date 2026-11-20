@@ -23,6 +23,7 @@ import {
   type Profile,
 } from '../game/profile/Profile';
 import { vipLevel, vipPerks } from '../game/meta/vip';
+import type { QuestPeriod } from '../game/config/metaConfig';
 import { computeOfflineReward, type OfflineReward } from '../game/progression/offline';
 import { research } from '../game/progression/TechnologyTree';
 import type { Item, Part, Rarity, Resources, SlotId } from '../game/types';
@@ -61,7 +62,7 @@ interface ProfileState {
   exchange: (id: string) => string | null;
   claimDaily: () => Partial<Resources> | null;
   claimQuest: (id: string) => boolean;
-  claimQuestBonus: () => boolean;
+  claimQuestBonus: (period: QuestPeriod) => boolean;
   addGroup: (locationId: number) => void;
   summon: (locationId: number, usePass: boolean) => boolean;
   refundSummon: (locationId: number, usedPass: boolean) => void;
@@ -268,9 +269,9 @@ export const useProfile = create<ProfileState>((set, get) => {
       return true;
     },
 
-    claimQuestBonus: () => {
+    claimQuestBonus: (period) => {
       const p = get().profile;
-      const q = p ? claimQuestBonus(p) : null;
+      const q = p ? claimQuestBonus(p, period) : null;
       if (!q) return false;
       commit(q, false, true);
       return true;

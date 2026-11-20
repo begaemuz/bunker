@@ -28,7 +28,7 @@ import {
   unequipItem,
 } from '../src/game/profile/Profile';
 import { effectValue, research, researchBlock, researchCost } from '../src/game/progression/TechnologyTree';
-import { buyOffer, buySpecial, claimDaily, claimQuest, claimQuestBonus, doExchange, ensureQuests, ensureShop, exchangeUsed, questProgress, refreshShop } from '../src/game/meta/Meta';
+import { LOGIN_DAYS, buyOffer, buySpecial, claimDaily, claimQuest, claimQuestBonus, doExchange, ensureQuests, ensureShop, exchangeUsed, questProgress, refreshShop } from '../src/game/meta/Meta';
 import { addParts, extractPart, fuseAll, fuseParts, generatePart, installPart, unlockSlot } from '../src/game/items/Parts';
 import { applyAutoSell } from '../src/game/economy/AutoSell';
 import { computeOfflineReward } from '../src/game/progression/offline';
@@ -221,13 +221,21 @@ console.log('— Магазин, обмен, награды, задания');
   check(`Обмен по кругу в убыток (${c0} → ${loop.resources.coins})`, loop.resources.coins < c0);
   const d1 = claimDaily(p);
   check('Награда за вход выдаётся', !!d1.reward && d1.profile.resources.coins > p.resources.coins);
+  check('Календарь входа — 30 дней', LOGIN_DAYS === 30);
   check('Повторно в тот же день нельзя', !claimDaily(d1.profile).reward);
-  let qq = p;
-  const kinds = qq.quests.list.map((x) => x.kind);
-  for (const k of kinds) qq = questProgress(qq, k, 1e6);
-  for (const x of qq.quests.list) qq = claimQuest(qq, x.id) ?? qq;
-  check('Задания выполняются и награда выдаётся', qq.quests.list.every((x) => x.claimed));
-  check('Бонус за все задания', !!claimQuestBonus(qq));
+  check('Есть задания на день, неделю и месяц', p.quests.day.list.length === 4 && p.quests.week.list.length === 5 && p.quests.month.list.length === 5);
+  for (const per of ['day', 'week', 'month'] as const) {
+    let qq = p;
+    for (const k of qq.quests[per].list.map((x) => x.kind)) qq = questProgress(qq, k, 1e6);
+    for (const x of qq.quests[per].list) qq = claimQuest(qq, x.id) ?? qq;
+    check(`Задания (${per}) выполняются и награда выдаётся`, qq.quests[per].list.every((x) => x.claimed));
+    const b = claimQuestBonus(qq, per);
+    check(`Сундук за все задания (${per})`, !!b && !claimQuestBonus(b, per));
+    if (per === 'day' && b) {
+      const da = b.quests.week.list.find((x) => x.kind === 'dailyAll');
+      check('Выполненный день идёт в задание «все ежедневные»', !da || da.progress === 1);
+    }
+  }
   const eqId = p.equipment.coil1!;
   const ms = sellMany(p, [eqId, offer.id]);
   check('Массовая продажа пропускает установленное', !!ms.profile.items[eqId]);
@@ -332,8 +340,9 @@ console.log('— Сохранения');
   check('Миграция: победа над боссом открыла 2-ю локацию', m.locations.unlocked.includes(2));
   check('Миграция: стоит катушка №1', m.equipment.coil1 === 'a');
   check('Миграция v2 → v5: модификации и автопродажа', !!m.parts && m.autoSell.maxRarity === null && m.resources.expansionKeys === 0);
-  check('Миграция v5: магазин, обмен, награды, задания', !!m.shop && !!m.exchange && !!m.daily && !!m.quests && m.version === 6);
+  check('Миграция v5: магазин, обмен, награды, задания', !!m.shop && !!m.exchange && !!m.daily && !!m.quests && m.version === 7);
   check('Миграция v6: профиль игрока и VIP', m.player.frame === 'steel' && m.vip.points === 0);
+  check('Миграция v7: задания по периодам', !!m.quests.day && !!m.quests.week && !!m.quests.month);
 }
 
 // ─────────────── Прогон баланса ───────────────

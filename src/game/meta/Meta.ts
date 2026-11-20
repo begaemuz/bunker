@@ -1,4 +1,4 @@
-import { exchangeConfig, dailyRewards, questAllBonus, questPool, questsPerDay, shopConfig, type QuestKind } from '../config/metaConfig';
+import { exchangeConfig, loginCalendar, questConfig, shopConfig, type QuestKind, type QuestPeriod } from '../config/metaConfig';
 import { getLocation } from '../config/locationsConfig';
 import { generateItem, sellPrice } from '../items/ItemGenerator';
 import { rollRarity } from '../items/ItemRarity';
@@ -16,6 +16,36 @@ export function dayKey(t = Date.now()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/** Неделя: ключ — дата понедельника. */
+export function weekKey(t = Date.now()): string {
+  const d = new Date(t);
+  const shift = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - shift);
+  return dayKey(d.getTime());
+}
+
+export function monthKey(t = Date.now()): string {
+  const d = new Date(t);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+export function periodKey(period: QuestPeriod, t = Date.now()): string {
+  return period === 'day' ? dayKey(t) : period === 'week' ? weekKey(t) : monthKey(t);
+}
+
+/** Когда обновится период (локальное время). */
+export function periodEnds(period: QuestPeriod, t = Date.now()): number {
+  const d = new Date(t);
+  d.setHours(0, 0, 0, 0);
+  if (period === 'day') d.setDate(d.getDate() + 1);
+  else if (period === 'week') d.setDate(d.getDate() + (7 - ((d.getDay() + 6) % 7)));
+  else {
+    d.setDate(1);
+    d.setMonth(d.getMonth() + 1);
+  }
+  return d.getTime();
+}
+
 /** Тех. уровень игрока = уровень самой дальней открытой локации. */
 export function playerTier(p: Profile): number {
   return Math.max(...p.locations.unlocked.map((id) => getLocation(id).tier));
@@ -24,6 +54,14 @@ export function playerTier(p: Profile): number {
 function scaleRes(r: Partial<Resources>, m: number): Partial<Resources> {
   const out: Partial<Resources> = {};
   for (const k of RESOURCE_KEYS) if (r[k]) out[k] = Math.ceil(r[k]! * m);
+  return out;
+}
+
+/** Масштабирует только обычные ресурсы; кристаллы, ключи и пропуски — как есть. */
+const SCALABLE = new Set(['coins', 'scrap', 'techParts', 'blueprints']);
+function scaleSoft(r: Partial<Resources>, m: number): Partial<Resources> {
+  const out: Partial<Resources> = {};
+  for (const k of RESOURCE_KEYS) if (r[k]) out[k] = SCALABLE.has(k) ? Math.ceil(r[k]! * m) : r[k];
   return out;
 }
 
@@ -164,32 +202,32 @@ export function doExchange(p: Profile, id: string): { profile: Profile; error?: 
   return { profile: { ...addResources(paid, { [r.to]: r.get }), exchange: { day, used: { ...base, [id]: used + 1 } } } };
 }
 
-// ───────────── Награды за вход ─────────────
+// ───────────── Награды за вход (30 дней) ─────────────
 
 export interface DailyState {
   lastDay: string | null;
-  /** Номер следующей награды в 7-дневном круге. */
+  /** Номер следующей награды в 30-дневном календаре. */
   cycle: number;
 }
+
+export const LOGIN_DAYS = loginCalendar.length;
 
 export function canClaimDaily(p: Profile): boolean {
   return p.daily.lastDay !== dayKey();
 }
 
 export function dailyReward(p: Profile, index = p.daily.cycle): Partial<Resources> {
-  return scaleRes(dailyRewards[index % dailyRewards.length], 1 + 0.5 * (playerTier(p) - 1));
+  return scaleSoft(loginCalendar[index % LOGIN_DAYS].reward, 1 + 0.5 * (playerTier(p) - 1));
 }
 
 export function claimDaily(p: Profile): { profile: Profile; reward?: Partial<Resources> } {
   if (!canClaimDaily(p)) return { profile: p };
   const reward = dailyReward(p);
-  return {
-    profile: { ...addResources(p, reward), daily: { lastDay: dayKey(), cycle: (p.daily.cycle + 1) % dailyRewards.length } },
-    reward,
-  };
+  const q = { ...addResources(p, reward), daily: { lastDay: dayKey(), cycle: (p.daily.cycle + 1) % LOGIN_DAYS } };
+  return { profile: questProgress(q, 'login'), reward };
 }
 
-// ───────────── Ежедневные задания ─────────────
+// ───────────── Задания: день, неделя, месяц ─────────────
 
 export interface Quest {
   id: string;
@@ -201,53 +239,96 @@ export interface Quest {
   claimed: boolean;
 }
 
-export interface QuestState {
-  day: string;
+export interface QuestSet {
+  key: string;
   list: Quest[];
   bonusClaimed: boolean;
 }
 
-function genQuests(p: Profile): Quest[] {
+export type QuestState = Record<QuestPeriod, QuestSet>;
+
+export const QUEST_PERIODS: QuestPeriod[] = ['day', 'week', 'month'];
+
+export function emptyQuests(): QuestState {
+  return { day: { key: '', list: [], bonusClaimed: false }, week: { key: '', list: [], bonusClaimed: false }, month: { key: '', list: [], bonusClaimed: false } };
+}
+
+function genQuests(p: Profile, period: QuestPeriod): Quest[] {
   const tier = playerTier(p);
-  const pool = [...questPool].sort(() => random() - 0.5).slice(0, questsPerDay);
+  const cfg = questConfig[period];
+  const pool = [...cfg.pool].sort(() => random() - 0.5).slice(0, cfg.count);
   return pool.map((q) => ({
     id: uid(),
     kind: q.kind,
     title: q.title,
     target: q.scale ? q.target * tier : q.target,
     progress: 0,
-    reward: scaleRes(q.reward, 1 + 0.5 * (tier - 1)),
+    reward: scaleSoft(q.reward, 1 + 0.5 * (tier - 1)),
     claimed: false,
   }));
 }
 
-/** Новый набор заданий каждый календарный день. */
+export function questBonus(period: QuestPeriod): Partial<Resources> {
+  return questConfig[period].bonus;
+}
+
+/** Новый набор заданий при смене дня, недели или месяца. */
 export function ensureQuests(p: Profile): Profile {
-  const day = dayKey();
-  if (p.quests.day === day && p.quests.list.length) return p;
-  return { ...p, quests: { day, list: genQuests(p), bonusClaimed: false } };
+  let q = p.quests;
+  let changed = false;
+  for (const period of QUEST_PERIODS) {
+    const key = periodKey(period);
+    const cur = q[period];
+    if (cur && cur.key === key && cur.list.length) continue;
+    q = { ...q, [period]: { key, list: genQuests(p, period), bonusClaimed: false } };
+    changed = true;
+  }
+  return changed ? { ...p, quests: q } : p;
 }
 
 export function questProgress(p: Profile, kind: QuestKind, amount = 1): Profile {
-  if (amount <= 0 || !p.quests.list.some((q) => q.kind === kind && q.progress < q.target)) return p;
-  const list = p.quests.list.map((q) => (q.kind === kind && q.progress < q.target ? { ...q, progress: Math.min(q.target, q.progress + amount) } : q));
-  return { ...p, quests: { ...p.quests, list } };
+  if (amount <= 0) return p;
+  let q = p.quests;
+  let changed = false;
+  for (const period of QUEST_PERIODS) {
+    const set = q[period];
+    if (!set?.list.some((x) => x.kind === kind && x.progress < x.target)) continue;
+    const list = set.list.map((x) => (x.kind === kind && x.progress < x.target ? { ...x, progress: Math.min(x.target, x.progress + amount) } : x));
+    q = { ...q, [period]: { ...set, list } };
+    changed = true;
+  }
+  return changed ? { ...p, quests: q } : p;
 }
 
 export function claimQuest(p: Profile, id: string): Profile | null {
-  const q = p.quests.list.find((x) => x.id === id);
-  if (!q || q.claimed || q.progress < q.target) return null;
-  const list = p.quests.list.map((x) => (x.id === id ? { ...x, claimed: true } : x));
-  return { ...addResources(p, q.reward), quests: { ...p.quests, list } };
+  for (const period of QUEST_PERIODS) {
+    const set = p.quests[period];
+    const x = set.list.find((y) => y.id === id);
+    if (!x) continue;
+    if (x.claimed || x.progress < x.target) return null;
+    const list = set.list.map((y) => (y.id === id ? { ...y, claimed: true } : y));
+    return { ...addResources(p, x.reward), quests: { ...p.quests, [period]: { ...set, list } } };
+  }
+  return null;
 }
 
-export function canClaimQuestBonus(p: Profile): boolean {
-  return !p.quests.bonusClaimed && p.quests.list.length > 0 && p.quests.list.every((q) => q.claimed);
+export function canClaimQuestBonus(p: Profile, period: QuestPeriod): boolean {
+  const set = p.quests[period];
+  return !set.bonusClaimed && set.list.length > 0 && set.list.every((q) => q.claimed);
 }
 
-export function claimQuestBonus(p: Profile): Profile | null {
-  if (!canClaimQuestBonus(p)) return null;
-  return { ...addResources(p, questAllBonus), quests: { ...p.quests, bonusClaimed: true } };
+export function claimQuestBonus(p: Profile, period: QuestPeriod): Profile | null {
+  if (!canClaimQuestBonus(p, period)) return null;
+  const set = p.quests[period];
+  let q: Profile = { ...addResources(p, questBonus(period)), quests: { ...p.quests, [period]: { ...set, bonusClaimed: true } } };
+  if (period === 'day') q = questProgress(q, 'dailyAll');
+  return q;
+}
+
+/** Сколько наград можно забрать в периоде (задания + бонус). */
+export function questClaimable(p: Profile, period: QuestPeriod): number {
+  const set = p.quests[period];
+  return set.list.filter((q) => !q.claimed && q.progress >= q.target).length + (canClaimQuestBonus(p, period) ? 1 : 0);
 }
 
 export { canAfford };

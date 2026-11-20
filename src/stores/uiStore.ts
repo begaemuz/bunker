@@ -80,6 +80,8 @@ interface UiState {
   setIntroOpen: (o: boolean) => void;
   questsOpen: boolean;
   setQuestsOpen: (o: boolean) => void;
+  loginOpen: boolean;
+  setLoginOpen: (o: boolean) => void;
   profileOpen: boolean;
   setProfileOpen: (o: boolean) => void;
   /** Вкладка магазина, которую нужно открыть при переходе. */
@@ -123,6 +125,8 @@ export const useUi = create<UiState>((set, get) => ({
   setIntroOpen: (introOpen) => set({ introOpen }),
   questsOpen: false,
   setQuestsOpen: (questsOpen) => set({ questsOpen }),
+  loginOpen: false,
+  setLoginOpen: (loginOpen) => set({ loginOpen }),
   profileOpen: false,
   setProfileOpen: (profileOpen) => set({ profileOpen }),
   shopTab: null,

@@ -51,31 +51,116 @@ export const exchangeConfig: { id: string; from: ResourceKey; give: number; to: 
   { id: 'cryst_coins', from: 'crystals', give: 5, to: 'coins', get: 600, dailyLimit: 10 },
 ];
 
-/** Календарь наград за вход (7 дней по кругу; × тех. уровень открытой локации). */
-export const dailyRewards: Partial<Resources>[] = [
-  { coins: 300, scrap: 30 },
-  { coins: 400, techParts: 10 },
-  { coins: 500, stabilizers: 1 },
-  { coins: 600, blueprints: 2 },
-  { coins: 800, energyCores: 1, techParts: 15 },
-  { coins: 1000, crystals: 10 },
-  { coins: 1500, crystals: 25, expansionKeys: 1, bossPasses: 1 },
+/**
+ * Календарь входа на 30 дней. Каждый день — одна награда, пропуск дня
+ * не сбрасывает прогресс. Дни 7, 14, 21, 28 — особые, 30 — главный приз.
+ * Монеты, металл, шестерни и чертежи растут с тех. уровнем игрока.
+ */
+export const loginCalendar: { reward: Partial<Resources>; milestone?: 'big' | 'grand' }[] = [
+  { reward: { coins: 300 } },
+  { reward: { scrap: 40 } },
+  { reward: { coins: 400, techParts: 10 } },
+  { reward: { stabilizers: 1 } },
+  { reward: { coins: 500, blueprints: 1 } },
+  { reward: { techParts: 20 } },
+  { reward: { crystals: 20, bossPasses: 1, coins: 800 }, milestone: 'big' },
+  { reward: { coins: 600 } },
+  { reward: { scrap: 80 } },
+  { reward: { energyCores: 1 } },
+  { reward: { coins: 700, techParts: 15 } },
+  { reward: { stabilizers: 2 } },
+  { reward: { blueprints: 2 } },
+  { reward: { crystals: 30, expansionKeys: 1, coins: 1000 }, milestone: 'big' },
+  { reward: { coins: 800 } },
+  { reward: { scrap: 120 } },
+  { reward: { techParts: 30 } },
+  { reward: { energyCores: 2 } },
+  { reward: { coins: 1000, stabilizers: 1 } },
+  { reward: { blueprints: 3 } },
+  { reward: { crystals: 40, bossPasses: 2, coins: 1500 }, milestone: 'big' },
+  { reward: { coins: 1000 } },
+  { reward: { scrap: 150 } },
+  { reward: { techParts: 40 } },
+  { reward: { energyCores: 2, blueprints: 2 } },
+  { reward: { coins: 1500 } },
+  { reward: { stabilizers: 3 } },
+  { reward: { crystals: 60, expansionKeys: 1, energyCores: 3 }, milestone: 'big' },
+  { reward: { coins: 2000, techParts: 50 } },
+  { reward: { crystals: 150, expansionKeys: 2, bossPasses: 3, coins: 5000 }, milestone: 'grand' },
 ];
 
-export type QuestKind = 'kill' | 'killHeavy' | 'groups' | 'miniboss' | 'items' | 'coins' | 'upgrade' | 'research' | 'boss';
+export type QuestKind =
+  | 'kill'
+  | 'killHeavy'
+  | 'groups'
+  | 'miniboss'
+  | 'items'
+  | 'coins'
+  | 'upgrade'
+  | 'research'
+  | 'boss'
+  | 'login'
+  | 'dailyAll';
 
-/** Пул ежедневных заданий: цель × тех. уровень для боевых целей. */
-export const questPool: { kind: QuestKind; title: string; target: number; scale: boolean; reward: Partial<Resources> }[] = [
-  { kind: 'kill', title: 'Уничтожить роботов', target: 150, scale: false, reward: { coins: 400, techParts: 8 } },
-  { kind: 'killHeavy', title: 'Уничтожить тяжёлых или бронированных роботов', target: 15, scale: false, reward: { coins: 400, scrap: 50 } },
-  { kind: 'groups', title: 'Уничтожить групп', target: 25, scale: false, reward: { coins: 500, blueprints: 1 } },
-  { kind: 'miniboss', title: 'Уничтожить мини-босса', target: 1, scale: false, reward: { coins: 300, stabilizers: 1 } },
-  { kind: 'items', title: 'Получить оборудование', target: 4, scale: false, reward: { coins: 400, techParts: 10 } },
-  { kind: 'coins', title: 'Собрать монет с роботов', target: 1500, scale: true, reward: { techParts: 12, crystals: 3 } },
-  { kind: 'upgrade', title: 'Улучшить оборудование', target: 2, scale: false, reward: { coins: 300, stabilizers: 1 } },
-  { kind: 'research', title: 'Изучить уровни навыков', target: 2, scale: false, reward: { coins: 300, blueprints: 1 } },
-  { kind: 'boss', title: 'Победить босса', target: 1, scale: false, reward: { crystals: 10, energyCores: 1 } },
-];
-export const questsPerDay = 4;
-/** Бонус за выполнение всех заданий дня. */
-export const questAllBonus: Partial<Resources> = { crystals: 10, bossPasses: 1 };
+export type QuestPeriod = 'day' | 'week' | 'month';
+
+interface QuestDef {
+  kind: QuestKind;
+  title: string;
+  target: number;
+  /** Цель растёт с тех. уровнем (для монет). */
+  scale: boolean;
+  reward: Partial<Resources>;
+}
+
+/** Задания по периодам: сколько выдаётся, пул и бонус за выполнение всех. */
+export const questConfig: Record<QuestPeriod, { count: number; pool: QuestDef[]; bonus: Partial<Resources>; title: string }> = {
+  day: {
+    title: 'Ежедневные',
+    count: 4,
+    bonus: { crystals: 10, bossPasses: 1 },
+    pool: [
+      { kind: 'kill', title: 'Уничтожить роботов', target: 150, scale: false, reward: { coins: 400, techParts: 8 } },
+      { kind: 'killHeavy', title: 'Уничтожить тяжёлых или бронированных роботов', target: 15, scale: false, reward: { coins: 400, scrap: 50 } },
+      { kind: 'groups', title: 'Уничтожить групп', target: 25, scale: false, reward: { coins: 500, blueprints: 1 } },
+      { kind: 'miniboss', title: 'Уничтожить мини-босса', target: 1, scale: false, reward: { coins: 300, stabilizers: 1 } },
+      { kind: 'items', title: 'Получить оборудование', target: 4, scale: false, reward: { coins: 400, techParts: 10 } },
+      { kind: 'coins', title: 'Собрать монет с роботов', target: 1500, scale: true, reward: { techParts: 12, crystals: 3 } },
+      { kind: 'upgrade', title: 'Улучшить оборудование', target: 2, scale: false, reward: { coins: 300, stabilizers: 1 } },
+      { kind: 'research', title: 'Изучить уровни навыков', target: 2, scale: false, reward: { coins: 300, blueprints: 1 } },
+    ],
+  },
+  week: {
+    title: 'Еженедельные',
+    count: 5,
+    bonus: { crystals: 50, expansionKeys: 1, energyCores: 3 },
+    pool: [
+      { kind: 'kill', title: 'Уничтожить роботов', target: 1500, scale: false, reward: { coins: 2500, techParts: 40 } },
+      { kind: 'killHeavy', title: 'Уничтожить тяжёлых или бронированных роботов', target: 150, scale: false, reward: { coins: 2000, scrap: 300 } },
+      { kind: 'groups', title: 'Уничтожить групп', target: 200, scale: false, reward: { coins: 2500, blueprints: 4 } },
+      { kind: 'miniboss', title: 'Уничтожить мини-боссов', target: 10, scale: false, reward: { stabilizers: 3, energyCores: 1 } },
+      { kind: 'boss', title: 'Победить боссов', target: 3, scale: false, reward: { crystals: 25, bossPasses: 1 } },
+      { kind: 'coins', title: 'Собрать монет с роботов', target: 15000, scale: true, reward: { techParts: 60, crystals: 10 } },
+      { kind: 'upgrade', title: 'Улучшить оборудование', target: 15, scale: false, reward: { stabilizers: 3, coins: 1500 } },
+      { kind: 'research', title: 'Изучить уровни навыков', target: 12, scale: false, reward: { blueprints: 5, coins: 1500 } },
+      { kind: 'login', title: 'Забрать награду за вход (дней)', target: 5, scale: false, reward: { crystals: 15, energyCores: 1 } },
+      { kind: 'dailyAll', title: 'Выполнить все ежедневные задания (раз)', target: 4, scale: false, reward: { crystals: 20, expansionKeys: 1 } },
+    ],
+  },
+  month: {
+    title: 'Ежемесячные',
+    count: 5,
+    bonus: { crystals: 200, expansionKeys: 3, bossPasses: 3, energyCores: 10 },
+    pool: [
+      { kind: 'kill', title: 'Уничтожить роботов', target: 6000, scale: false, reward: { coins: 10000, techParts: 150 } },
+      { kind: 'groups', title: 'Уничтожить групп', target: 800, scale: false, reward: { coins: 8000, blueprints: 15 } },
+      { kind: 'miniboss', title: 'Уничтожить мини-боссов', target: 40, scale: false, reward: { stabilizers: 10, energyCores: 4 } },
+      { kind: 'boss', title: 'Победить боссов', target: 12, scale: false, reward: { crystals: 80, bossPasses: 3 } },
+      { kind: 'items', title: 'Получить оборудование', target: 150, scale: false, reward: { coins: 8000, expansionKeys: 1 } },
+      { kind: 'upgrade', title: 'Улучшить оборудование', target: 50, scale: false, reward: { stabilizers: 8, coins: 6000 } },
+      { kind: 'research', title: 'Изучить уровни навыков', target: 40, scale: false, reward: { blueprints: 15, energyCores: 3 } },
+      { kind: 'login', title: 'Забрать награду за вход (дней)', target: 20, scale: false, reward: { crystals: 60, expansionKeys: 1 } },
+      { kind: 'dailyAll', title: 'Выполнить все ежедневные задания (раз)', target: 15, scale: false, reward: { crystals: 80, energyCores: 5 } },
+    ],
+  },
+};
