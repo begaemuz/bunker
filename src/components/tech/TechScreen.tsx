@@ -56,9 +56,6 @@ function NodeSheet({ node, onClose }: { node: TechNode; onClose: () => void }) {
           <button className="btn btn-primary btn-hazard" style={{ flex: 2 }} disabled={!!block} onClick={() => learn(1)}>
             Изучить
           </button>
-          <button className="btn btn-gold" disabled={!!block} onClick={() => learn(10)}>
-            ×10
-          </button>
         </>
       }
     >
