@@ -12,10 +12,11 @@ import { useUi } from '../../stores/uiStore';
 import { rarityColor } from '../../ui/theme';
 import { CategoryGlyph, PartGlyph, ResourceIcon, UiIcon } from '../common/Icons';
 import { Sheet } from '../common/Sheet';
+import { AuctionTab } from './Auction';
 import { shortStats } from '../inventory/ItemRow';
 import { partStatsText } from '../parts/Parts';
 
-type Tab = 'regular' | 'rare' | 'special' | 'exchange';
+type Tab = 'goods' | 'special' | 'exchange' | 'auction';
 
 function Price({ price }: { price: Partial<Resources> }) {
   const p = useProfile((s) => s.profile)!;
@@ -191,7 +192,7 @@ export function ShopScreen() {
   const setProfileOpen = useUi((s) => s.setProfileOpen);
   const shopTab = useUi((s) => s.shopTab);
   const clearShopTab = useUi((s) => s.clearShopTab);
-  const [tab, setTab] = useState<Tab>((shopTab as Tab) ?? 'regular');
+  const [tab, setTab] = useState<Tab>((shopTab as Tab) ?? 'goods');
   useEffect(() => {
     if (shopTab) {
       setTab(shopTab as Tab);
@@ -218,10 +219,10 @@ export function ShopScreen() {
       <div className="tabs">
         {(
           [
-            ['regular', 'Товары'],
-            ['rare', 'Детали'],
+            ['goods', 'Товары'],
             ['special', 'Кристаллы'],
             ['exchange', 'Обмен'],
+            ['auction', 'Аукцион'],
           ] as [Tab, string][]
         ).map(([id, label]) => (
           <button key={id} className={`tab${tab === id ? ' on' : ''}`} onClick={() => setTab(id)}>
@@ -232,7 +233,7 @@ export function ShopScreen() {
       <div className="screen-body">
         
 
-        {(tab === 'regular' || tab === 'rare') && (
+        {tab === 'goods' && (
           <>
             <TraderSign
               left={fmtLeft(left)}
@@ -243,12 +244,14 @@ export function ShopScreen() {
               }}
             />
             <div className="ware-grid">
-              {profile.shop[tab].map((o) => (
-                <OfferCard key={o.id} o={o} section={tab} onOpen={() => setOpen({ o, section: tab })} />
-              ))}
+              {(['regular', 'rare'] as const).flatMap((sec) =>
+                profile.shop[sec].map((o) => <OfferCard key={o.id} o={o} section={sec} onOpen={() => setOpen({ o, section: sec })} />),
+              )}
             </div>
           </>
         )}
+
+        {tab === 'auction' && <AuctionTab />}
 
         {tab === 'special' && (
           <div className="deal-list">
