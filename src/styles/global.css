@@ -4595,3 +4595,9 @@ button.pavatar:active {
   font-family: var(--display);
   font-size: 16px;
 }
+.auc-prices label {
+  min-width: 0;
+}
+.auc-input {
+  min-width: 0;
+}
