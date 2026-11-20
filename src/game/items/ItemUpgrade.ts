@@ -1,3 +1,4 @@
+import { vipLevel, vipPerks } from '../meta/vip';
 import { balanceConfig } from '../config/balanceConfig';
 import { canAfford, pushHistory, spend, unequipItem, type Profile } from '../profile/Profile';
 import { techMeta } from '../progression/TechnologyTree';
@@ -34,7 +35,8 @@ export function upgradeCost(p: Profile, item: Item): Partial<Resources> {
 export function upgradeChance(p: Profile, item: Item): number {
   const u = balanceConfig.upgrade;
   const base = u.successChance[item.level - 1] ?? u.minChance;
-  return Math.min(0.99, Math.max(u.minChance, base + techMeta(p, 'upgradeChance')));
+  const vip = vipPerks(vipLevel(p.vip?.points ?? 0)).upgradeChance;
+  return Math.min(0.99, Math.max(u.minChance, base + techMeta(p, 'upgradeChance') + vip));
 }
 
 export type UpgradeBlock = 'max' | 'bunker' | 'resources' | 'stabilizer' | null;

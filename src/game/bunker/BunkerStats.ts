@@ -1,3 +1,4 @@
+import { vipLevel, vipPerks } from '../meta/vip';
 import { gameConfig, modeConfig } from '../config/gameConfig';
 import { coilProps, itemModifiers } from '../items/ItemGenerator';
 import { partMods } from '../items/Parts';
@@ -105,6 +106,7 @@ function uniqueValue(items: Item[], kind: UniqueEffect['kind']): number {
  * Ничего из итоговых значений не хранится в сохранении.
  */
 export function computeBunkerStats(profile: Profile, layoutOverride?: EquipmentLayout): BunkerStats {
+  const vip = vipPerks(vipLevel(profile.vip?.points ?? 0));
   const b = gameConfig.bunkerBase;
   const p = layoutOverride ? { ...profile, equipment: layoutOverride } : profile;
   const eq = equippedItems(p);
@@ -251,9 +253,9 @@ export function computeBunkerStats(profile: Profile, layoutOverride?: EquipmentL
     firstPulseBonus: uniqueValue(items, 'firstPulse'),
     killEnergy: uniqueValue(items, 'killEnergy'),
     coolOnKill: uniqueValue(items, 'coolOnKill'),
-    coinMult: 1 + g('coinPct'),
-    dropChanceMult: 1 + g('dropChancePct'),
-    xpMult: 1 + g('xpPct'),
+    coinMult: 1 + g('coinPct') + vip.coinPct,
+    dropChanceMult: 1 + g('dropChancePct') + vip.dropPct,
+    xpMult: 1 + g('xpPct') + vip.xpPct,
     energyFactor,
     heatFactor,
     sustainedDps,

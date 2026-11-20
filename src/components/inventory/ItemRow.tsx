@@ -1,3 +1,5 @@
+import { itemQuality } from '../../game/items/ItemGenerator';
+import { qualityColor } from './Roll';
 import { modeConfig } from '../../game/config/gameConfig';
 import { coilProps, itemModifiers } from '../../game/items/ItemGenerator';
 import { formatStatValue } from '../../game/items/statInfo';
@@ -65,6 +67,7 @@ export function ItemRow({ item, equipped, better, onClick }: { item: Item; equip
 /** Квадратная плитка предмета для сетки склада. */
 export function ItemTile({ item, better, onClick }: { item: Item; better?: boolean; onClick: () => void }) {
   const col = rarityColor[item.rarity];
+  const q = itemQuality(item);
   return (
     <button
       className="item-tile"
@@ -75,7 +78,9 @@ export function ItemTile({ item, better, onClick }: { item: Item; better?: boole
         <CategoryGlyph category={item.category} color={col} size={34} />
       </span>
       <span className="tile-lvl">{item.level}</span>
-      <span className="tile-tier">Т{item.tier}</span>
+      <span className="tile-tier">
+        Т{item.tier} · <b style={{ color: qualityColor(q) }}>{Math.round(q * 100)}%</b>
+      </span>
       {better && (
         <span className="tile-better" title="Лучше установленного">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">

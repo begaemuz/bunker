@@ -14,7 +14,7 @@ import { colors } from '../../ui/theme';
 import { Bar, ConfirmDialog } from '../common/Common';
 import { PlayerAvatar } from '../player/Avatar';
 import { playerNick } from '../player/ProfileSheet';
-import { vipLevel } from '../../game/meta/vip';
+import { vipLevel, vipPerks } from '../../game/meta/vip';
 import { ResourceIcon, UiIcon } from '../common/Icons';
 
 let activeSession: GameSession | null = null;
@@ -140,8 +140,9 @@ function BossChip() {
 function SpeedButton() {
   const speed = useUi((s) => s.settings.speed);
   const setSpeed = useUi((s) => s.setSpeed);
-  const list = gameConfig.speeds;
-  const next = () => setSpeed((list as readonly number[])[((list as readonly number[]).indexOf(speed) + 1) % list.length]);
+  const vipPoints = useProfile((s) => s.profile!.vip.points);
+  const list: number[] = vipPerks(vipLevel(vipPoints)).speed4 ? [...gameConfig.speeds, 4] : [...gameConfig.speeds];
+  const next = () => setSpeed(list[(list.indexOf(speed) + 1) % list.length]);
   return (
     <button className={`btn speed-btn s${speed}`} onClick={next} aria-label="Скорость боя">
       x{speed}

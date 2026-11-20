@@ -230,3 +230,14 @@ export function energyCostAt(tpl: ItemTemplate, rarity: Rarity, tier: number): [
   const costMult = balanceConfig.rarityCostMult[rarity] * (1 + balanceConfig.tier.costPerTier * (tier - 1));
   return [tpl.energyCost[0] * costMult, tpl.energyCost[1] * costMult];
 }
+
+/** Общее качество вещи: среднее качество всех случайных свойств, 0..1. */
+export function itemQuality(item: Item): number {
+  const r = itemStatRolls(item);
+  const qs: number[] = [];
+  for (const x of [...r.base, ...r.extra]) if (x) qs.push(x.quality);
+  const c = coilRolls(item);
+  if (c) qs.push(c.power.quality, c.radius.quality, c.interval.quality);
+  if (!qs.length) return 1;
+  return qs.reduce((a, b) => a + b, 0) / qs.length;
+}

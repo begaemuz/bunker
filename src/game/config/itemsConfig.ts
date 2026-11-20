@@ -478,6 +478,30 @@ export const itemTemplates: ItemTemplate[] = [
     unique: { kind: 'markTargets', value: 0.35 },
     weight: 0,
   }),
+
+  // ───────── Эксклюзивы VIP (не выпадают, только подарок) ─────────
+  T({
+    id: 'v_imperial',
+    name: 'Генератор «Империал»',
+    category: 'generator',
+    description: 'Эксклюзив VIP 8. Огромная мощность и синхронизация обеих катушек.',
+    base: [
+      { stat: 'genPower', min: 32, max: 36 },
+      { stat: 'conversion', min: 0.86, max: 0.9 },
+    ],
+    unique: { kind: 'dualCoil', value: 0.35 },
+    weight: 0,
+  }),
+  T({
+    id: 'v_crown',
+    name: 'Катушка «Корона»',
+    category: 'coil',
+    description: 'Эксклюзив VIP 10. Перегрузочный разряд по площади, выжигающий электронику роботов.',
+    base: [],
+    coil: { mode: 'overload', power: [34, 38], radius: [170, 180], interval: [0.85, 0.9], energy: [6, 6.5], heat: [5.5, 6] },
+    unique: { kind: 'electronics', value: 0.6 },
+    weight: 0,
+  }),
 ];
 
 /** Пулы дополнительных свойств по типам оборудования. */

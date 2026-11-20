@@ -234,6 +234,10 @@ export function BunkerScreen() {
           </div>
           <div className="doll-center">
             <BunkerArt profile={profile} highlight={equipTarget} />
+            <button className="bunker-info" onClick={() => setShowStats(true)} aria-label="Все данные бункера">
+              <UiIcon kind="info" size={18} />
+              {alarm && <span className="bunker-info-dot" />}
+            </button>
           </div>
           <div className="doll-col">
             {RIGHT.map((s) => (
@@ -242,26 +246,6 @@ export function BunkerScreen() {
           </div>
         </div>
 
-        <button className="doll-stats" onClick={() => setShowStats(true)}>
-          <span>
-            <i>Урон/с</i>
-            <b>{fmtNum(Math.round(stats.sustainedDps))}</b>
-          </span>
-          <span>
-            <i>Прочность</i>
-            <b>{fmtNum(stats.maxHp)}</b>
-          </span>
-          <span>
-            <i>Энергия</i>
-            <b>{stats.usablePower.toFixed(1)}/с</b>
-          </span>
-          <span className="more">
-            {alarm && <span className="nav-dot" style={{ background: '#ff7a3d', top: 6, right: 6 }} />}
-            Все
-            <br />
-            данные
-          </span>
-        </button>
 
         <div ref={listRef} className="storage-head">
           <div className="grow">

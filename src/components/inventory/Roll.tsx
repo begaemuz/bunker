@@ -50,3 +50,30 @@ export function RollLine({
     </div>
   );
 }
+
+export function qualityWord(q: number): string {
+  if (q >= 0.95) return 'Идеал';
+  if (q >= 0.85) return 'Отличное';
+  if (q >= 0.7) return 'Хорошее';
+  if (q >= 0.45) return 'Среднее';
+  return 'Слабое';
+}
+
+/** Круглый индикатор общего качества вещи или модификации. */
+export function QualityBadge({ q }: { q: number }) {
+  const col = qualityColor(q);
+  const R = 20;
+  const C = 2 * Math.PI * R;
+  return (
+    <div className="qbadge" title="Общее качество: насколько близко все свойства к максимуму">
+      <svg width="50" height="50" viewBox="0 0 50 50" aria-hidden>
+        <circle cx="25" cy="25" r={R} fill="#0b0e11" stroke="#262d34" strokeWidth="5" />
+        <circle cx="25" cy="25" r={R} fill="none" stroke={col} strokeWidth="5" strokeLinecap="round" strokeDasharray={`${C * Math.max(0.02, q)} ${C}`} transform="rotate(-90 25 25)" />
+        <text x="25" y="29" textAnchor="middle" fontSize="12" fill={col} style={{ fontFamily: 'var(--display)' }}>
+          {Math.round(q * 100)}%
+        </text>
+      </svg>
+      <span style={{ color: col }}>{qualityWord(q)}</span>
+    </div>
+  );
+}

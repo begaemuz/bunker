@@ -98,7 +98,7 @@ export interface Profile {
   /** Карточка игрока: ник, аватар инженера, рамка. */
   player: { nick: string; avatar: number; frame: string };
   /** Очки VIP (за покупку кристаллов за реальные деньги). */
-  vip: { points: number };
+  vip: { points: number; chestDay?: string; gifts?: number[] };
 }
 
 export function emptyMeta(): Pick<Profile, 'shop' | 'exchange' | 'daily' | 'quests'> {
@@ -174,7 +174,7 @@ export function createNewProfile(): Profile {
     tgUserId: null,
     ...emptyMeta(),
     player: { nick: '', avatar: 0, frame: 'steel' },
-    vip: { points: 0 },
+    vip: { points: 0, chestDay: '', gifts: [] },
   };
 }
 

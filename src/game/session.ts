@@ -12,6 +12,7 @@ import { Renderer } from '../render/Renderer';
 import { useProfile } from '../stores/profileStore';
 import { rarityColor } from '../ui/theme';
 import { CONSUMABLES, FEED_SKIP, consumableInfo } from './consumables';
+import { vipLevel, vipPerks } from './meta/vip';
 import { useUi } from '../stores/uiStore';
 import { ru } from '../i18n/ru';
 import { setMusicMode, sfx } from '../services/sound';
@@ -173,8 +174,14 @@ export class GameSession {
         const before = canSummonBoss(prof.profile!, loc.id);
         prof.addGroup(loc.id);
         if (!before && canSummonBoss(useProfile.getState().profile!, loc.id)) {
-          ui.toast('Можно вызвать босса', 'good');
-          haptic('success');
+          const vip = vipPerks(vipLevel(useProfile.getState().profile!.vip.points));
+          if (vip.autoBoss && this.engine.mode === 'normal') {
+            // VIP: босс вызывается сам
+            setTimeout(() => this.summonBoss(false), 1200);
+          } else {
+            ui.toast('Можно вызвать босса', 'good');
+            haptic('success');
+          }
         }
         break;
       }

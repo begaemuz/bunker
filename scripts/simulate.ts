@@ -1,3 +1,4 @@
+import { claimVipChest, claimVipGift } from '../src/game/meta/vipActions';
 /* Проверка игровой логики без браузера: тесты механик и прогон баланса.
    Запуск: npm run sim */
 import { computeBunkerStats } from '../src/game/bunker/BunkerStats';
@@ -197,6 +198,19 @@ console.log('— Модификации по редкости и объедин�
   check('После объединения остаются ровно 3 из 6 исходных', Object.values(r.profile.parts).filter((x) => x.rarity === 'rare').length === 3);
   const q = partQuality(a[0]);
   check('Качество модификации в пределах 0..100%', q >= 0 && q <= 1);
+}
+
+console.log('— VIP');
+{
+  let p = createNewProfile();
+  p = { ...p, vip: { points: 100000, chestDay: '', gifts: [] } };
+  const c = claimVipChest(p);
+  check('VIP-сундук открывается раз в день', !!c && !claimVipChest(c!));
+  const g = claimVipGift(p, 10);
+  check('Подарок VIP 10 — эксклюзивная «Корона»', !!g && g.items.some((i) => i.templateId === 'v_crown') && !claimVipGift(g.profile, 10));
+  const g8 = claimVipGift(p, 8);
+  check('Подарок VIP 8 — «Империал»', !!g8 && g8.items.some((i) => i.templateId === 'v_imperial'));
+  check('VIP даёт бонус к монетам в характеристиках', computeBunkerStats(p).coinMult > computeBunkerStats(createNewProfile()).coinMult);
 }
 
 console.log('— Бесконечные навыки');

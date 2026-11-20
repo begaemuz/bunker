@@ -1,3 +1,4 @@
+import { vipLevel, vipPerks } from '../meta/vip';
 import { fusionConfig, partExtraMult, partRarityMult, partStatCount, partTemplates, type PartTemplate } from '../config/partsConfig';
 import { pushHistory, type Profile } from '../profile/Profile';
 import { chance, pickWeighted, randFloat, uid } from '../rng';
@@ -141,8 +142,10 @@ export function fusionPick(p: Profile, part: Part): Part[] {
   return [part, ...others].slice(0, fusionConfig.count);
 }
 
-export function fusionChance(rarity: Rarity): number {
-  return fusionConfig.chance[rarity] ?? 0;
+export function fusionChance(rarity: Rarity, p?: Profile): number {
+  const base = fusionConfig.chance[rarity] ?? 0;
+  if (!base || !p) return base;
+  return Math.min(0.99, base + vipPerks(vipLevel(p.vip?.points ?? 0)).fusionChance);
 }
 
 export function nextRarity(r: Rarity): Rarity | null {
@@ -166,7 +169,7 @@ export function fuseParts(p: Profile, partId: string): { profile: Profile; resul
   const parts = { ...p.parts };
   for (const x of use) delete parts[x.id];
   let q: Profile = { ...p, parts };
-  if (!chance(fusionChance(part.rarity))) {
+  if (!chance(fusionChance(part.rarity, p))) {
     q = { ...q, history: pushHistory(q, { at: Date.now(), itemName: part.name, rarity: part.rarity, action: 'destroyed', detail: 'неудачное объединение' }) };
     return { profile: q, success: false };
   }

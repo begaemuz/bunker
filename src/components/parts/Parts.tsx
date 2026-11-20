@@ -13,7 +13,7 @@ import { rarityColor } from '../../ui/theme';
 import { ConfirmDialog } from '../common/Common';
 import { ItemIcon, PartGlyph, ResourceIcon } from '../common/Icons';
 import { Sheet } from '../common/Sheet';
-import { qualityColor, RollLine } from '../inventory/Roll';
+import { QualityBadge, qualityColor, RollLine } from '../inventory/Roll';
 
 export function partStatsText(p: Part): string {
   return p.stats.map((s) => `${statLabel(s.stat)} ${formatStatValue(s.stat, s.value)}`).join(' · ');
@@ -103,6 +103,7 @@ export function PartCard({ partId, onClose }: { partId: string; onClose: () => v
             <div style={{ color: col, fontWeight: 900, fontSize: 16 }}>{part.name}</div>
             <div className="item-sub">{ru.rarity[part.rarity]} модификация</div>
           </div>
+          <QualityBadge q={partQuality(part)} />
         </div>
       }
       actions={
@@ -164,7 +165,7 @@ export function PartCard({ partId, onClose }: { partId: string; onClose: () => v
           <div className="section-title">Объединение</div>
           {next ? (
             <div className="info-box">
-              {fusionConfig.count} одинаковые → 1 {ru.rarity[next].toLowerCase()} с новыми свойствами. Есть: <b>{group.length}</b>. Шанс успеха {Math.round(fusionChance(part.rarity) * 100)}%. При неудаче все три детали теряются.
+              {fusionConfig.count} одинаковые → 1 {ru.rarity[next].toLowerCase()} с новыми свойствами. Есть: <b>{group.length}</b>. Шанс успеха {Math.round(fusionChance(part.rarity, profile) * 100)}%. При неудаче все три детали теряются.
               {canFuse && (
                 <div style={{ marginTop: 6 }}>
                   Уйдут в объединение: эта и две самые слабые —{' '}
@@ -216,7 +217,7 @@ export function PartCard({ partId, onClose }: { partId: string; onClose: () => v
       {confirmFuse && next && (
         <ConfirmDialog
           title="Объединить модификации?"
-          text={`${fusionConfig.count} × «${part.name}» (${ru.rarity[part.rarity].toLowerCase()}) → 1 ${ru.rarity[next].toLowerCase()}. Шанс успеха ${Math.round(fusionChance(part.rarity) * 100)}%.`}
+          text={`${fusionConfig.count} × «${part.name}» (${ru.rarity[part.rarity].toLowerCase()}) → 1 ${ru.rarity[next].toLowerCase()}. Шанс успеха ${Math.round(fusionChance(part.rarity, profile) * 100)}%.`}
           warning="При неудаче все три детали будут уничтожены."
           confirmLabel="Объединить"
           onConfirm={() => {
@@ -361,7 +362,7 @@ export function MassFuseSheet({ onClose }: { onClose: () => void }) {
   const [confirm, setConfirm] = useState(false);
   const n = fusableCount(profile, rar);
   const next = nextRarity(rar);
-  const chance = Math.round(fusionChance(rar) * 100);
+  const chance = Math.round(fusionChance(rar, profile) * 100);
   return (
     <>
       <Sheet

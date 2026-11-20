@@ -3,8 +3,8 @@ import { computeBunkerStats, type BunkerStats } from '../../game/bunker/BunkerSt
 import { betterSlotFor } from '../../game/bunker/compare';
 import { modeConfig } from '../../game/config/gameConfig';
 import { getLocation } from '../../game/config/locationsConfig';
-import { coilProps, coilRolls, itemModifiers, itemStatRolls, sellPrice, type StatRoll } from '../../game/items/ItemGenerator';
-import { RollLine } from './Roll';
+import { coilProps, coilRolls, itemQuality, itemModifiers, itemStatRolls, sellPrice, type StatRoll } from '../../game/items/ItemGenerator';
+import { QualityBadge, RollLine } from './Roll';
 import { upgradeBlock } from '../../game/items/ItemUpgrade';
 import { formatStatValue, lowerIsBetter } from '../../game/items/statInfo';
 import { defaultSlotFor, equipItem, needsSellWarning, slotOf } from '../../game/profile/Profile';
@@ -159,6 +159,7 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
               Ур. {item.level}/{item.maxLevel} · тех. уровень {item.tier}
             </div>
           </div>
+          <QualityBadge q={itemQuality(item)} />
         </div>
       }
       actions={

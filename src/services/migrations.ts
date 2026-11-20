@@ -153,6 +153,6 @@ export function migrate(raw: unknown): Profile {
     daily: p.daily ?? base.daily,
     quests: { ...base.quests, ...(p.quests ?? {}) },
     player: { ...base.player, ...(p.player ?? {}) },
-    vip: p.vip ?? base.vip,
+    vip: { ...base.vip, ...(p.vip ?? {}) },
   };
 }

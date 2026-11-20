@@ -22,8 +22,8 @@ import {
   type OfflineRates,
   type Profile,
 } from '../game/profile/Profile';
-import { vipLevel, vipPerks } from '../game/meta/vip';
 import type { QuestPeriod } from '../game/config/metaConfig';
+import { claimVipChest, claimVipGift } from '../game/meta/vipActions';
 import { computeOfflineReward, type OfflineReward } from '../game/progression/offline';
 import { research , resetSkills } from '../game/progression/TechnologyTree';
 import type { Item, Part, Rarity, Resources, SlotId } from '../game/types';
@@ -82,6 +82,8 @@ interface ProfileState {
   scrapPart: (partId: string) => number;
   extractPart: (itemId: string, slot: number) => string | null;
   setPlayer: (patch: Partial<Profile['player']>) => void;
+  claimVipChest: () => boolean;
+  claimVipGift: (level: number) => boolean;
   fuseAll: (rarity: Rarity) => { success: number; failed: number; results: Part[] };
   setRates: (r: OfflineRates) => void;
   touch: () => void;
@@ -180,8 +182,6 @@ export const useProfile = create<ProfileState>((set, get) => {
     applyLoot: (loot, xp, enemyKind) => {
       let p = get().profile;
       if (!p) return { levels: 0, sold: [], coins: 0 };
-      const vipCoin = vipPerks(vipLevel(p.vip.points)).coinPct;
-      if (vipCoin > 0 && loot.resources.coins) loot = { ...loot, resources: { ...loot.resources, coins: Math.round(loot.resources.coins * (1 + vipCoin)) } };
       p = addResources(p, loot.resources);
       if (enemyKind) {
         p = questProgress(p, 'kill');
@@ -392,6 +392,22 @@ export const useProfile = create<ProfileState>((set, get) => {
       if (r.error) return { error: r.error };
       commit(r.profile, false, true);
       return { success: r.success, result: r.result };
+    },
+
+    claimVipChest: () => {
+      const p = get().profile;
+      const q = p ? claimVipChest(p) : null;
+      if (!q) return false;
+      commit(q, true, true);
+      return true;
+    },
+
+    claimVipGift: (level) => {
+      const p = get().profile;
+      const r = p ? claimVipGift(p, level) : null;
+      if (!r) return false;
+      commit(r.profile, true, true);
+      return true;
     },
 
     setPlayer: (patch) => {
