@@ -1,0 +1,21 @@
+name: Diag
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/diag-trigger']
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    env:
+      REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - name: Function logs (last calls)
+        run: |
+          Q='select timestamp, response.status_code, request.method from function_edge_logs cross join unnest(metadata) as m cross join unnest(m.response) as response cross join unnest(m.request) as request order by timestamp desc limit 40'
+          curl -sS -G "https://api.supabase.com/v1/projects/$REF/analytics/endpoints/logs.all" -H "Authorization: Bearer $TOKEN" --data-urlencode "sql=$Q" | jq -c '.result[]?, .error?' | head -50
+      - name: Players in table
+        run: |
+          KEY=$(curl -sS "https://api.supabase.com/v1/projects/$REF/api-keys?reveal=true" -H "Authorization: Bearer $TOKEN" | jq -r '.[] | select(.name=="service_role") | .api_key')
+          echo "::add-mask::$KEY"
+          curl -sS "https://$REF.supabase.co/rest/v1/players?select=tg_id,nick,level,power,save_updated,updated_at" -H "apikey: $KEY" -H "Authorization: Bearer $KEY" | jq -c '.[] | {nick, level, power, updated_at}'
