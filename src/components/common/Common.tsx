@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
 import { useUi } from '../../stores/uiStore';
 import { useProfile } from '../../stores/profileStore';
@@ -34,6 +35,10 @@ export function Bar({
   );
 }
 
+function appRoot(): Element {
+  return document.querySelector('.app') ?? document.body;
+}
+
 export function ConfirmDialog({
   title,
   text,
@@ -51,7 +56,8 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  return (
+  // Окно выносится на уровень всего приложения, чтобы его не обрезали кнопки и панели.
+  return createPortal(
     <div className="modal-back center" onClick={onCancel}>
       <div className="dialog" onClick={(e) => e.stopPropagation()}>
         <h3>{title}</h3>
@@ -67,7 +73,7 @@ export function ConfirmDialog({
         </div>
       </div>
     </div>
-  );
+  , appRoot());
 }
 
 export function Toasts() {
