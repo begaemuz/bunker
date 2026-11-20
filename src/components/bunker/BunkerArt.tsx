@@ -29,7 +29,7 @@ export function BunkerArt({ profile, highlight }: { profile: Profile; highlight?
     highlight === s ? <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f2a93b" strokeWidth="2" strokeDasharray="4 3" /> : null;
 
   return (
-    <svg className="bunker-art" viewBox="0 0 200 300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Лаборатория бункера">
+    <svg className="bunker-art" viewBox="0 0 200 262" preserveAspectRatio="xMidYMax slice" role="img" aria-label="Лаборатория бункера">
       <defs>
         <linearGradient id="lb-wall" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#1b2a2e" />
