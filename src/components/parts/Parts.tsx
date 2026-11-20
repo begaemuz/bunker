@@ -113,6 +113,7 @@ export function PartCard({ partId, onClose }: { partId: string; onClose: () => v
   const toast = useUi((s) => s.toast);
   const [picking, setPicking] = useState(false);
   const [confirmFuse, setConfirmFuse] = useState(false);
+  const [confirmScrap, setConfirmScrap] = useState(false);
   const part = profile.parts[partId];
   if (!part) return null;
   const t = getPartTemplate(part.templateId);
@@ -156,11 +157,7 @@ export function PartCard({ partId, onClose }: { partId: string; onClose: () => v
           </button>
           <button
             className="btn btn-rust"
-            onClick={() => {
-              const s = scrap(part.id);
-              toast(`Разобрано: +${s} компонентов синтеза`, 'good');
-              onClose();
-            }}
+            onClick={() => setConfirmScrap(true)}
           >
             Разобрать +{dismantleValue(part)} <ResourceIcon type="components" />
           </button>
@@ -261,6 +258,21 @@ export function PartCard({ partId, onClose }: { partId: string; onClose: () => v
           )}
 
     </Sheet>
+      {confirmScrap && (
+        <ConfirmDialog
+          title="Разобрать модификацию?"
+          text={`«${part.name}» (${ru.rarity[part.rarity].toLowerCase()}, качество ${Math.round(partQuality(part) * 100)}%) исчезнет навсегда. Вы получите ${dismantleValue(part)} компонентов синтеза.`}
+          confirmLabel="Разобрать"
+          danger
+          onConfirm={() => {
+            setConfirmScrap(false);
+            const s = scrap(part.id);
+            toast(`Разобрано: +${s} компонентов синтеза`, 'good');
+            onClose();
+          }}
+          onCancel={() => setConfirmScrap(false)}
+        />
+      )}
       {confirmFuse && next && <FusionPicker part={part} onDone={onClose} onCancel={() => setConfirmFuse(false)} />}
     </>
   );
