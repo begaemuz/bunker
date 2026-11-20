@@ -64,10 +64,6 @@ function TopBar() {
   const setProfileOpen = useUi((s) => s.setProfileOpen);
   const openShop = useUi((s) => s.openShop);
   const lvl = profile.bunker.level;
-  const setQuests = useUi((s) => s.setQuestsOpen);
-  const badge = useQuestBadge();
-  const loginReady = useLoginBadge();
-  const setLogin = useUi((s) => s.setLoginOpen);
   const power = useMemo(
     () => combatPower(computeBunkerStats(profile)),
     // мощь зависит только от оборудования, деталей и исследований
@@ -93,24 +89,19 @@ function TopBar() {
           <span className="power" title="Боевая мощь">
             <UiIcon kind="bolt" size={13} /> {fmtNum(power)}
           </span>
+          <div className="top-line">
+            <button className="top-vip" onClick={() => setProfileOpen(true)}>
+              VIP {vipLevel(profile.vip.points)}
+            </button>
+            <span className="top-cur">
+              <ResourceIcon type="coins" /> {fmtNum(r.coins)}
+            </span>
+            <button className="top-cur" onClick={() => openShop('special')} aria-label="Купить кристаллы">
+              <ResourceIcon type="crystals" /> {fmtNum(r.crystals)}
+              <span className="money-plus">+</span>
+            </button>
+          </div>
         </div>
-        <div className="top-money">
-          <span className="money">
-            <ResourceIcon type="coins" /> {fmtNum(r.coins)}
-          </span>
-          <button className="money" onClick={() => openShop('special')} aria-label="Купить кристаллы">
-            <ResourceIcon type="crystals" /> {fmtNum(r.crystals)}
-            <span className="money-plus">+</span>
-          </button>
-        </div>
-        <button className="btn top-btn" onClick={() => setLogin(true)} aria-label="Ежедневный вход">
-          <UiIcon kind="calendar" size={19} />
-          {loginReady && <span className="nav-badge">!</span>}
-        </button>
-        <button className="btn top-btn" onClick={() => setQuests(true)} aria-label="Задания">
-          <UiIcon kind="tasks" size={19} />
-          {badge > 0 && <span className="nav-badge">{badge}</span>}
-        </button>
         <button className="btn top-btn" onClick={() => setScreen('menu')} aria-label="Настройки">
           <UiIcon kind="menu" size={20} />
         </button>
@@ -151,6 +142,63 @@ function LocCorner() {
         </span>
       )}
     </button>
+  );
+}
+
+/** Нарисованный отрывной календарь: число — текущий день награды за вход. */
+function CalendarArt({ day }: { day: number }) {
+  return (
+    <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden>
+      <rect x="5" y="8" width="30" height="28" rx="5" fill="#f4efe3" />
+      <rect x="5" y="30" width="30" height="6" rx="3" fill="#ddd4c0" />
+      <path d="M5 13a5 5 0 0 1 5-5h20a5 5 0 0 1 5 5v4H5z" fill="#e5483a" />
+      <rect x="11" y="4" width="4" height="9" rx="2" fill="#5a636b" />
+      <rect x="25" y="4" width="4" height="9" rx="2" fill="#5a636b" />
+      <text x="20" y="31" textAnchor="middle" fontSize="13" fill="#2a2f35" style={{ fontFamily: 'var(--display)' }}>
+        {day}
+      </text>
+    </svg>
+  );
+}
+
+/** Нарисованный планшет с заданиями. */
+function TasksArt() {
+  return (
+    <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden>
+      <rect x="7" y="6" width="26" height="31" rx="4" fill="#9a6a3c" />
+      <rect x="10" y="10" width="20" height="24" rx="2" fill="#f7f3ea" />
+      <rect x="14" y="3.5" width="12" height="6" rx="2" fill="#8d959c" stroke="#5a636b" strokeWidth="1" />
+      <path d="M13 16l2 2 3.5-3.5" stroke="#3fbf4c" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M21 16.5h6" stroke="#9aa0a6" strokeWidth="2" strokeLinecap="round" />
+      <path d="M13 23l2 2 3.5-3.5" stroke="#3fbf4c" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M21 23.5h6" stroke="#9aa0a6" strokeWidth="2" strokeLinecap="round" />
+      <rect x="13" y="28" width="4.5" height="4.5" rx="1" fill="none" stroke="#f2a93b" strokeWidth="1.6" />
+      <path d="M21 30.5h6" stroke="#9aa0a6" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Вход и задания над кнопкой скорости. */
+function SideActions() {
+  const profile = useProfile((s) => s.profile)!;
+  const badge = useQuestBadge();
+  const loginReady = useLoginBadge();
+  const setLogin = useUi((s) => s.setLoginOpen);
+  const setQuests = useUi((s) => s.setQuestsOpen);
+  const day = loginReady ? profile.daily.cycle + 1 : Math.max(1, profile.daily.cycle);
+  return (
+    <div className="side-actions">
+      <button className={`side-act${loginReady ? ' ready' : ''}`} onClick={() => setLogin(true)} aria-label="Ежедневный вход">
+        <CalendarArt day={day} />
+        <span>Вход</span>
+        {loginReady && <i className="side-badge">!</i>}
+      </button>
+      <button className={`side-act${badge > 0 ? ' ready' : ''}`} onClick={() => setQuests(true)} aria-label="Задания">
+        <TasksArt />
+        <span>Задания</span>
+        {badge > 0 && <i className="side-badge">{badge}</i>}
+      </button>
+    </div>
   );
 }
 
@@ -270,6 +318,7 @@ function FieldOverlay() {
         </div>
       )}
       <div className="field-bottom">
+        <SideActions />
         <SpeedButton />
         <BossButton />
         <LootFeed />

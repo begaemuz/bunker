@@ -25,8 +25,35 @@ function ac(): AudioContext | null {
     applyVolumes();
     startMusic();
   }
-  if (ctx.state === 'suspended') void ctx.resume();
+  // iOS и Telegram при сворачивании переводят звук в 'suspended' или 'interrupted'
+  if (ctx.state !== 'running' && ctx.state !== 'closed') void ctx.resume().catch(() => undefined);
   return ctx;
+}
+
+/** Сами усыпляем звук при сворачивании и будим при возврате — иначе музыка пропадает. */
+function wake(): void {
+  if (!ctx || document.hidden) return;
+  if (ctx.state === 'closed') {
+    // WebView закрыл контекст — пересоздаём заново
+    ctx = null;
+    ac();
+    return;
+  }
+  if (ctx.state !== 'running') void ctx.resume().catch(() => undefined);
+}
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (!ctx) return;
+    if (document.hidden) void ctx.suspend().catch(() => undefined);
+    else wake();
+  });
+  window.addEventListener('focus', wake);
+  window.addEventListener('pageshow', wake);
+  // Любое касание после возврата тоже будит звук (iOS требует жест пользователя).
+  window.addEventListener('pointerdown', () => {
+    if (unlocked) wake();
+  });
 }
 
 function applyVolumes(): void {
