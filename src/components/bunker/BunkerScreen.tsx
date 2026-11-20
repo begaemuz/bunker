@@ -11,7 +11,7 @@ import { fmtNum, ru } from '../../i18n/ru';
 import { useProfile } from '../../stores/profileStore';
 import { useUi } from '../../stores/uiStore';
 import { colors, rarityColor } from '../../ui/theme';
-import { Bar, ResourceStrip } from '../common/Common';
+import { Bar } from '../common/Common';
 import { CategoryGlyph, ItemIcon, ResourceIcon, UiIcon } from '../common/Icons';
 import { ItemCard } from '../inventory/ItemCard';
 import { ItemTile } from '../inventory/ItemRow';
@@ -254,7 +254,6 @@ export function BunkerScreen() {
           <UiIcon kind="bolt" size={15} /> {fmtNum(power)}
         </span>
         <span className="lvl-badge">УР {profile.bunker.level}</span>
-        <ResourceStrip />
       </div>
       <div className="screen-body">
         <div className="doll">

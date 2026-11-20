@@ -1,4 +1,3 @@
-import { ResourceStrip } from '../common/Common';
 import { useState } from 'react';
 import { getTech, techBranches, techConfig, type TechBranch, type TechEffect, type TechNode } from '../../game/config/techConfig';
 import { formatStatValue } from '../../game/items/statInfo';
@@ -233,8 +232,12 @@ export function TechScreen() {
     <div className="screen">
       <div className="screen-header">
         <h2 className="grow">Наука</h2>
-        <span className="lvl-badge">УР {profile.bunker.level}</span>
-        <ResourceStrip keys={['coins', 'scrap', 'techParts', 'blueprints', 'energyCores']} />
+        <span className="sp-chip" title={`Вложено ${spent} из ${skillPointsTotal(profile)}`}>
+          Очки навыков <b>{Math.max(0, free)}</b>
+        </span>
+        <button className="sp-reset" disabled={spent === 0} onClick={() => setConfirmReset(true)} aria-label="Сбросить навыки">
+          <UiIcon kind="refresh" size={15} /> Сброс
+        </button>
       </div>
       <div className="tabs skill-tabs">
         {techBranches.map((b) => {
@@ -254,18 +257,7 @@ export function TechScreen() {
             <div className="skill-title">{branch.name}</div>
             <div className="small muted">{branch.description}</div>
           </div>
-          <div className="skill-points">
-            <b>{Math.max(0, free)}</b>
-            <span>свободно</span>
-          </div>
-        </div>
-        <div className="skill-bar">
-          <span className="small">
-            Очки навыков: <b>{spent}</b> / {skillPointsTotal(profile)} · в ветке {branchPoints(profile, branch.id)}
-          </span>
-          <button className="btn btn-sm btn-ghost" disabled={spent === 0} onClick={() => setConfirmReset(true)}>
-            Сбросить
-          </button>
+          <span className="small muted skill-branch-pts">в ветке {branchPoints(profile, branch.id)}</span>
         </div>
         {free < 0 && <div className="warn-box" style={{ marginBottom: 8 }}>Вложено больше очков, чем даёт уровень бункера. Изученное сохранится, но новые уровни откроются, когда уровень бункера догонит. Можно сбросить навыки и распределить заново.</div>}
 

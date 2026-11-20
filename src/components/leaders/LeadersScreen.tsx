@@ -6,7 +6,6 @@ import { vipLevel } from '../../game/meta/vip';
 import { fmtNum } from '../../i18n/ru';
 import { useProfile } from '../../stores/profileStore';
 import { useUi } from '../../stores/uiStore';
-import { ResourceStrip } from '../common/Common';
 import { UiIcon } from '../common/Icons';
 import { PlayerAvatar } from '../player/Avatar';
 import { playerNick } from '../player/ProfileSheet';
@@ -60,7 +59,6 @@ export function LeadersScreen() {
     <div className="screen">
       <div className="screen-header">
         <h2 className="grow">Лидеры</h2>
-        <ResourceStrip />
       </div>
       <div className="seg quest-tabs" style={{ margin: '14px 10px 0' }}>
         {BOARDS.map((x) => (
