@@ -18,8 +18,8 @@ type Danger = 'easy' | 'normal' | 'hard' | 'locked' | 'level';
 
 const DANGER: Record<Danger, { label: string; color: string }> = {
   easy: { label: 'Лёгкая', color: '#5fd16a' },
-  normal: { label: 'Опасная', color: '#f2b53a' },
-  hard: { label: 'Смертельная', color: '#ff4d4d' },
+  normal: { label: 'Средняя', color: '#f2b53a' },
+  hard: { label: 'Опасная', color: '#ff4d4d' },
   locked: { label: 'Закрыта', color: '#5b646d' },
   level: { label: 'Мал уровень', color: '#8a7a5a' },
 };

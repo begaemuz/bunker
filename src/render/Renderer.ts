@@ -430,7 +430,7 @@ export class Renderer {
     void heat;
     void pulse;
     // Рисунок бункера: основание стоит на земле, вершина — шпиль.
-    const W = R * 3.1;
+    const W = R * 3.4;
     const H = W * (BUNKER_IMG.naturalHeight / Math.max(1, BUNKER_IMG.naturalWidth) || 1.01);
     const bottom = R * 0.95;
     if (BUNKER_IMG.complete && BUNKER_IMG.naturalWidth > 0) {
