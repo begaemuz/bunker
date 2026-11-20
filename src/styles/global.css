@@ -1768,8 +1768,8 @@ button {
   --display: 'Russo One', 'Rubik', system-ui, sans-serif;
   --body: 'Rubik', system-ui, -apple-system, sans-serif;
   --hazard: repeating-linear-gradient(-45deg, var(--amber) 0 7px, #14181c 7px 14px);
-  --rivets: radial-gradient(circle at 7px 7px, #5b6670 1.6px, transparent 2.2px), radial-gradient(circle at calc(100% - 7px) 7px, #5b6670 1.6px, transparent 2.2px),
-    radial-gradient(circle at 7px calc(100% - 7px), #5b6670 1.6px, transparent 2.2px), radial-gradient(circle at calc(100% - 7px) calc(100% - 7px), #5b6670 1.6px, transparent 2.2px);
+  --screw: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9' viewBox='0 0 9 9'%3E%3Ccircle cx='4.5' cy='4.5' r='3.6' fill='%2356616b' stroke='%232a3036' stroke-width='0.8'/%3E%3Cpath d='M3 3l3 3M6 3L3 6' stroke='%231e2328' stroke-width='0.9' stroke-linecap='round'/%3E%3C/svg%3E");
+  --rivets: var(--screw) left 5px top 5px / 9px 9px no-repeat, var(--screw) right 5px top 5px / 9px 9px no-repeat, var(--screw) left 5px bottom 5px / 9px 9px no-repeat, var(--screw) right 5px bottom 5px / 9px 9px no-repeat;
 }
 
 html,
@@ -5036,3 +5036,11 @@ button.pavatar:active {
 .pick-row .small { display: block; margin-top: 2px; }
 .pick-ic { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: #0b0e11; }
 .pick-side { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; font-family: var(--display); font-size: 13px; }
+
+/* Пластины с винтами: текст не подходит к винтам ближе 18px */
+.bstat { padding: 12px 18px; }
+.panel { padding: 14px 18px; }
+.quest { padding-left: 18px; padding-right: 18px; }
+.toggle-row { padding-left: 18px; padding-right: 18px; }
+.tech-card, .boss-card, .doll-stats, .trader, .deal, .swap { padding-left: 18px; padding-right: 18px; }
+.dialog { padding: 20px 20px 18px; }
