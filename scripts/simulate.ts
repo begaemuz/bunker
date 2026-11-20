@@ -30,7 +30,7 @@ import {
 } from '../src/game/profile/Profile';
 import { effectValue, resetSkills, research, researchBlock, researchCost } from '../src/game/progression/TechnologyTree';
 import { LOGIN_DAYS, buyOffer, buySpecial, claimDaily, claimQuest, claimQuestBonus, doExchange, ensureQuests, ensureShop, exchangeUsed, questProgress, refreshShop } from '../src/game/meta/Meta';
-import { addParts, extractPart, fuseAll, fuseParts, fusionPick, generatePart, partQuality, installPart, unlockSlot } from '../src/game/items/Parts';
+import { addParts, extractPart, fuseAll, fuseParts, fusionPick, fusionQualityRange, generatePart, partQuality, partStatRoll, installPart, unlockSlot } from '../src/game/items/Parts';
 import { applyAutoSell } from '../src/game/economy/AutoSell';
 import { computeOfflineReward } from '../src/game/progression/offline';
 import { rewardDecay } from '../src/game/progression/rewards';
@@ -205,6 +205,15 @@ console.log('— Модификации по редкости и объедин�
     const rr = fuseParts(p2, pool[1].id, pickIds);
     check('Ручной выбор: в объединение уходят только выбранные', !!rr.profile.parts[keep.id] && pickIds.every((id) => !rr.profile.parts[id]));
     check('Нельзя смешать разные модификации', fuseParts(addParts(p2, [generatePart('epic', 'p_lens')]), pool[1].id, [pool[1].id, pool[2].id, Object.values(addParts(p2, [generatePart('epic', 'p_lens')]).parts).find((x) => x.templateId === 'p_lens')!.id]).error !== undefined);
+  }
+  {
+    const hi = generatePart('rare', 'p_plate');
+    hi.stats = hi.stats.map((x, i) => ({ ...x, value: partStatRoll(hi, i)!.max }));
+    const lo = generatePart('rare', 'p_plate');
+    lo.stats = lo.stats.map((x, i) => ({ ...x, value: partStatRoll(lo, i)!.min }));
+    const [mixLo, mixHi] = fusionQualityRange([hi, hi, lo]);
+    const [goodLo] = fusionQualityRange([hi, hi, hi]);
+    check(`Сильная + слабая не дают высокий процент (смесь до ${Math.round(mixHi * 100)}%, три сильные от ${Math.round(goodLo * 100)}%)`, mixHi < 0.6 && goodLo > 0.6 && mixLo >= 0);
   }
   const q = partQuality(a[0]);
   check('Качество модификации в пределах 0..100%', q >= 0 && q <= 1);

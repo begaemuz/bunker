@@ -474,7 +474,7 @@ function FusionPicker({ part, onDone, onCancel }: { part: Part; onDone: () => vo
         </div>
       </div>
       <div className="small muted" style={{ margin: '10px 2px' }}>
-        Качество новой {ru.rarity[next].toLowerCase()} модификации зависит от качества выбранных: чем они лучше, тем выше результат. Свои сильные экземпляры можно оставить себе.
+        Качество новой {ru.rarity[next].toLowerCase()} модификации определяет самая слабая из выбранных: высокий процент получится, только если все три сильные. Смешивать сильную со слабой невыгодно — сильную лучше оставить себе.
       </div>
       <div className="fuse-pick">
         {group.map((x) => {

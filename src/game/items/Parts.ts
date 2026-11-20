@@ -21,15 +21,28 @@ export function partExtraPool(t: PartTemplate): PartTemplate[] {
   return partTemplates.filter((x) => x.id !== t.id && x.stat !== t.stat);
 }
 
-/** Качество свойства после объединения: половина — от исходных деталей, половина — случай. */
-export function fusionRoll(avgQuality: number): number {
-  return avgQuality * 0.5 + randFloat(0, 0.5);
+/**
+ * Основа качества при объединении: слабое звено тянет вниз.
+ * 65% — от худшей детали, 35% — от среднего. Три сильные дают сильную,
+ * а сильная вперемешку со слабой — почти никогда.
+ */
+export function fusionBase(parts: Part[]): number {
+  if (!parts.length) return 0;
+  const qs = parts.map(partQuality);
+  const min = Math.min(...qs);
+  const avg = qs.reduce((a, b) => a + b, 0) / qs.length;
+  return 0.65 * min + 0.35 * avg;
 }
 
-/** Ожидаемый диапазон качества результата объединения. */
+/** Качество свойства после объединения: 70% — основа, 30% — случай, смещённый вниз. */
+export function fusionRoll(base: number): number {
+  return base * 0.7 + Math.pow(randFloat(0, 1), 1.5) * 0.3;
+}
+
+/** Возможный диапазон качества результата объединения. */
 export function fusionQualityRange(parts: Part[]): [number, number] {
-  const avg = parts.reduce((s, x) => s + partQuality(x), 0) / Math.max(1, parts.length);
-  return [avg * 0.5, avg * 0.5 + 0.5];
+  const b = fusionBase(parts);
+  return [b * 0.7, b * 0.7 + 0.3];
 }
 
 export function generatePart(rarity: Rarity, templateId?: string, bias?: number): Part {
@@ -195,7 +208,7 @@ export function fuseParts(p: Profile, partId: string, ids?: string[]): { profile
     if (fusionGroup(p, part).length < fusionConfig.count) return { profile: p, error: 'count' };
     use = fusionPick(p, part);
   }
-  const avgQ = use.reduce((s, x) => s + partQuality(x), 0) / use.length;
+  const avgQ = fusionBase(use);
   const parts = { ...p.parts };
   for (const x of use) delete parts[x.id];
   let q: Profile = { ...p, parts };
