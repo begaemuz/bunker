@@ -154,7 +154,7 @@ export function LocationsScreen() {
                 )}
                 {here && (
                   <g className="zmap-here-tag">
-                    <rect x={r.x - 27} y={r.y + 4 + lines.length * 10} width={54} height={13} rx={6.5} fill="#f2b53a" />
+                    <rect x={r.x - 31} y={r.y + 4 + lines.length * 10} width={62} height={13} rx={6.5} fill="#f2b53a" />
                     <text x={r.x} y={r.y + 13.5 + lines.length * 10} textAnchor="middle" className="zmap-here-t">
                       ВЫ ЗДЕСЬ
                     </text>
