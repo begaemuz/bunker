@@ -58,6 +58,9 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'method' }, 405);
 
+  // Время сервера — без входа: по нему у всех одинаково наступают новые сутки.
+  if (new URL(req.url).searchParams.get('time') !== null) return json({ now: Date.now() });
+
   const user = await verify(req.headers.get('x-init-data') ?? '');
   if (!user) return json({ error: 'auth' }, 401);
   const body = await req.json().catch(() => ({}));

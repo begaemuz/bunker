@@ -2,7 +2,7 @@ import { ResourceStrip } from '../common/Common';
 import { useEffect, useState } from 'react';
 import { exchangeConfig, shopConfig } from '../../game/config/metaConfig';
 import { crystalPacks, vipLevel } from '../../game/meta/vip';
-import { exchangeLimit, exchangeUsed, nextShopRefresh, shopRefreshCost, type Offer } from '../../game/meta/Meta';
+import { exchangeLimit, exchangeUsed, nextShopRefresh, shopRefreshCost, type Offer, specialLeft } from '../../game/meta/Meta';
 import { canAfford } from '../../game/profile/Profile';
 import { RESOURCE_KEYS, type Resources } from '../../game/types';
 import { fmtNum, ru } from '../../i18n/ru';
@@ -283,13 +283,14 @@ export function ShopScreen() {
                 <div className="grow">
                   <div className="deal-title">{o.title}</div>
                   <div className="small muted">{o.description}</div>
+                  {specialLeft(profile, o.id) !== null && <div className="small" style={{ color: '#ffcf4d' }}>Осталось в этом месяце: {specialLeft(profile, o.id)} из 3</div>}
                 </div>
                 <button
                   className="btn btn-sm btn-primary"
-                  disabled={!canAfford(profile, o.price)}
+                  disabled={!canAfford(profile, o.price) || specialLeft(profile, o.id) === 0}
                   onClick={() => {
                     const res = buySpecial(o.id);
-                    if (res.error) toast('Не хватает кристаллов', 'bad');
+                    if (res.error) toast(res.error === 'limit' ? 'Лимит на этот месяц исчерпан' : 'Не хватает кристаллов', 'bad');
                     else {
                       sfx.item(true);
                       toast(`Получено: ${res.got}`, 'rare');

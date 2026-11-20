@@ -58,7 +58,7 @@ console.log('— Оборудование');
   const ids = new Set<string>();
   for (const r of RARITIES.filter((x) => x !== 'unique'))
     for (let i = 0; i < 100; i++) ids.add(generateItem({ rarity: r, tier: 1, source: { kind: 'start' } }).id);
-  check('Уникальные ID экземпляров', ids.size === 500);
+  check('Уникальные ID экземпляров', ids.size === 600);
   const c = generateItem({ templateId: 'coil_emp', rarity: 'common', tier: 1, source: { kind: 'start' } });
   const l = generateItem({ templateId: 'coil_emp', rarity: 'legendary', tier: 1, source: { kind: 'start' } });
   const t3 = generateItem({ templateId: 'coil_emp', rarity: 'common', tier: 3, source: { kind: 'start' } });

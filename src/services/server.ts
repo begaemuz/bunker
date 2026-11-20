@@ -106,3 +106,22 @@ export async function claimDeliveries(): Promise<Delivery[] | null> {
   const r = await call<{ list: Delivery[] }>('deliveries');
   return r?.list ?? null;
 }
+
+/** Время сервера (без входа). Возвращает UTC мс или null. */
+export async function fetchServerTime(): Promise<number | null> {
+  if (!API) return null;
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), 5000);
+  try {
+    const sent = Date.now();
+    const r = await fetch(`${API}?time`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}', signal: ctl.signal });
+    if (!r.ok) return null;
+    const j = (await r.json()) as { now?: number };
+    // поправка на половину времени запроса
+    return typeof j.now === 'number' ? j.now + (Date.now() - sent) / 2 : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(t);
+  }
+}

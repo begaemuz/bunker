@@ -22,7 +22,7 @@ export function MassSellSheet({ onClose, hints }: { onClose: () => void; hints: 
   const [keepMods, setKeepMods] = useState(true);
   const [confirm, setConfirm] = useState(false);
 
-  const free = useMemo(() => Object.values(profile.items).filter((i) => !isEquipped(profile, i.id) && i.rarity !== 'unique'), [profile]);
+  const free = useMemo(() => Object.values(profile.items).filter((i) => !isEquipped(profile, i.id) && i.rarity !== 'unique' && i.rarity !== 'mythic'), [profile]);
   const countBy = (r: Rarity) => free.filter((i) => i.rarity === r).length;
 
   const list = useMemo(
@@ -62,7 +62,7 @@ export function MassSellSheet({ onClose, hints }: { onClose: () => void; hints: 
           Какие продать
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {RARITIES.filter((r) => r !== 'unique').map((r) => (
+          {RARITIES.filter((r) => r !== 'unique' && r !== 'mythic').map((r) => (
             <button key={r} className={`chip-toggle${picked.has(r) ? ' on' : ''}`} style={{ color: rarityColor[r] }} onClick={() => toggle(r)}>
               {picked.has(r) ? '✓ ' : ''}Все {ru.rarity[r].toLowerCase()} ({countBy(r)})
             </button>

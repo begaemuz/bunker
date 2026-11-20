@@ -22,6 +22,8 @@ export interface LocationDef {
   /** Шансы редкости оборудования с обычных роботов. */
   rarity: Record<Rarity, number>;
   palette: { ground: string; groundAlt: string; debris: string; accent: string; fog: string };
+  /** Особая зона (подземелье, разлом). */
+  special?: 'rift';
 }
 
 const R = (common: number, uncommon: number, rare: number, epic: number, legendary: number): Record<Rarity, number> => ({
@@ -31,6 +33,7 @@ const R = (common: number, uncommon: number, rare: number, epic: number, legenda
   epic,
   legendary,
   unique: 0,
+  mythic: 0,
 });
 
 export const locationsConfig: LocationDef[] = [
@@ -184,6 +187,31 @@ export const locationsConfig: LocationDef[] = [
     resourceMult: { coins: 1.5, energyCores: 1.5, crystals: 2 },
     rarity: R(0.3, 0.3, 0.24, 0.11, 0.05),
     palette: { ground: '#1a1416', groundAlt: '#24191c', debris: '#3a2228', accent: '#5a1c24', fog: '#0d0809' },
+  },
+  {
+    // Особая зона после победы над Ядром ИИ: здесь и только здесь падают красные вещи.
+    id: 8,
+    name: 'Красный разлом',
+    description: 'Трещина в земле, откуда ИИ поднимает экспериментальные машины. Единственное место, где находят красное оборудование.',
+    tier: 8,
+    groupsForBoss: 20,
+    levelCap: 99,
+    recommendedLevel: 45,
+    special: 'rift',
+    enemies: [
+      { kind: 'armored', weight: 5 },
+      { kind: 'shielded', weight: 5 },
+      { kind: 'heavy', weight: 4 },
+      { kind: 'ranged', weight: 3 },
+      { kind: 'support', weight: 3 },
+      { kind: 'kamikaze', weight: 3 },
+    ],
+    minibossEvery: 5,
+    boss: 'rift',
+    resourceMult: { crystals: 2.5, energyCores: 2, stabilizers: 1.5 },
+    // Красная вещь с обычного робота — примерно одна на 2000 находок.
+    rarity: { common: 0.2, uncommon: 0.3, rare: 0.28, epic: 0.14, legendary: 0.0795, unique: 0, mythic: 0.0005 },
+    palette: { ground: '#1c1012', groundAlt: '#2a1215', debris: '#40181d', accent: '#7a1420', fog: '#0e0607' },
   },
 ];
 

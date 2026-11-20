@@ -93,6 +93,8 @@ export interface Profile {
   tgUserId: number | null;
   shop: ShopState;
   exchange: ExchangeState;
+  /** Покупки с месячным лимитом (например, Бустер III). */
+  limits: { month: string; used: Record<string, number> };
   daily: DailyState;
   quests: QuestState;
   /** Карточка игрока: ник, аватар инженера, рамка. */
@@ -101,10 +103,11 @@ export interface Profile {
   vip: { points: number; chestDay?: string; gifts?: number[] };
 }
 
-export function emptyMeta(): Pick<Profile, 'shop' | 'exchange' | 'daily' | 'quests'> {
+export function emptyMeta(): Pick<Profile, 'shop' | 'exchange' | 'limits' | 'daily' | 'quests'> {
   return {
     shop: { refreshedAt: 0, refreshDay: '', refreshes: 0, regular: [], rare: [] },
     exchange: { day: '', used: {} },
+    limits: { month: '', used: {} },
     daily: { lastDay: null, cycle: 0 },
     quests: emptyQuests(),
   };

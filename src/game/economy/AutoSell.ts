@@ -18,7 +18,7 @@ export function applyAutoSell(p: Profile, items: Item[]): { profile: Profile; ke
   let coins = 0;
   let history = p.history;
   for (const it of items) {
-    const eligible = it.rarity !== 'unique' && rarityIndex(it.rarity) <= rarityIndex(max);
+    const eligible = it.rarity !== 'unique' && it.rarity !== 'mythic' && rarityIndex(it.rarity) <= rarityIndex(max);
     if (!eligible || betterSlotFor({ ...p, items: { ...p.items, [it.id]: it } }, it, base)) {
       keep.push(it);
       continue;

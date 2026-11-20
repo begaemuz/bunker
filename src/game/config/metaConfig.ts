@@ -10,13 +10,13 @@ export const shopConfig = {
     equipment: 4,
     parts: 1,
     resources: 2,
-    rarity: { common: 0.35, uncommon: 0.35, rare: 0.2, epic: 0.08, legendary: 0.02, unique: 0 } as Record<Rarity, number>,
+    rarity: { common: 0.35, uncommon: 0.35, rare: 0.2, epic: 0.08, legendary: 0.02, unique: 0, mythic: 0 } as Record<Rarity, number>,
     /** Цена оборудования = цена продажи × множитель. */
     priceMult: 4,
   },
   rare: {
     parts: 3,
-    rarity: { common: 0, uncommon: 0, rare: 0.65, epic: 0.3, legendary: 0.05, unique: 0 } as Record<Rarity, number>,
+    rarity: { common: 0, uncommon: 0, rare: 0.65, epic: 0.3, legendary: 0.05, unique: 0, mythic: 0 } as Record<Rarity, number>,
     keyPrice: { coins: 1500, blueprints: 3 } as Partial<Resources>,
   },
   /** Пакеты ресурсов обычного магазина: что даётся и за сколько монет (× тех. уровень). */
@@ -36,7 +36,7 @@ export const shopConfig = {
     { id: 'sp_key', title: 'Ключ расширения', description: 'Открывает заблокированный слот модификации.', price: { crystals: 25 }, kind: 'key' as const },
     { id: 'sp_boost1', title: 'Бустер I', description: 'Буст вещи ±0–10%: в плюс или в минус.', price: { crystals: 90 }, kind: 'boost1' as const },
     { id: 'sp_boost2', title: 'Бустер II', description: 'Буст вещи ±10–20%: в плюс или в минус.', price: { crystals: 300 }, kind: 'boost2' as const },
-    { id: 'sp_boost3', title: 'Бустер III', description: 'Буст вещи ±15–30%. Редчайший.', price: { crystals: 900 }, kind: 'boost3' as const },
+    { id: 'sp_boost3', title: 'Бустер III', description: 'Буст вещи ±15–30%. Редчайший.', price: { crystals: 900 }, kind: 'boost3' as const, monthlyLimit: 3 },
   ],
 };
 

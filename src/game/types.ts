@@ -12,7 +12,7 @@ export type AttackType = (typeof ATTACK_TYPES)[number];
 export const EFFECT_KINDS = ['stun', 'slow', 'burn', 'jam', 'shieldBreak', 'chain', 'armorBreak'] as const;
 export type EffectKind = (typeof EFFECT_KINDS)[number];
 
-export const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'unique'] as const;
+export const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'unique', 'mythic'] as const;
 export type Rarity = (typeof RARITIES)[number];
 
 /** Типы оборудования. */

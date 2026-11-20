@@ -41,7 +41,8 @@ import {
 import { sellMany } from '../game/profile/Profile';
 import { migrate } from '../services/migrations';
 import { clearProfile, loadProfile, saveBackupSync, saveProfile, setStorageUser } from '../services/storage';
-import { claimDeliveries, serverAvailable, serverLoad, serverSave, type ServerSummary } from '../services/server';
+import { setServerTime } from '../game/meta/clock';
+import { claimDeliveries, fetchServerTime, serverAvailable, serverLoad, serverSave, type ServerSummary } from '../services/server';
 import { boostItem, type BoosterKey } from '../game/items/Boost';
 import { applyDeliveries, putLot, takeForLot, type Delivery, type LotKind, type LotPayload } from '../game/meta/auction';
 import { combatPower } from '../game/bunker/compare';
@@ -207,6 +208,9 @@ export const useProfile = create<ProfileState>((set, get) => {
           }
         }
       }
+      // Время сервера: новые сутки у всех наступают одновременно.
+      const st = await safe(fetchServerTime(), 5000, null);
+      if (st) setServerTime(st);
       // Сервер игры: самая свежая копия из всех.
       if (serverAvailable()) {
         const r = await safe(serverLoad(), 8000, null);

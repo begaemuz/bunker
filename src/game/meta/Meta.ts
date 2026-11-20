@@ -1,3 +1,4 @@
+import { gameNow, serverDate, SERVER_TZ_OFFSET } from './clock';
 import { exchangeConfig, loginCalendar, questConfig, shopConfig, type QuestKind, type QuestPeriod } from '../config/metaConfig';
 import { getLocation } from '../config/locationsConfig';
 import { generateItem, sellPrice } from '../items/ItemGenerator';
@@ -11,40 +12,38 @@ import { RESOURCE_KEYS, type Item, type Part, type Resources } from '../types';
 
 // ───────────── Время ─────────────
 
-/** Календарный день по локальному времени устройства. */
-export function dayKey(t = Date.now()): string {
-  const d = new Date(t);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+/** Календарный день по времени сервера (МСК). */
+export function dayKey(t = gameNow()): string {
+  const d = serverDate(t);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
 }
 
 /** Неделя: ключ — дата понедельника. */
-export function weekKey(t = Date.now()): string {
-  const d = new Date(t);
-  const shift = (d.getDay() + 6) % 7;
-  d.setDate(d.getDate() - shift);
-  return dayKey(d.getTime());
+export function weekKey(t = gameNow()): string {
+  const shift = (serverDate(t).getUTCDay() + 6) % 7;
+  return dayKey(t - shift * 86400_000);
 }
 
-export function monthKey(t = Date.now()): string {
-  const d = new Date(t);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+export function monthKey(t = gameNow()): string {
+  const d = serverDate(t);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
-export function periodKey(period: QuestPeriod, t = Date.now()): string {
+export function periodKey(period: QuestPeriod, t = gameNow()): string {
   return period === 'day' ? dayKey(t) : period === 'week' ? weekKey(t) : monthKey(t);
 }
 
-/** Когда обновится период (локальное время). */
-export function periodEnds(period: QuestPeriod, t = Date.now()): number {
-  const d = new Date(t);
-  d.setHours(0, 0, 0, 0);
-  if (period === 'day') d.setDate(d.getDate() + 1);
-  else if (period === 'week') d.setDate(d.getDate() + (7 - ((d.getDay() + 6) % 7)));
+/** Когда обновится период (полночь по времени сервера), UTC мс. */
+export function periodEnds(period: QuestPeriod, t = gameNow()): number {
+  const d = serverDate(t);
+  d.setUTCHours(0, 0, 0, 0);
+  if (period === 'day') d.setUTCDate(d.getUTCDate() + 1);
+  else if (period === 'week') d.setUTCDate(d.getUTCDate() + (7 - ((d.getUTCDay() + 6) % 7)));
   else {
-    d.setDate(1);
-    d.setMonth(d.getMonth() + 1);
+    d.setUTCDate(1);
+    d.setUTCMonth(d.getUTCMonth() + 1);
   }
-  return d.getTime();
+  return d.getTime() - SERVER_TZ_OFFSET;
 }
 
 /** Тех. уровень игрока = уровень самой дальней открытой локации. */
@@ -100,7 +99,7 @@ function genShop(p: Profile): Pick<ShopState, 'regular' | 'rare'> {
     regular.push({ id: uid(), kind: 'item', item, price: { coins: sellPrice(item) * c.priceMult }, sold: false });
   }
   for (let i = 0; i < c.parts; i++) {
-    const part = generatePart(rollRarity({ common: 0.5, uncommon: 0.35, rare: 0.15, epic: 0, legendary: 0, unique: 0 }));
+    const part = generatePart(rollRarity({ common: 0.5, uncommon: 0.35, rare: 0.15, epic: 0, legendary: 0, unique: 0, mythic: 0 }));
     regular.push({ id: uid(), kind: 'part', part, price: { coins: 250 * tier * (1 + ['common', 'uncommon', 'rare'].indexOf(part.rarity)) }, sold: false });
   }
   const packs = [...shopConfig.resourcePacks].sort(() => random() - 0.5).slice(0, c.resources);
@@ -156,11 +155,26 @@ export function buyOffer(p: Profile, section: 'regular' | 'rare', offerId: strin
   return { profile: { ...q, shop: { ...q.shop, [section]: list.map((x) => (x.id === offerId ? { ...x, sold: true } : x)) } } };
 }
 
-export function buySpecial(p: Profile, id: string): { profile: Profile; got?: string; error?: 'resources' | 'not_found' } {
+/** Сколько ещё можно купить в этом месяце (null — без лимита). */
+export function specialLeft(p: Profile, id: string): number | null {
+  const o = shopConfig.special.find((x) => x.id === id) as { monthlyLimit?: number } | undefined;
+  if (!o?.monthlyLimit) return null;
+  const used = p.limits?.month === monthKey() ? (p.limits.used[id] ?? 0) : 0;
+  return Math.max(0, o.monthlyLimit - used);
+}
+
+export function buySpecial(p: Profile, id: string): { profile: Profile; got?: string; error?: 'resources' | 'not_found' | 'limit' } {
   const o = shopConfig.special.find((x) => x.id === id);
   if (!o) return { profile: p, error: 'not_found' };
-  const paid = spend(p, o.price);
+  const left = specialLeft(p, id);
+  if (left === 0) return { profile: p, error: 'limit' };
+  let paid = spend(p, o.price);
   if (!paid) return { profile: p, error: 'resources' };
+  if (left !== null) {
+    const mk = monthKey();
+    const used = paid.limits?.month === mk ? paid.limits.used : {};
+    paid = { ...paid, limits: { month: mk, used: { ...used, [id]: (used[id] ?? 0) + 1 } } };
+  }
   const tier = playerTier(p);
   switch (o.kind) {
     case 'legendary': {

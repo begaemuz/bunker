@@ -36,6 +36,7 @@ export const bossRarity: Record<Rarity, number> = {
   epic: 0.28,
   legendary: 0.1,
   unique: 0,
+  mythic: 0,
 };
 
 function amount(c: { chance: number; amount: [number, number] }, mult: number): number {
@@ -115,6 +116,7 @@ export function rollBossLoot(bossId: string, ctx: DropContext): Loot {
   const items: Item[] = [];
   const n = randInt(boss.itemCount[0], boss.itemCount[1]);
   for (let i = 0; i < n; i++) items.push(generateItem({ rarity: rollRarity(bossRarity), tier: loc.tier, source }));
+  if (boss.mythicChance && chance(boss.mythicChance)) items.push(generateItem({ rarity: 'mythic', tier: loc.tier, source }));
   for (const u of boss.uniques) {
     if (chance(u.chance)) items.push(generateItem({ templateId: u.template, rarity: 'unique', tier: loc.tier, source }));
   }

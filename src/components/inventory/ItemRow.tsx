@@ -71,7 +71,7 @@ export function ItemTile({ item, better, onClick }: { item: Item; better?: boole
   return (
     <button
       className="item-tile"
-      style={{ borderColor: col, boxShadow: `inset 0 0 18px ${col}2a${item.rarity === 'legendary' || item.rarity === 'unique' ? `, 0 0 10px ${col}55` : ''}` }}
+      style={{ borderColor: col, boxShadow: `inset 0 0 18px ${col}2a${item.rarity === 'legendary' || item.rarity === 'unique' || item.rarity === 'mythic' ? `, 0 0 10px ${col}55` : ''}` }}
       onClick={onClick}
     >
       <span className="tile-glyph">

@@ -10,6 +10,7 @@ export const balanceConfig = {
     epic: 1.8,
     legendary: 2.25,
     unique: 2.4,
+    mythic: 2.7,
   } as Record<Rarity, number>,
   /** Энергопотребление и нагрев растут медленнее силы. */
   rarityCostMult: {
@@ -19,6 +20,7 @@ export const balanceConfig = {
     epic: 1.3,
     legendary: 1.45,
     unique: 1.35,
+    mythic: 1.6,
   } as Record<Rarity, number>,
   /** Сколько основных характеристик у вещи: белая 1, зелёная 2, синяя и выше 3. */
   rarityMainCount: {
@@ -28,6 +30,7 @@ export const balanceConfig = {
     epic: 3,
     legendary: 3,
     unique: 3,
+    mythic: 3,
   } as Record<Rarity, number>,
   /** Случайные дополнительные: фиолетовая +1, золотая +2 (красная в будущем +3). */
   rarityExtraCount: {
@@ -37,6 +40,7 @@ export const balanceConfig = {
     epic: [1, 1],
     legendary: [2, 2],
     unique: [1, 2],
+    mythic: [3, 3],
   } as Record<Rarity, [number, number]>,
   raritySlots: {
     common: [0, 1],
@@ -45,6 +49,7 @@ export const balanceConfig = {
     epic: [1, 3],
     legendary: [2, 4],
     unique: [3, 4],
+    mythic: [3, 4],
   } as Record<Rarity, [number, number]>,
   lockedSlotChance: 0.3,
 
@@ -75,6 +80,7 @@ export const balanceConfig = {
       epic: 3,
       legendary: 4.5,
       unique: 5,
+      mythic: 7,
     } as Record<Rarity, number>,
     /** С 7-го уровня нужны энергоядра. */
     coresFromLevel: 7,
@@ -95,6 +101,7 @@ export const balanceConfig = {
       epic: 20,
       legendary: 60,
       unique: 120,
+      mythic: 300,
     } as Record<Rarity, number>,
     perLevel: 0.25,
     perTier: 0.6,

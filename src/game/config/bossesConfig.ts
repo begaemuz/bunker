@@ -20,6 +20,8 @@ export interface BossDef extends EnemyDef {
   uniques: { template: string; chance: number }[];
   /** Шанс выдать пропуск вызова босса. */
   passChance: number;
+  /** Шанс красной вещи за победу. */
+  mythicChance?: number;
 }
 
 const B = (b: BossDef) => b;
@@ -281,5 +283,44 @@ export const bossesConfig: Record<string, BossDef> = {
       { template: 'u_core_sensor', chance: 0.07 },
     ],
     passChance: 0.3,
+  }),
+  rift: B({
+    id: 'rift',
+    name: 'Страж разлома',
+    title: 'Экспериментальная машина из глубины',
+    hp: 2600000,
+    armor: 110,
+    speed: 7,
+    damage: 230,
+    attackInterval: 1.4,
+    range: 0,
+    attack: 'energy',
+    resist: { emp: 0.35, overload: 0.25, thermal: 0.25, vibration: 0.25, highVoltage: 0.15 },
+    electronic: true,
+    heavyFrame: true,
+    size: 52,
+    xp: 30000,
+    drops: drops({
+      coins: [30000, 42000],
+      scrap: { chance: 1, amount: [900, 1200] },
+      techParts: { chance: 1, amount: [350, 450] },
+      blueprints: { chance: 1, amount: [20, 30] },
+      energyCores: { chance: 1, amount: [20, 30] },
+    }),
+    abilities: [
+      { type: 'shield', percent: 0.5, regenDelay: 4, regenRate: 0.05 },
+      { type: 'summon', kind: 'shielded', count: 3, interval: 11 },
+      { type: 'summon', kind: 'armored', count: 2, interval: 15 },
+      { type: 'suppress', interval: 18, duration: 6, rateFactor: 0.5 },
+      { type: 'jamCoil', interval: 12, duration: 5 },
+      { type: 'blast', damage: 300, interval: 4, attack: 'energy' },
+      { type: 'selfRepair', percentPerSec: 0.004, belowHp: 0.4 },
+    ],
+    look: { sides: 12, hull: '#1d1012', core: '#ff1a1a', guns: 8, spikes: true },
+    itemCount: [3, 5],
+    uniques: [],
+    passChance: 0.3,
+    // Красная вещь со Стража — 2%: в среднем одна на 50 побед.
+    mythicChance: 0.02,
   }),
 };

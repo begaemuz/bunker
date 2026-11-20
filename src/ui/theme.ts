@@ -7,7 +7,8 @@ export const rarityColor: Record<Rarity, string> = {
   rare: '#4da3ff',
   epic: '#b46bff',
   legendary: '#ff9f2e',
-  unique: '#ff4d6a',
+  unique: '#3ff0d0',
+  mythic: '#ff3030',
 };
 
 export const modeColor = (m: CoilMode | 'dot'): string => (m === 'dot' ? '#ffb347' : modeConfig[m].color);

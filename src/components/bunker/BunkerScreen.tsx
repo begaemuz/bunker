@@ -410,7 +410,7 @@ export function BunkerScreen() {
             Новые вещи выбранной редкости и ниже продаются сразу при выпадении. Лучшие, чем установленные, и уникальные не продаются. Модификации и расходники не продаются никогда.
           </div>
           <div className="option-list">
-            {[null, ...RARITIES.filter((r) => r !== 'unique')].map((r) => (
+            {[null, ...RARITIES.filter((r) => r !== 'unique' && r !== 'mythic')].map((r) => (
               <button
                 key={r ?? 'off'}
                 className={`option${profile.autoSell.maxRarity === r ? ' on' : ''}`}

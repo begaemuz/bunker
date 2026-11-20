@@ -102,6 +102,7 @@ export const partRarityMult: Record<Rarity, number> = {
   epic: 3.2,
   legendary: 4.6,
   unique: 5,
+  mythic: 6,
 };
 
 /** Объединение: 3 одинаковые детали → 1 следующей редкости. */
@@ -131,6 +132,7 @@ export const dismantleYield: Record<Rarity, number> = {
   epic: 16,
   legendary: 35,
   unique: 50,
+  mythic: 80,
 };
 
 /** У модификации один эффект; редкость определяет его силу. */
@@ -141,6 +143,7 @@ export const partStatCount: Record<Rarity, number> = {
   epic: 1,
   legendary: 1,
   unique: 1,
+  mythic: 1,
 };
 
 /** Дополнительные свойства слабее основного. */
@@ -156,5 +159,5 @@ export const partDrops = {
   keyMiniboss: 0.15,
   keyBoss: 0.6,
   keyElite: 0.01,
-  rarity: { common: 0.6, uncommon: 0.27, rare: 0.1, epic: 0.03, legendary: 0, unique: 0 } as Record<Rarity, number>,
+  rarity: { common: 0.6, uncommon: 0.27, rare: 0.1, epic: 0.03, legendary: 0, unique: 0, mythic: 0 } as Record<Rarity, number>,
 };

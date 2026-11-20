@@ -34,7 +34,7 @@ function QualityRange({ min, max, onChange }: { min: number; max: number; onChan
 }
 
 function RarityChips({ value, onToggle, multi, only }: { value: Rarity[]; onToggle: (r: Rarity) => void; multi?: boolean; only?: Rarity[] }) {
-  const list = only ?? RARITIES.filter((r) => r !== 'unique');
+  const list = only ?? RARITIES.filter((r) => r !== 'unique' && r !== 'mythic');
   return (
     <div className="rar-chips row">
       {list.map((r) => (

@@ -9,6 +9,7 @@ export const ru = {
     epic: 'Эпическое',
     legendary: 'Легендарное',
     unique: 'Уникальное',
+    mythic: 'Красное',
   } as Record<Rarity, string>,
   category: {
     generator: 'Генератор',

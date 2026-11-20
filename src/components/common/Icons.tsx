@@ -77,7 +77,7 @@ export function PartGlyph({ color, size = 26 }: { color: string; size?: number }
 
 export function ItemIcon({ category, rarity, level, size = 44 }: { category: EquipCategory; rarity: Rarity; level?: number; size?: number }) {
   const col = rarityColor[rarity];
-  const strong = rarity === 'legendary' || rarity === 'epic' || rarity === 'unique';
+  const strong = rarity === 'legendary' || rarity === 'epic' || rarity === 'unique' || rarity === 'mythic';
   return (
     <div
       className="item-icon"

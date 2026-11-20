@@ -1,3 +1,4 @@
+import { gameNow, serverClock, SERVER_TZ_NAME } from '../../game/meta/clock';
 import { useEffect, useState } from 'react';
 import { loginCalendar, questConfig, type QuestPeriod } from '../../game/config/metaConfig';
 import { canClaimDaily, canClaimQuestBonus, dailyReward, LOGIN_DAYS, periodEnds, questBonus, questClaimable, QUEST_PERIODS } from '../../game/meta/Meta';
@@ -42,6 +43,21 @@ export function useQuestBadge(): number {
 
 // ───────────── Ежедневный вход: календарь на 30 дней ─────────────
 
+/** Время сервера и сколько осталось до обновления. */
+function ServerTime({ now, label = 'Новый день через', left }: { now: number; label?: string; left?: number }) {
+  const rest = left ?? periodEnds('day', now) - now;
+  return (
+    <div className="server-time">
+      <span>
+        {label} <b>{fmtLeft(rest)}</b>
+      </span>
+      <span className="muted">
+        время сервера {serverClock(now)} {SERVER_TZ_NAME}
+      </span>
+    </div>
+  );
+}
+
 export function LoginSheet({ onClose }: { onClose: () => void }) {
   const profile = useProfile((s) => s.profile)!;
   const claimDaily = useProfile((s) => s.claimDaily);
@@ -49,6 +65,11 @@ export function LoginSheet({ onClose }: { onClose: () => void }) {
   const can = canClaimDaily(profile);
   const cur = profile.daily.cycle;
   const todayReward = dailyReward(profile, cur);
+  const [now, setNow] = useState(gameNow());
+  useEffect(() => {
+    const t = setInterval(() => setNow(gameNow()), 30000);
+    return () => clearInterval(t);
+  }, []);
 
   return (
     <Sheet
@@ -77,6 +98,7 @@ export function LoginSheet({ onClose }: { onClose: () => void }) {
         </>
       }
     >
+      <ServerTime now={now} />
       <div className="login-today">
         <div className="small muted">{can ? `Сегодня — день ${cur + 1}` : `Завтра — день ${(cur % LOGIN_DAYS) + 1}`}</div>
         <Res r={can ? todayReward : dailyReward(profile, cur)} />
@@ -113,11 +135,11 @@ export function QuestsSheet({ onClose }: { onClose: () => void }) {
   const claimBonus = useProfile((s) => s.claimQuestBonus);
   const toast = useUi((s) => s.toast);
   const [tab, setTab] = useState<QuestPeriod>('day');
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(gameNow());
 
   useEffect(() => ensureMeta(), [ensureMeta]);
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 30000);
+    const t = setInterval(() => setNow(gameNow()), 30000);
     return () => clearInterval(t);
   }, []);
 
@@ -170,9 +192,7 @@ export function QuestsSheet({ onClose }: { onClose: () => void }) {
           {set.bonusClaimed ? 'Получено' : 'Сундук'}
         </button>
       </div>
-      <div className="small muted" style={{ margin: '6px 2px 10px' }}>
-        Новые задания через {fmtLeft(periodEnds(tab, now) - now)}
-      </div>
+      <ServerTime now={now} label="Новые задания через" left={periodEnds(tab, now) - now} />
 
       {set.list.map((q) => {
         const ok = q.progress >= q.target;
