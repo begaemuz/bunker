@@ -24,9 +24,9 @@ import { LoginSheet, QuestsSheet } from '../components/shop/QuestsSheet';
 
 const navItems: { id: Screen; label: string; icon: 'battle' | 'bunker' | 'tech' | 'trophy' | 'menu' | 'map' }[] = [
   { id: 'game', label: 'Бой', icon: 'battle' },
+  { id: 'locations', label: 'Карта', icon: 'map' },
   { id: 'bunker', label: 'Бункер', icon: 'bunker' },
   { id: 'tech', label: 'Наука', icon: 'tech' },
-  { id: 'locations', label: 'Карта', icon: 'map' },
   { id: 'leaders', label: 'Лидеры', icon: 'trophy' },
 ];
 

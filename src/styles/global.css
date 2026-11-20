@@ -5008,7 +5008,6 @@ button.pavatar:active {
 .zmap { display: block; }
 .zmap-region { cursor: pointer; transition: fill-opacity 0.15s; }
 .zmap-region:active { fill-opacity: 0.85; }
-.zmap-region.here { filter: drop-shadow(0 0 6px rgba(242, 181, 58, 0.7)); }
 .zmap-label { cursor: pointer; }
 .zmap-num { font-family: var(--display); font-size: 12px; }
 .zmap-name { font-size: 8.5px; font-weight: 700; fill: #f2f4f6; paint-order: stroke; stroke: #0b0e11; stroke-width: 2.6px; stroke-linejoin: round; }

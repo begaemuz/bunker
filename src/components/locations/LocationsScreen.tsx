@@ -35,6 +35,9 @@ function dangerOf(p: Profile, l: LocationDef): Danger {
   return 'hard';
 }
 
+/** Цвет суши под зонами: он же виден в зазорах между ними. */
+const GAP = '#0f1418';
+
 /** Цвет местности зон на карте. */
 const LAND: string[] = ['#8a939b', '#c0703a', '#d9b25e', '#bfe3ff', '#8be04e', '#7a6ad8', '#ff4d6a', '#3fa6c9', '#9c8a78', '#9fd3f0', '#7fbf3a', '#9b7bff', '#b8a98a', '#6f7f99', '#ff7a3d', '#c9ced6', '#4dd8ff', '#8a4dff', '#d24d8a', '#f2f2f2'];
 
@@ -57,6 +60,7 @@ export function LocationsScreen() {
   const [open, setOpen] = useState<LocationDef | null>(null);
   const body = useRef<HTMLDivElement>(null);
   const current = profile.locations.current;
+  const hereReg = REGIONS.find((r) => r.id === current);
 
   // Прокручиваем карту к текущей зоне.
   useEffect(() => {
@@ -85,35 +89,47 @@ export function LocationsScreen() {
               <rect width="7" height="7" fill="#151a1f" />
               <path d="M0 0v7" stroke="#20272e" strokeWidth="3" />
             </pattern>
-            <filter id="zmap-glow" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="4" />
-            </filter>
+            {/* лёгкий диагональный штрих зоны, где находится игрок */}
+            <pattern id="zmap-here" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+              <path d="M0 0v8" stroke="#f2b53a" strokeWidth="1.6" opacity="0.32" />
+            </pattern>
+            {hereReg && (
+              <clipPath id="zmap-here-clip">
+                <path d={hereReg.d} />
+              </clipPath>
+            )}
           </defs>
           <rect x={-8} y={-8} width={MAP_W + 16} height={MAP_H + 16} fill="#0c1a26" />
           <rect x={-8} y={-8} width={MAP_W + 16} height={MAP_H + 16} fill="url(#zmap-sea)" />
           {/* берег */}
           <path d={COAST} fill="none" stroke="#2a5470" strokeWidth="9" opacity="0.5" strokeLinejoin="round" />
-          <path d={COAST} fill="#2a3036" stroke="#0b0f13" strokeWidth="2" strokeLinejoin="round" />
+          <path d={COAST} fill={GAP} stroke="#0b0f13" strokeWidth="2" strokeLinejoin="round" />
           {REGIONS.map((r) => {
             const l = locationsConfig.find((x) => x.id === r.id);
             if (!l) return null;
             const danger = dangerOf(profile, l);
             const closed = danger === 'locked';
-            const here = current === l.id;
             return (
               <path
                 key={r.id}
                 d={r.d}
-                className={`zmap-region${here ? ' here' : ''}`}
+                className="zmap-region"
                 fill={closed ? 'url(#zmap-fog)' : LAND[r.id - 1]}
                 fillOpacity={closed ? 1 : danger === 'level' ? 0.32 : 0.55}
-                stroke={here ? '#f2b53a' : '#0b0f13'}
-                strokeWidth={here ? 2.5 : 1.6}
+                stroke={GAP}
+                strokeWidth={4}
                 strokeLinejoin="round"
                 onClick={() => setOpen(l)}
               />
             );
           })}
+          {/* Текущая зона: цветной контур внутри границы и лёгкий штрих */}
+          {hereReg && (
+            <g clipPath="url(#zmap-here-clip)" pointerEvents="none">
+              <path d={hereReg.d} fill="url(#zmap-here)" />
+              <path d={hereReg.d} fill="none" stroke="#f2b53a" strokeWidth={7} strokeLinejoin="round" />
+            </g>
+          )}
           {REGIONS.map((r) => {
             const l = locationsConfig.find((x) => x.id === r.id);
             if (!l) return null;
@@ -124,12 +140,6 @@ export function LocationsScreen() {
             const small = r.r < 24;
             return (
               <g key={r.id} className="zmap-label" onClick={() => setOpen(l)}>
-                {here && (
-                  <>
-                    <circle className="zmap-pulse" cx={r.x} cy={r.y - 10} r={13} fill="none" stroke="#f2b53a" strokeWidth="2" />
-                    <circle cx={r.x} cy={r.y - 10} r={16} fill="#f2b53a" opacity="0.45" filter="url(#zmap-glow)" />
-                  </>
-                )}
                 <circle cx={r.x} cy={r.y - 10} r={11} fill={here ? '#f2b53a' : '#0b0e11'} stroke={here ? '#fff3c4' : col} strokeWidth="2.2" />
                 {danger === 'locked' ? (
                   <g transform={`translate(${r.x - 5} ${r.y - 16})`} stroke="#8a949c" strokeWidth="1.5" fill="none">
