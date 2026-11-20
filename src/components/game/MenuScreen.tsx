@@ -1,3 +1,4 @@
+import { LanguageButtons } from '../common/LanguagePicker';
 import { useUi } from '../../stores/uiStore';
 import { useState } from 'react';
 import { Switch } from '../common/Common';
@@ -23,8 +24,10 @@ export function MenuScreen() {
       </div>
       <div className="screen-body">
         <div className="section-title" style={{ marginTop: 0 }}>
-          Звук
+          Язык
         </div>
+        <LanguageButtons />
+        <div className="section-title">Звук</div>
         <div className="menu-list">
           <div className="toggle-row">
             <span>Звук</span>

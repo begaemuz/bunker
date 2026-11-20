@@ -1,3 +1,5 @@
+import { savedLang } from '../i18n/lang';
+import { FirstLanguage } from '../components/common/LanguagePicker';
 import { useEffect, useMemo } from 'react';
 import { techConfig } from '../game/config/techConfig';
 import { upgradeBlock } from '../game/items/ItemUpgrade';
@@ -120,7 +122,8 @@ function Main() {
         )}
         <Toasts />
       </div>
-      {introOpen && <Intro onDone={() => setIntroOpen(false)} />}
+      {!savedLang() && <FirstLanguage />}
+      {savedLang() && introOpen && <Intro onDone={() => setIntroOpen(false)} />}
       {!result && !introOpen && (
         <nav className="nav">
           {navItems.map((n) => (
