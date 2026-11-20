@@ -4,7 +4,7 @@ import { ResourceStrip } from '../common/Common';
 import { useEffect, useState } from 'react';
 import { exchangeConfig, shopConfig } from '../../game/config/metaConfig';
 import { crystalPacks, vipLevel } from '../../game/meta/vip';
-import { exchangeLimit, exchangeUsed, nextShopRefresh, shopRefreshCost, type Offer, specialLeft, shopRefreshState, SHOP_REFRESH_LIMIT } from '../../game/meta/Meta';
+import { exchangeLimit, exchangeUsed, shopRefreshCost, type Offer, specialLeft, shopRefreshState, SHOP_REFRESH_LIMIT } from '../../game/meta/Meta';
 import { canAfford } from '../../game/profile/Profile';
 import { RESOURCE_KEYS, type Resources } from '../../game/types';
 import { fmtNum, ru } from '../../i18n/ru';
@@ -86,7 +86,7 @@ function OfferCard({ o, section, onOpen }: { o: Offer; section: 'regular' | 'rar
 }
 
 /** Вывеска торговца: навес, ящики, фонарь. */
-function TraderSign({ left, onRefresh, cost, can, refreshLeft, resetIn }: { left: string; onRefresh: () => void; cost: number; can: boolean; refreshLeft: number; resetIn: string | null }) {
+function TraderSign({ onRefresh, cost, can, refreshLeft, free, wait }: { onRefresh: () => void; cost: number; can: boolean; refreshLeft: number; free: boolean; wait: string | null }) {
   return (
     <div className="trader">
       <svg className="trader-art" viewBox="0 0 120 90" aria-hidden>
@@ -110,18 +110,22 @@ function TraderSign({ left, onRefresh, cost, can, refreshLeft, resetIn }: { left
       </svg>
       <div className="trader-text">
         <div className="trader-name">Караван торговца</div>
-        <div className="small muted">Новый товар через {left}</div>
-        {refreshLeft > 0 ? (
-          <button className="btn btn-sm" disabled={!can} onClick={onRefresh}>
-            <UiIcon kind="refresh" size={14} /> Обновить · <ResourceIcon type="coins" /> {fmtNum(cost)}
+        {free ? (
+          <button className="btn btn-sm btn-gold" onClick={onRefresh}>
+            <UiIcon kind="refresh" size={14} /> Обновить бесплатно
           </button>
+        ) : refreshLeft > 0 ? (
+          <>
+            <button className="btn btn-sm" disabled={!can} onClick={onRefresh}>
+              <UiIcon kind="refresh" size={14} /> Обновить · <ResourceIcon type="coins" /> {fmtNum(cost)}
+            </button>
+            <div className="small muted">
+              Осталось обновлений: {refreshLeft} из {SHOP_REFRESH_LIMIT}
+            </div>
+          </>
         ) : (
-          <div className="small trader-limit">Обновления закончились · снова через {resetIn}</div>
+          <div className="small trader-limit">Обновления закончились. Бесплатное обновление через {wait}</div>
         )}
-        <div className="small muted">
-          Обновлений: {refreshLeft} из {SHOP_REFRESH_LIMIT}
-          {refreshLeft > 0 && refreshLeft < SHOP_REFRESH_LIMIT && resetIn ? ` · лимит восстановится через ${resetIn}` : ''}
-        </div>
       </div>
     </div>
   );
@@ -248,7 +252,6 @@ export function ShopScreen() {
 
   const refreshCost = shopRefreshCost(profile);
   const rs = shopRefreshState(profile, now);
-  const left = nextShopRefresh(profile) - now;
   const r = profile.resources;
 
   return (
@@ -277,11 +280,11 @@ export function ShopScreen() {
         {tab === 'goods' && (
           <>
             <TraderSign
-              left={fmtLeft(left)}
               cost={refreshCost.coins!}
               can={canAfford(profile, refreshCost)}
               refreshLeft={rs.left}
-              resetIn={rs.resetIn > 0 ? fmtLeft(rs.resetIn) : null}
+              free={rs.free}
+              wait={rs.waitMs > 0 ? fmtLeft(rs.waitMs) : null}
               onRefresh={() => {
                 if (refresh()) toast('Ассортимент обновлён', 'good');
               }}

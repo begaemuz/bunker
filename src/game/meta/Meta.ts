@@ -81,8 +81,8 @@ export interface ShopState {
   refreshedAt: number;
   refreshDay: string;
   refreshes: number;
-  /** Начало текущего окна ручных обновлений (лимит на 8 часов). */
-  refreshWindow?: number;
+  /** После 5 обновлений: до этого времени обновлять нельзя, потом одно бесплатное. */
+  lockUntil?: number;
   /** Версия цен: при смене цен ассортимент пересоздаётся. */
   priceV?: number;
   regular: Offer[];
@@ -133,40 +133,48 @@ function genShop(p: Profile): Pick<ShopState, 'regular' | 'rare'> {
 /** Автоматическое обновление ассортимента по реальному времени. */
 export function ensureShop(p: Profile, now = Date.now()): Profile {
   const s = p.shop;
-  const due = now - s.refreshedAt >= shopConfig.refreshHours * 3600_000 || s.regular.length === 0 || (s.priceV ?? 1) < SHOP_PRICE_V;
+  // Ассортимент меняется только по кнопке «Обновить» (и при первом запуске).
+  const due = s.regular.length === 0 || (s.priceV ?? 1) < SHOP_PRICE_V;
   let next = s;
-  // Лимит ручных обновлений: 5 штук, потом ждать до конца 8-часового окна.
-  if (s.refreshes > 0 && now - (s.refreshWindow ?? 0) >= SHOP_WINDOW_MS) next = { ...next, refreshes: 0, refreshWindow: 0 };
+  if ((s.priceV ?? 1) < SHOP_PRICE_V) next = { ...next, refreshes: 0, lockUntil: 0 };
   if (due) next = { ...next, ...genShop(p), refreshedAt: now, priceV: SHOP_PRICE_V };
   return next === s ? p : { ...p, shop: next };
 }
 
 export const SHOP_REFRESH_LIMIT = 5;
-const SHOP_PRICE_V = 2;
+const SHOP_PRICE_V = 3;
 export const SHOP_WINDOW_MS = 8 * 3600_000;
 
-/** Сколько ручных обновлений осталось и когда лимит восстановится. */
-export function shopRefreshState(p: Profile, now = Date.now()): { left: number; resetIn: number } {
-  const s = p.shop;
-  const expired = s.refreshes > 0 && now - (s.refreshWindow ?? 0) >= SHOP_WINDOW_MS;
-  const used = expired ? 0 : s.refreshes;
-  return { left: Math.max(0, SHOP_REFRESH_LIMIT - used), resetIn: used > 0 ? Math.max(0, (s.refreshWindow ?? 0) + SHOP_WINDOW_MS - now) : 0 };
+/**
+ * Обновления: 5 платных (каждое дороже), затем пауза 8 часов,
+ * после неё одно бесплатное — и снова 5 платных.
+ */
+export function shopRefreshState(p: Profile, now = Date.now()): { left: number; free: boolean; waitMs: number } {
+  const used = p.shop.refreshes ?? 0;
+  if (used < SHOP_REFRESH_LIMIT) return { left: SHOP_REFRESH_LIMIT - used, free: false, waitMs: 0 };
+  const wait = Math.max(0, (p.shop.lockUntil ?? 0) - now);
+  return { left: 0, free: wait === 0, waitMs: wait };
 }
 
 export function shopRefreshCost(p: Profile): Partial<Resources> {
-  const used = SHOP_REFRESH_LIMIT - shopRefreshState(p).left;
+  const st = shopRefreshState(p);
+  if (st.free) return {};
+  const used = p.shop.refreshes ?? 0;
   return { coins: Math.round((shopConfig.refreshBase * 4 * tierPrice(playerTier(p)) * (1 + used)) / 10) * 10 };
 }
 
 export function refreshShop(p: Profile): Profile | null {
   const st = shopRefreshState(p);
-  if (st.left <= 0) return null;
+  if (st.left <= 0 && !st.free) return null;
+  const now = Date.now();
+  if (st.free) return { ...p, shop: { ...p.shop, ...genShop(p), refreshedAt: now, refreshes: 0, lockUntil: 0 } };
   const paid = spend(p, shopRefreshCost(p));
   if (!paid) return null;
-  const now = Date.now();
-  const fresh = st.left === SHOP_REFRESH_LIMIT;
-  const refreshes = fresh ? 1 : paid.shop.refreshes + 1;
-  return { ...paid, shop: { ...paid.shop, ...genShop(paid), refreshedAt: now, refreshes, refreshWindow: fresh ? now : paid.shop.refreshWindow } };
+  const refreshes = (paid.shop.refreshes ?? 0) + 1;
+  return {
+    ...paid,
+    shop: { ...paid.shop, ...genShop(paid), refreshedAt: now, refreshes, lockUntil: refreshes >= SHOP_REFRESH_LIMIT ? now + SHOP_WINDOW_MS : 0 },
+  };
 }
 
 export function nextShopRefresh(p: Profile): number {
