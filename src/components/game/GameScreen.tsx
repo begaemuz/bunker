@@ -1,6 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { computeBunkerStats } from '../../game/bunker/BunkerStats';
-import { combatPower } from '../../game/bunker/compare';
+import { useEffect, useRef, useState } from 'react';
 import { useLoginBadge, useQuestBadge } from '../shop/QuestsSheet';
 import { gameConfig, modeConfig } from '../../game/config/gameConfig';
 import { getLocation } from '../../game/config/locationsConfig';
@@ -64,12 +62,6 @@ function TopBar() {
   const openShop = useUi((s) => s.openShop);
   const setScreen = useUi((s) => s.setScreen);
   const lvl = profile.bunker.level;
-  const power = useMemo(
-    () => combatPower(computeBunkerStats(profile)),
-    // мощь зависит только от оборудования, деталей и исследований
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [profile.equipment, profile.items, profile.parts, profile.techs],
-  );
   const r = profile.resources;
 
   return (
@@ -86,9 +78,6 @@ function TopBar() {
         />
         <div className="grow top-who">
           <div className="top-nick">{playerNick(profile.player.nick, tg?.first_name)}</div>
-          <span className="power" title="Боевая мощь">
-            <UiIcon kind="bolt" size={13} /> {fmtNum(power)}
-          </span>
           <div className="top-line">
             <button className="top-vip" onClick={() => setProfileOpen(true)}>
               VIP {vipLevel(profile.vip.points)}

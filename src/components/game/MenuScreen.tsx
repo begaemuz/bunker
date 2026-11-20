@@ -9,7 +9,7 @@ export function MenuScreen() {
   const toggleSound = useUi((s) => s.toggleSound);
   const setVolume = useUi((s) => s.setVolume);
   const toggleNumbers = useUi((s) => s.toggleDamageNumbers);
-  const [codex, setCodex] = useState(false);
+  const toggleToasts = useUi((s) => s.toggleToasts);
   const setScreen = useUi((s) => s.setScreen);
   const [codex, setCodex] = useState(false);
 

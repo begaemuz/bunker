@@ -13,6 +13,7 @@ import { useUi } from '../../stores/uiStore';
 import { Bar } from '../common/Common';
 import { ResourceIcon, UiIcon } from '../common/Icons';
 import { Sheet } from '../common/Sheet';
+import { COAST, MAP_H, MAP_W, REGIONS } from './mapShapes';
 
 type Danger = 'easy' | 'normal' | 'hard' | 'locked' | 'level';
 
@@ -34,63 +35,125 @@ function dangerOf(p: Profile, l: LocationDef): Danger {
   return 'hard';
 }
 
+/** Цвет местности зон на карте. */
+const LAND: string[] = ['#8a939b', '#c0703a', '#d9b25e', '#bfe3ff', '#8be04e', '#7a6ad8', '#ff4d6a', '#3fa6c9', '#9c8a78', '#9fd3f0', '#7fbf3a', '#9b7bff', '#b8a98a', '#6f7f99', '#ff7a3d', '#c9ced6', '#4dd8ff', '#8a4dff', '#d24d8a', '#f2f2f2'];
+
+/** Делит название на 1–2 строки для подписи на карте. */
+function splitName(name: string, max = 13): string[] {
+  if (name.length <= max) return [name];
+  const words = name.split(' ');
+  const lines: string[] = [''];
+  for (const w of words) {
+    const cur = lines[lines.length - 1];
+    if (!cur) lines[lines.length - 1] = w;
+    else if ((cur + ' ' + w).length <= max || lines.length === 2) lines[lines.length - 1] = cur + ' ' + w;
+    else lines.push(w);
+  }
+  return lines.slice(0, 2).map((l, i) => (i === 1 && l.length > max + 3 ? `${l.slice(0, max + 1)}…` : l));
+}
+
 export function LocationsScreen() {
   const profile = useProfile((s) => s.profile)!;
   const [open, setOpen] = useState<LocationDef | null>(null);
   const body = useRef<HTMLDivElement>(null);
   const current = profile.locations.current;
 
-  // Прокручиваем к текущей зоне.
+  // Прокручиваем карту к текущей зоне.
   useEffect(() => {
-    const el = body.current?.querySelector('.tl-row.here') as HTMLElement | null;
-    el?.scrollIntoView({ block: 'center' });
+    const el = body.current;
+    const reg = REGIONS.find((r) => r.id === current);
+    if (!el || !reg) return;
+    const k = el.clientWidth / MAP_W;
+    el.scrollTop = Math.max(0, reg.y * k - el.clientHeight / 2);
   }, [current]);
 
   return (
     <div className="screen">
       <div className="screen-header">
-        <h2 className="grow">Зоны</h2>
+        <h2 className="grow">Карта зон</h2>
         <span className="small muted">
           открыто {profile.locations.unlocked.length} из {locationsConfig.length}
         </span>
       </div>
-      <div className="screen-body" ref={body}>
-        <div className="timeline">
-          {locationsConfig.map((l) => {
+      <div className="screen-body zmap-body" ref={body}>
+        <svg className="zmap" viewBox={`-8 -8 ${MAP_W + 16} ${MAP_H + 16}`} width="100%">
+          <defs>
+            <pattern id="zmap-sea" width="26" height="26" patternUnits="userSpaceOnUse">
+              <path d="M2 14q5-4 10 0t10 0" fill="none" stroke="#173246" strokeWidth="1.2" />
+            </pattern>
+            <pattern id="zmap-fog" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+              <rect width="7" height="7" fill="#151a1f" />
+              <path d="M0 0v7" stroke="#20272e" strokeWidth="3" />
+            </pattern>
+            <filter id="zmap-glow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="4" />
+            </filter>
+          </defs>
+          <rect x={-8} y={-8} width={MAP_W + 16} height={MAP_H + 16} fill="#0c1a26" />
+          <rect x={-8} y={-8} width={MAP_W + 16} height={MAP_H + 16} fill="url(#zmap-sea)" />
+          {/* берег */}
+          <path d={COAST} fill="none" stroke="#2a5470" strokeWidth="9" opacity="0.5" strokeLinejoin="round" />
+          <path d={COAST} fill="#2a3036" stroke="#0b0f13" strokeWidth="2" strokeLinejoin="round" />
+          {REGIONS.map((r) => {
+            const l = locationsConfig.find((x) => x.id === r.id);
+            if (!l) return null;
+            const danger = dangerOf(profile, l);
+            const closed = danger === 'locked';
+            const here = current === l.id;
+            return (
+              <path
+                key={r.id}
+                d={r.d}
+                className={`zmap-region${here ? ' here' : ''}`}
+                fill={closed ? 'url(#zmap-fog)' : LAND[r.id - 1]}
+                fillOpacity={closed ? 1 : danger === 'level' ? 0.32 : 0.55}
+                stroke={here ? '#f2b53a' : '#0b0f13'}
+                strokeWidth={here ? 2.5 : 1.6}
+                strokeLinejoin="round"
+                onClick={() => setOpen(l)}
+              />
+            );
+          })}
+          {REGIONS.map((r) => {
+            const l = locationsConfig.find((x) => x.id === r.id);
+            if (!l) return null;
             const danger = dangerOf(profile, l);
             const col = DANGER[danger].color;
             const here = current === l.id;
             const ready = canSummonBoss(profile, l.id);
-            const prog = locationProgress(profile, l.id);
+            const lines = splitName(l.name);
+            const small = r.r < 24;
             return (
-              <button
-                key={l.id}
-                className={`tl-row${here ? ' here' : ''}${danger === 'locked' ? ' locked' : ''}${l.special === 'rift' ? ' rift' : ''}`}
-                style={{ ['--dc' as string]: col }}
-                onClick={() => setOpen(l)}
-              >
-                <span className="tl-node">{danger === 'locked' ? <UiIcon kind="lock" size={14} /> : l.id}</span>
-                <span className="tl-card">
-                  <span className="tl-top">
-                    <b>{l.name}</b>
-                    {here && <span className="tl-here">вы здесь</span>}
-                  </span>
-                  <span className="tl-meta">
-                    <span className="tl-danger">{DANGER[danger].label}</span>
-                    <span className="muted">
-                      Т{l.tier} · вход с {l.recommendedLevel} ур.
-                    </span>
-                    {danger !== 'locked' && danger !== 'level' && (
-                      <span className="muted">
-                        · босс {prog.bossKills > 0 ? `×${prog.bossKills}` : 'не побеждён'}
-                      </span>
-                    )}
-                    {ready && <span className="tl-boss">босс готов</span>}
-                  </span>
-                </span>
-              </button>
+              <g key={r.id} className="zmap-label" onClick={() => setOpen(l)}>
+                {here && <circle cx={r.x} cy={r.y - 10} r={16} fill="#f2b53a" opacity="0.5" filter="url(#zmap-glow)" />}
+                <circle cx={r.x} cy={r.y - 10} r={11} fill="#0b0e11" stroke={col} strokeWidth="2.2" />
+                {danger === 'locked' ? (
+                  <g transform={`translate(${r.x - 5} ${r.y - 16})`} stroke="#8a949c" strokeWidth="1.5" fill="none">
+                    <rect x="0.5" y="5" width="9" height="7" rx="1.5" />
+                    <path d="M2.5 5V3.5a2.5 2.5 0 0 1 5 0V5" />
+                  </g>
+                ) : (
+                  <text x={r.x} y={r.y - 6} textAnchor="middle" className="zmap-num" fill={col}>
+                    {l.id}
+                  </text>
+                )}
+                {ready && <circle cx={r.x + 9} cy={r.y - 19} r={4} fill="#ff4d4d" stroke="#0b0e11" strokeWidth="1.5" />}
+                {lines.map((t, i) => (
+                  <text key={i} x={r.x} y={r.y + 11 + i * 10} textAnchor="middle" className={`zmap-name${small ? ' sm' : ''}${danger === 'locked' ? ' off' : ''}`}>
+                    {t}
+                  </text>
+                ))}
+              </g>
             );
           })}
+        </svg>
+        <div className="map-legend">
+          {(['easy', 'normal', 'hard', 'level', 'locked'] as Danger[]).map((d) => (
+            <span key={d}>
+              <i style={{ background: DANGER[d].color }} />
+              {DANGER[d].label}
+            </span>
+          ))}
         </div>
       </div>
       {open && <ZoneSheet loc={open} onClose={() => setOpen(null)} />}
