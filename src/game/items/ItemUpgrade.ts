@@ -22,7 +22,7 @@ export function upgradeCost(p: Profile, item: Item): Partial<Resources> {
   const mult =
     Math.pow(1 + item.level, u.exponent) *
     u.rarityMult[item.rarity] *
-    (1 + 0.5 * (item.tier - 1)) *
+    Math.pow(balanceConfig.tier.upgradeGrowth, item.tier - 1) *
     Math.max(0.3, 1 + techMeta(p, 'upgradeCost'));
   const out: Partial<Resources> = {};
   for (const k of RESOURCE_KEYS) {

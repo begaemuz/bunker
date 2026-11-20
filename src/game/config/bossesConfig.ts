@@ -26,7 +26,8 @@ export interface BossDef extends EnemyDef {
 
 const B = (b: BossDef) => b;
 
-export const bossesConfig: Record<string, BossDef> = {
+/** Архетипы боссов (заданы под свою родную зону, потом пересчитываются по Т). */
+const archetypes: Record<string, BossDef> = {
   colossus: B({
     id: 'colossus',
     name: 'Колосс-01',
@@ -284,4 +285,86 @@ export const bossesConfig: Record<string, BossDef> = {
     ],
     passChance: 0.3,
   }),
+};
+
+// ───────────── Боссы по Т-уровню ─────────────
+// Все боссы считаются по одной формуле от Т зоны, поэтому зон может быть сколько угодно.
+
+/** Родная зона архетипа. */
+const NATIVE: Record<string, number> = { colossus: 1, smith: 2, worm: 3, icebreaker: 4, isotope: 5, prototype: 6, core: 7 };
+/** Характер архетипа: множители запаса прочности и брони. */
+const FLAVOR: Record<string, { hp: number; armor: number }> = {
+  colossus: { hp: 1, armor: 1 },
+  smith: { hp: 1.1, armor: 1.6 },
+  worm: { hp: 1, armor: 1.1 },
+  icebreaker: { hp: 1.05, armor: 1.3 },
+  isotope: { hp: 0.95, armor: 0.9 },
+  prototype: { hp: 1, armor: 1 },
+  core: { hp: 1.15, armor: 1.2 },
+};
+
+/** Базовая прочность, урон и броня босса зоны Т. */
+export const bossCurve = {
+  hp: (t: number) => 2200 * Math.pow(1.75, t - 1),
+  damage: (t: number) => 20 * Math.pow(1.36, t - 1),
+  armor: (t: number) => 9 + 9 * (t - 1),
+  reward: (t: number) => Math.pow(1.45, t - 1),
+};
+
+function scaleDrops(d: BossDef['drops'], m: number): BossDef['drops'] {
+  const out = { ...d } as Record<string, unknown>;
+  for (const [k, v] of Object.entries(d)) {
+    if (Array.isArray(v)) out[k] = [Math.round(v[0] * m), Math.round(v[1] * m)];
+    else if (v && typeof v === 'object' && 'amount' in v) {
+      const a = (v as { amount: [number, number] }).amount;
+      out[k] = { ...v, amount: [Math.max(1, Math.round(a[0] * m)), Math.max(1, Math.round(a[1] * m))] };
+    }
+  }
+  return out as unknown as BossDef['drops'];
+}
+
+/** Пересчитывает архетип под зону Т. */
+function retier(arch: string, tier: number, over: Partial<BossDef> & { id: string }): BossDef {
+  const b = archetypes[arch];
+  const t0 = NATIVE[arch];
+  const f = FLAVOR[arch];
+  const damage = bossCurve.damage(tier);
+  const dmgK = damage / b.damage;
+  const armor = Math.round(bossCurve.armor(tier) * f.armor);
+  const armK = armor / Math.max(1, b.armor);
+  return {
+    ...b,
+    hp: Math.round(bossCurve.hp(tier) * f.hp),
+    armor,
+    damage: Math.round(damage),
+    xp: Math.round(400 * bossCurve.reward(tier)),
+    drops: scaleDrops(b.drops, bossCurve.reward(tier) / bossCurve.reward(t0)),
+    abilities: b.abilities.map((a) =>
+      a.type === 'blast' ? { ...a, damage: Math.round(a.damage * dmgK) } : a.type === 'armorUp' ? { ...a, armor: Math.round(a.armor * armK) } : a,
+    ),
+    uniques: [],
+    ...over,
+  };
+}
+
+/** Боссы зон 8–20: новые имена на основе архетипов. */
+const EXTRA: { id: string; arch: string; tier: number; name: string; title: string; look: BossDef['look'] }[] = [
+  { id: 'tide', arch: 'worm', tier: 8, name: 'Левиафан', title: 'Подводный буровой комплекс', look: { sides: 7, hull: '#14262e', core: '#3fd0ff', guns: 4, spikes: true } },
+  { id: 'ash', arch: 'colossus', tier: 9, name: 'Пепельный голем', title: 'Шагающая печь равнин', look: { sides: 8, hull: '#2a2420', core: '#ff8a3d', guns: 4, spikes: false } },
+  { id: 'frostgate', arch: 'icebreaker', tier: 10, name: 'Морозные врата', title: 'Страж ледяного ангара', look: { sides: 6, hull: '#1f2c38', core: '#9fe6ff', guns: 5, spikes: true } },
+  { id: 'mire', arch: 'isotope', tier: 11, name: 'Кислотная матка', title: 'Фабрика болотных дронов', look: { sides: 9, hull: '#1d2a16', core: '#a6ff3d', guns: 4, spikes: false } },
+  { id: 'relay', arch: 'prototype', tier: 12, name: 'Ретранслятор', title: 'Узел связи машинной сети', look: { sides: 5, hull: '#221d33', core: '#b07bff', guns: 4, spikes: false } },
+  { id: 'scrapking', arch: 'smith', tier: 13, name: 'Король свалки', title: 'Собран из тысячи павших машин', look: { sides: 8, hull: '#2b2a26', core: '#ffd24d', guns: 6, spikes: true } },
+  { id: 'deep', arch: 'worm', tier: 14, name: 'Глубинный бур', title: 'Хозяин подземного города', look: { sides: 7, hull: '#191d24', core: '#ff5a3d', guns: 5, spikes: true } },
+  { id: 'magma', arch: 'colossus', tier: 15, name: 'Магмовый титан', title: 'Плавильня вулканического завода', look: { sides: 10, hull: '#2e1a14', core: '#ff6a1a', guns: 6, spikes: true } },
+  { id: 'launch', arch: 'icebreaker', tier: 16, name: 'Стартовый стол', title: 'Оживший комплекс космодрома', look: { sides: 6, hull: '#232830', core: '#f2f2f2', guns: 6, spikes: false } },
+  { id: 'watcher', arch: 'prototype', tier: 17, name: 'Наблюдатель', title: 'Глаз купола слежения', look: { sides: 3, hull: '#1c2030', core: '#4dd8ff', guns: 5, spikes: false } },
+  { id: 'eclipse', arch: 'isotope', tier: 18, name: 'Затмение', title: 'Владыка сектора чёрного неба', look: { sides: 9, hull: '#121218', core: '#8a4dff', guns: 6, spikes: true } },
+  { id: 'citadel', arch: 'core', tier: 19, name: 'Цитадель', title: 'Последний рубеж обороны ИИ', look: { sides: 12, hull: '#1a1a20', core: '#ff3355', guns: 8, spikes: true } },
+  { id: 'signal', arch: 'core', tier: 20, name: 'Источник сигнала', title: 'Разум, управляющий всеми машинами', look: { sides: 12, hull: '#0f1014', core: '#ffffff', guns: 8, spikes: true } },
+];
+
+export const bossesConfig: Record<string, BossDef> = {
+  ...Object.fromEntries(Object.keys(archetypes).map((id) => [id, retier(id, NATIVE[id], { id })])),
+  ...Object.fromEntries(EXTRA.map((e) => [e.id, retier(e.arch, e.tier, { id: e.id, name: e.name, title: e.title, look: e.look, itemCount: [3, 5] })])),
 };

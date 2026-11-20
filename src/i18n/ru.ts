@@ -182,6 +182,8 @@ export function plural(n: number, one: string, few: string, many: string): strin
 }
 
 export function fmtNum(n: number): string {
+  if (n >= 1e12) return `${(n / 1e12).toFixed(1)}T`;
+  if (n >= 1e9) return `${(n / 1e9).toFixed(1)}B`;
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 10_000) return `${(n / 1000).toFixed(1)}K`;
   return Math.floor(n).toString();

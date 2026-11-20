@@ -29,6 +29,7 @@ import {
   sellMany,
   setCurrentLocation,
   unequipItem,
+  xpForLevel,
 } from '../src/game/profile/Profile';
 import { applySkillReset, effectValue, resetSkills, research, researchBlock, researchCost } from '../src/game/progression/TechnologyTree';
 import { LOGIN_DAYS, buyOffer, buySpecial, claimDaily, claimQuest, claimQuestBonus, doExchange, ensureQuests, ensureShop, exchangeUsed, questProgress, refreshShop } from '../src/game/meta/Meta';
@@ -433,7 +434,9 @@ console.log('— Бой');
   check('Пропуск позволяет вызвать босса', consumeSummon(withPass, 1, true)?.resources.bossPasses === 0);
   const won = registerBossKill(pr, 1);
   check('Победа над боссом открывает следующую локацию', won.unlocked === 2 && won.profile.locations.unlocked.includes(2));
-  check('Можно вернуться на предыдущую локацию', setCurrentLocation(setCurrentLocation(won.profile, 2), 1).locations.current === 1);
+  const hi = { ...won.profile, bunker: { ...won.profile.bunker, level: 10 } };
+  check('Можно вернуться на предыдущую локацию', setCurrentLocation(hi, 2).locations.current === 2 && setCurrentLocation(setCurrentLocation(hi, 2), 1).locations.current === 1);
+  check('Без нужного уровня в зону не войти', setCurrentLocation(won.profile, 2).locations.current === 1);
   const cnt = { rare: 0, epic: 0, legendary: 0, other: 0 };
   for (let i = 0; i < 3000; i++) {
     for (const it of rollBossLoot('colossus', { location: getLocation(1), decay: 1, dropChanceMult: 1, coinMult: 1 }).items) {
@@ -533,6 +536,9 @@ console.log(`— Баланс: автоигрок, ${HOURS} ч игрового 
   let bossDeaths = 0;
   let lastReport = -1e9;
   while (total < HOURS * 3600) {
+    // Переходим в самую дальнюю открытую зону, куда пускает уровень.
+    const best = Math.max(...p.locations.unlocked.filter((id) => p.bunker.level >= getLocation(id).recommendedLevel));
+    if (best > p.locations.current) p = setCurrentLocation(p, best);
     const loc = getLocation(p.locations.current);
     const eng = new GameEngine(loc, () => computeBunkerStats(p), () => ({ decay: rewardDecay(p.bunker.level, loc) }));
     eng.setViewport(220, 340);
@@ -598,7 +604,8 @@ console.log(`— Баланс: автоигрок, ${HOURS} ч игрового 
   const st = p.stats;
   console.log(
     `  За час игры: роботов ${Math.round(st.robotsKilled / h)}, групп ${Math.round(st.groupsKilled / h)}, мини-боссов ${(st.minibossesKilled / h).toFixed(1)}, ` +
-      `боссов ${(st.bossesKilled / h).toFixed(1)}, вещей ${Math.round(st.itemsFound / h)}, улучшений ${(st.upgradesSucceeded / h).toFixed(1)}`,
+      `боссов ${(st.bossesKilled / h).toFixed(1)}, вещей ${Math.round(st.itemsFound / h)}, улучшений ${(st.upgradesSucceeded / h).toFixed(1)}, ` +
+      `опыта ${Math.round((Array.from({ length: p.bunker.level - 1 }, (_, i) => xpForLevel(i + 1)).reduce((a, b) => a + b, 0) + p.bunker.xp) / h)}`,
   );
 }
 

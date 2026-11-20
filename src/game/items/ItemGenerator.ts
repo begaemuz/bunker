@@ -27,7 +27,7 @@ function scaleStat(stat: StatKey, raw: number, rarity: Rarity, tier: number): nu
   }
   if (isDrawback(stat, raw)) return raw;
   if (isFlatScaling(stat)) {
-    return raw * balanceConfig.rarityStatMult[rarity] * (1 + balanceConfig.tier.statPerTier * (tier - 1));
+    return raw * balanceConfig.rarityStatMult[rarity] * Math.pow(balanceConfig.tier.statGrowth, tier - 1);
   }
   if (stat === 'detectRange') return raw * (1 + 0.05 * idx);
   return raw * (1 + 0.15 * idx) * (1 + 0.05 * (tier - 1));
@@ -53,7 +53,7 @@ export function generateItem(opts: GenerateOptions): Item {
   const rarity: Rarity = tpl.unique ? 'legendary' : opts.rarity;
   const tier = Math.max(1, opts.tier);
   const idx = rarityIndex(rarity);
-  const costMult = balanceConfig.rarityCostMult[rarity] * (1 + balanceConfig.tier.costPerTier * (tier - 1));
+  const costMult = balanceConfig.rarityCostMult[rarity] * Math.pow(balanceConfig.tier.costGrowth, tier - 1);
 
   // Особенности шаблона + основные характеристики по редкости (у уникальных — все).
   const mainCount = tpl.unique ? tpl.base.length : balanceConfig.rarityMainCount[rarity];
@@ -62,14 +62,14 @@ export function generateItem(opts: GenerateOptions): Item {
   let coil: CoilProps | undefined;
   if (tpl.coil) {
     const c = tpl.coil;
-    const pMult = balanceConfig.rarityStatMult[rarity] * (1 + balanceConfig.tier.coilPowerPerTier * (tier - 1));
+    const pMult = balanceConfig.rarityStatMult[rarity] * Math.pow(balanceConfig.tier.coilGrowth, tier - 1);
     coil = {
       mode: c.mode,
       power: Math.round(randFloat(c.power[0], c.power[1]) * pMult * 10) / 10,
       radius: Math.round(randFloat(c.radius[0], c.radius[1]) * (1 + 0.05 * idx)),
       interval: Math.round(randFloat(c.interval[0], c.interval[1]) * (1 - 0.035 * idx) * 100) / 100,
       energyPerPulse: Math.round(randFloat(c.energy[0], c.energy[1]) * costMult * 10) / 10,
-      heatPerPulse: Math.round(randFloat(c.heat[0], c.heat[1]) * balanceConfig.rarityCostMult[rarity] * 10) / 10,
+      heatPerPulse: Math.round(randFloat(c.heat[0], c.heat[1]) * balanceConfig.rarityCostMult[rarity] * Math.pow(balanceConfig.tier.costGrowth, tier - 1) * 10) / 10,
     };
   }
 
@@ -197,7 +197,7 @@ export function coilRolls(item: Item): Record<'power' | 'radius' | 'interval', S
   if (!tpl?.coil || !item.coil) return null;
   const idx = rarityIndex(item.rarity);
   const n = item.level - 1;
-  const pMult = balanceConfig.rarityStatMult[item.rarity] * (1 + balanceConfig.tier.coilPowerPerTier * (item.tier - 1));
+  const pMult = balanceConfig.rarityStatMult[item.rarity] * Math.pow(balanceConfig.tier.coilGrowth, item.tier - 1);
   const mk = (lo: number, hi: number, v: number, lowerBetter: boolean, lvl: number): StatRoll => {
     const span = hi - lo;
     let q = span > 1e-9 ? (v - lo) / span : 1;
@@ -224,20 +224,20 @@ export function coilRangesAt(tpl: ItemTemplate, rarity: Rarity, tier: number) {
   if (!tpl.coil) return null;
   const c = tpl.coil;
   const idx = rarityIndex(rarity);
-  const pMult = balanceConfig.rarityStatMult[rarity] * (1 + balanceConfig.tier.coilPowerPerTier * (tier - 1));
-  const costMult = balanceConfig.rarityCostMult[rarity] * (1 + balanceConfig.tier.costPerTier * (tier - 1));
+  const pMult = balanceConfig.rarityStatMult[rarity] * Math.pow(balanceConfig.tier.coilGrowth, tier - 1);
+  const costMult = balanceConfig.rarityCostMult[rarity] * Math.pow(balanceConfig.tier.costGrowth, tier - 1);
   return {
     mode: c.mode,
     power: [c.power[0] * pMult, c.power[1] * pMult],
     radius: [Math.round(c.radius[0] * (1 + 0.05 * idx)), Math.round(c.radius[1] * (1 + 0.05 * idx))],
     interval: [c.interval[0] * (1 - 0.035 * idx), c.interval[1] * (1 - 0.035 * idx)],
     energy: [c.energy[0] * costMult, c.energy[1] * costMult],
-    heat: [c.heat[0] * balanceConfig.rarityCostMult[rarity], c.heat[1] * balanceConfig.rarityCostMult[rarity]],
+    heat: [c.heat[0] * costMult, c.heat[1] * costMult],
   };
 }
 
 export function energyCostAt(tpl: ItemTemplate, rarity: Rarity, tier: number): [number, number] {
-  const costMult = balanceConfig.rarityCostMult[rarity] * (1 + balanceConfig.tier.costPerTier * (tier - 1));
+  const costMult = balanceConfig.rarityCostMult[rarity] * Math.pow(balanceConfig.tier.costGrowth, tier - 1);
   return [tpl.energyCost[0] * costMult, tpl.energyCost[1] * costMult];
 }
 

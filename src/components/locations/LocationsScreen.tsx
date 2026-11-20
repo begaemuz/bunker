@@ -3,7 +3,7 @@ import { bossesConfig } from '../../game/config/bossesConfig';
 import { robotsConfig } from '../../game/config/enemiesConfig';
 import { bossRarity } from '../../game/economy/DropSystem';
 import { locationsConfig, type LocationDef } from '../../game/config/locationsConfig';
-import { canSummonBoss, isLocationUnlocked, locationProgress } from '../../game/profile/Profile';
+import { canEnterLocation, canSummonBoss, isLocationUnlocked, locationProgress } from '../../game/profile/Profile';
 import type { Profile } from '../../game/profile/Profile';
 import { rewardDecay } from '../../game/progression/rewards';
 import type { ResourceKey } from '../../game/types';
@@ -14,21 +14,23 @@ import { Bar } from '../common/Common';
 import { ResourceIcon, UiIcon } from '../common/Icons';
 import { Sheet } from '../common/Sheet';
 
-type Danger = 'easy' | 'normal' | 'hard' | 'locked';
+type Danger = 'easy' | 'normal' | 'hard' | 'locked' | 'level';
 
 const DANGER: Record<Danger, { label: string; color: string }> = {
   easy: { label: 'Лёгкая', color: '#5fd16a' },
   normal: { label: 'Опасная', color: '#f2b53a' },
   hard: { label: 'Смертельная', color: '#ff4d4d' },
   locked: { label: 'Закрыта', color: '#5b646d' },
+  level: { label: 'Мал уровень', color: '#8a7a5a' },
 };
 
 /** Опасность зоны относительно уровня бункера. */
 function dangerOf(p: Profile, l: LocationDef): Danger {
   if (!isLocationUnlocked(p, l.id)) return 'locked';
+  if (p.bunker.level < l.recommendedLevel) return 'level';
   const lvl = p.bunker.level;
-  if (lvl >= l.recommendedLevel + 4) return 'easy';
-  if (lvl >= l.recommendedLevel - 2) return 'normal';
+  if (lvl >= l.recommendedLevel + 6) return 'easy';
+  if (lvl >= l.recommendedLevel + 2) return 'normal';
   return 'hard';
 }
 
@@ -76,9 +78,9 @@ export function LocationsScreen() {
                   <span className="tl-meta">
                     <span className="tl-danger">{DANGER[danger].label}</span>
                     <span className="muted">
-                      Т{l.tier} · уровень {l.recommendedLevel}+
+                      Т{l.tier} · вход с {l.recommendedLevel} ур.
                     </span>
-                    {danger !== 'locked' && (
+                    {danger !== 'locked' && danger !== 'level' && (
                       <span className="muted">
                         · босс {prog.bossKills > 0 ? `×${prog.bossKills}` : 'не побеждён'}
                       </span>
@@ -105,6 +107,7 @@ function ZoneSheet({ loc: l, onClose }: { loc: LocationDef; onClose: () => void 
   const toast = useUi((s) => s.toast);
   const hud = useUi((s) => s.hud);
   const unlocked = isLocationUnlocked(profile, l.id);
+  const canEnter = canEnterLocation(profile, l.id);
   const current = profile.locations.current === l.id;
   const prog = locationProgress(profile, l.id);
   const boss = bossesConfig[l.boss];
@@ -138,11 +141,13 @@ function ZoneSheet({ loc: l, onClose }: { loc: LocationDef; onClose: () => void 
           <button className="btn btn-ghost" onClick={onClose}>
             Закрыть
           </button>
-          <button className="btn btn-gold btn-hazard" style={{ flex: 2 }} disabled={!unlocked} onClick={enter}>
+          <button className="btn btn-gold btn-hazard" style={{ flex: 2 }} disabled={!unlocked || (!current && !canEnter)} onClick={enter}>
             {!unlocked ? (
               <>
                 <UiIcon kind="lock" size={16} /> Закрыта
               </>
+            ) : !current && !canEnter ? (
+              `Нужен ${l.recommendedLevel} уровень`
             ) : current ? (
               'Вернуться в бой'
             ) : (
@@ -154,7 +159,7 @@ function ZoneSheet({ loc: l, onClose }: { loc: LocationDef; onClose: () => void 
     >
       <div className="zone-danger" style={{ ['--dc' as string]: DANGER[danger].color }}>
         <b>{DANGER[danger].label}</b>
-        <span className="small muted">рекомендуемый уровень бункера {l.recommendedLevel} · у вас {profile.bunker.level}</span>
+        <span className="small muted">вход с {l.recommendedLevel} уровня бункера · у вас {profile.bunker.level}</span>
       </div>
       <p className="small" style={{ color: '#c5cdd3', lineHeight: 1.45, margin: '10px 0' }}>
         {l.description}
@@ -165,7 +170,7 @@ function ZoneSheet({ loc: l, onClose }: { loc: LocationDef; onClose: () => void 
         </div>
       )}
       {!unlocked ? (
-        <div className="info-box">Откроется после победы над боссом зоны {l.id - 1}{l.special === 'rift' ? ' — Ядром ИИ' : ''}.</div>
+        <div className="info-box">Откроется после победы над боссом зоны {l.id - 1}. Вход — с {l.recommendedLevel} уровня бункера.</div>
       ) : (
         <>
           <div className="zone-row">

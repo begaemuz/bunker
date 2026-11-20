@@ -362,7 +362,7 @@ export function ensureMinimumKit(p: Profile): { profile: Profile; granted: Item[
 
 export function xpForLevel(level: number): number {
   const x = balanceConfig.xp;
-  return Math.round(x.base * Math.pow(level, x.exponent));
+  return Math.round(x.base * Math.pow(x.growth, level - 1));
 }
 
 export function addXp(p: Profile, amount: number): { profile: Profile; levelsGained: number } {
@@ -386,6 +386,11 @@ export function locationProgress(p: Profile, id: number): LocationProgress {
 
 export function isLocationUnlocked(p: Profile, id: number): boolean {
   return p.locations.unlocked.includes(id);
+}
+
+/** Войти можно, если зона открыта и уровень бункера не ниже уровня зоны. */
+export function canEnterLocation(p: Profile, id: number): boolean {
+  return isLocationUnlocked(p, id) && p.bunker.level >= getLocation(id).recommendedLevel;
 }
 
 function withProgress(p: Profile, id: number, fn: (lp: LocationProgress) => LocationProgress): Profile {
@@ -448,6 +453,6 @@ export function registerBossKill(p: Profile, locationId: number): { profile: Pro
 }
 
 export function setCurrentLocation(p: Profile, id: number): Profile {
-  if (!isLocationUnlocked(p, id)) return p;
+  if (!canEnterLocation(p, id) && p.locations.current !== id) return p;
   return { ...p, locations: { ...p.locations, current: id } };
 }

@@ -55,9 +55,13 @@ export const balanceConfig = {
 
   /** Рост характеристик с технологическим уровнем находки (локации). */
   tier: {
-    statPerTier: 0.4,
-    coilPowerPerTier: 0.45,
-    costPerTier: 0.18,
+    /** Рост «плоских» характеристик и мощности катушек за каждый Т (×). */
+    statGrowth: 1.42,
+    coilGrowth: 1.42,
+    /** Рост энергопотребления за Т (×). */
+    costGrowth: 1.36,
+    /** Рост цены улучшения за Т (×). */
+    upgradeGrowth: 1.4,
   },
 
   item: {
@@ -109,10 +113,14 @@ export const balanceConfig = {
   },
 
   /** Опыт и уровень бункера. Уровень не даёт прямых бонусов — он открывает возможности. */
+  /**
+   * Опыт: на уровень L нужно base × growth^(L−1). Рассчитано так, что при 3–4 часах
+   * игры в день 75–80 уровень берётся примерно за месяц, а 100 — за несколько месяцев.
+   */
   xp: {
-    base: 40,
-    exponent: 1.75,
-    maxLevel: 60,
+    base: 104,
+    growth: 1.158,
+    maxLevel: 100,
   },
 
   /**
@@ -138,10 +146,10 @@ export const balanceConfig = {
 
   /** Масштабирование роботов по технологическому уровню локации. */
   scaling: {
-    hpPerTier: 1.75,
-    damagePerTier: 1.35,
-    armorPerTier: 12,
-    rewardPerTier: 1.6,
+    hpPerTier: 1.5,
+    damagePerTier: 1.36,
+    armorPerTier: 9,
+    rewardPerTier: 1.45,
     /** Угроза добавляет к HP и урону. */
     threatHp: 0.8,
     threatDamage: 0.5,
