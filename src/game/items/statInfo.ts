@@ -29,7 +29,8 @@ const PCT_KEYS = new Set<string>([
 
 /** Как показывать значение характеристики. */
 export function statFormat(stat: StatKey): StatFormat {
-  if (stat.startsWith('resist:') || stat.startsWith('mode:') || stat.startsWith('chance:')) return 'pct';
+  if (stat === 'b:killEnergy' || stat === 'b:coolOnKill') return 'flat';
+  if (stat.startsWith('resist:') || stat.startsWith('mode:') || stat.startsWith('chance:') || stat.startsWith('b:')) return 'pct';
   if (stat === 'conversion') return 'abs';
   if (PCT_KEYS.has(stat)) return 'pct';
   if (stat === 'genPower' || stat === 'chargeRate' || stat === 'coolRate' || stat === 'regen') return 'perSec';

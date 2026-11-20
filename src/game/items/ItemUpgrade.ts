@@ -8,7 +8,8 @@ import { RESOURCE_KEYS, type Item, type Resources } from '../types';
 
 /** Максимальный уровень с учётом технологий. */
 export function effectiveMaxLevel(p: Profile, item: Item): number {
-  return item.maxLevel + techMeta(p, 'maxItemLevel');
+  void p;
+  return Math.min(balanceConfig.upgrade.maxLevel, item.maxLevel);
 }
 
 /** Ограничение уровнем бункера: оборудование не выше уровня бункера + N. */
@@ -36,12 +37,14 @@ export function upgradeChance(p: Profile, item: Item): number {
   const u = balanceConfig.upgrade;
   const base = u.successChance[item.level - 1] ?? u.minChance;
   const vip = vipPerks(vipLevel(p.vip?.points ?? 0)).upgradeChance;
-  return Math.min(0.99, Math.max(u.minChance, base + techMeta(p, 'upgradeChance') + vip));
+  // Бонусы науки и VIP усиливают шанс относительно: 10% с бонусом +30% станут 13%.
+  return Math.min(0.99, base * (1 + techMeta(p, 'upgradeChance') + vip));
 }
 
-export type UpgradeBlock = 'max' | 'bunker' | 'resources' | 'stabilizer' | null;
+export type UpgradeBlock = 'boosted' | 'max' | 'bunker' | 'resources' | 'stabilizer' | null;
 
 export function upgradeBlock(p: Profile, item: Item, useStabilizer: boolean): UpgradeBlock {
+  if (item.boost != null) return 'boosted';
   if (item.level >= effectiveMaxLevel(p, item)) return 'max';
   if (item.level >= bunkerLevelCap(p)) return 'bunker';
   if (!canAfford(p, upgradeCost(p, item))) return 'resources';

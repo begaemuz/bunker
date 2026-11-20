@@ -42,6 +42,7 @@ import { sellMany } from '../game/profile/Profile';
 import { migrate } from '../services/migrations';
 import { clearProfile, loadProfile, saveBackupSync, saveProfile, setStorageUser } from '../services/storage';
 import { claimDeliveries, serverAvailable, serverLoad, serverSave, type ServerSummary } from '../services/server';
+import { boostItem, type BoosterKey } from '../game/items/Boost';
 import { applyDeliveries, putLot, takeForLot, type Delivery, type LotKind, type LotPayload } from '../game/meta/auction';
 import { combatPower } from '../game/bunker/compare';
 import { computeBunkerStats } from '../game/bunker/BunkerStats';
@@ -94,6 +95,8 @@ interface ProfileState {
   /** Аукцион: убрать вещь под лот (вернуть, если сервер отказал). */
   lotTake: (kind: LotKind, id: string) => { payload: LotPayload; quality: number } | null;
   lotReturn: (payload: LotPayload) => void;
+  /** Бустер на вещь: возвращает изменение (+0.07 / −0.12) или ошибку. */
+  boostItem: (itemId: string, key: BoosterKey) => { boost?: number; error?: string };
   /** Списать кристаллы за принятую сервером ставку. */
   payCrystals: (n: number) => boolean;
   /** Забрать посылки с сервера (выигрыши, оплата, возвраты). */
@@ -500,6 +503,15 @@ export const useProfile = create<ProfileState>((set, get) => {
       if ('error' in r) return null;
       commit(r.profile, true, true);
       return { payload: r.payload, quality: r.quality };
+    },
+
+    boostItem: (itemId, key) => {
+      const p = get().profile;
+      if (!p) return { error: 'not_found' };
+      const r = boostItem(p, itemId, key);
+      if (r.error) return { error: r.error };
+      commit(r.profile, true, true);
+      return { boost: r.boost };
     },
 
     lotReturn: (payload) => {

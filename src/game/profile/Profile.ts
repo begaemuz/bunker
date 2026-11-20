@@ -17,7 +17,7 @@ import {
   type SlotId,
 } from '../types';
 
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 
 export interface GlobalStats {
   robotsKilled: number;

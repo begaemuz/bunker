@@ -21,7 +21,13 @@ export interface ItemTemplate {
   name: string;
   category: EquipCategory;
   description: string;
+  /**
+   * Основные характеристики по порядку. Сколько их у вещи, решает редкость:
+   * белая — 1, зелёная — 2, синяя и выше — 3. Улучшение усиливает только их.
+   */
   base: StatRange[];
+  /** Постоянные особенности шаблона (например, нагрев) — есть у вещи любой редкости. */
+  traits?: StatRange[];
   coil?: CoilRange;
   /** Постоянное потребление энергии, ед/с. */
   energyCost: [number, number];
@@ -44,17 +50,15 @@ export const itemTemplates: ItemTemplate[] = [
     name: 'Дизельный генератор',
     category: 'generator',
     description: 'Надёжный источник энергии из запасов старого мира. Стабилен и почти не греется.',
-    base: [{ stat: 'genPower', min: 12, max: 15 }],
+    base: [{ stat: 'genPower', min: 12, max: 15 }, { stat: 'capacity', min: 8, max: 14 }, { stat: 'coolRate', min: 0.8, max: 1.4 }],
   }),
   T({
     id: 'gen_turbine',
     name: 'Газотурбинная установка',
     category: 'generator',
     description: 'Больше мощности, но заметный нагрев всего комплекса.',
-    base: [
-      { stat: 'genPower', min: 17, max: 21 },
-      { stat: 'heatPct', min: 0.12, max: 0.16 },
-    ],
+    base: [{ stat: 'genPower', min: 17, max: 21 }, { stat: 'chargeRate', min: 3, max: 5 }, { stat: 'capacity', min: 6, max: 10 }],
+    traits: [{ stat: 'heatPct', min: 0.12, max: 0.16 }],
     weight: 7,
   }),
   T({
@@ -62,11 +66,8 @@ export const itemTemplates: ItemTemplate[] = [
     name: 'Компактный реактор',
     category: 'generator',
     description: 'Реакторный генератор: огромная мощность и встроенный накопитель, но сильный нагрев.',
-    base: [
-      { stat: 'genPower', min: 22, max: 27 },
-      { stat: 'capacity', min: 10, max: 18 },
-      { stat: 'heatPct', min: 0.22, max: 0.28 },
-    ],
+    base: [{ stat: 'genPower', min: 22, max: 27 }, { stat: 'capacity', min: 10, max: 18 }, { stat: 'chargeRate', min: 4, max: 6 }],
+    traits: [{ stat: 'heatPct', min: 0.22, max: 0.28 }],
     weight: 4,
   }),
   T({
@@ -74,10 +75,7 @@ export const itemTemplates: ItemTemplate[] = [
     name: 'Термоэлектрический генератор',
     category: 'generator',
     description: 'Превращает часть тепла оборудования в энергию и тем самым охлаждает комплекс.',
-    base: [
-      { stat: 'genPower', min: 9, max: 12 },
-      { stat: 'coolRate', min: 1.5, max: 2.5 },
-    ],
+    base: [{ stat: 'genPower', min: 9, max: 12 }, { stat: 'coolRate', min: 1.5, max: 2.5 }, { stat: 'heatCap', min: 10, max: 16 }],
     weight: 6,
   }),
 
@@ -179,17 +177,14 @@ export const itemTemplates: ItemTemplate[] = [
     name: 'Трансформаторный узел',
     category: 'converter',
     description: 'Снижает потери при передаче энергии от генератора к системам.',
-    base: [{ stat: 'conversion', min: 0.82, max: 0.86 }],
+    base: [{ stat: 'conversion', min: 0.82, max: 0.86 }, { stat: 'moduleBonus', min: 0.03, max: 0.05 }, { stat: 'drainPct', min: -0.04, max: -0.08 }],
   }),
   T({
     id: 'conv_smart',
     name: 'Интеллектуальный распределитель',
     category: 'converter',
     description: 'Немного хуже КПД, зато повышает эффективность охлаждения, сенсоров и защиты.',
-    base: [
-      { stat: 'conversion', min: 0.78, max: 0.82 },
-      { stat: 'moduleBonus', min: 0.06, max: 0.1 },
-    ],
+    base: [{ stat: 'conversion', min: 0.78, max: 0.82 }, { stat: 'moduleBonus', min: 0.06, max: 0.1 }, { stat: 'genPowerPct', min: 0.03, max: 0.05 }],
     weight: 6,
   }),
   T({
@@ -197,10 +192,7 @@ export const itemTemplates: ItemTemplate[] = [
     name: 'Высоковольтный инвертор',
     category: 'converter',
     description: 'Снижает стоимость каждого импульса катушек.',
-    base: [
-      { stat: 'conversion', min: 0.8, max: 0.84 },
-      { stat: 'pulseCostPct', min: -0.08, max: -0.12 },
-    ],
+    base: [{ stat: 'conversion', min: 0.8, max: 0.84 }, { stat: 'pulseCostPct', min: -0.08, max: -0.12 }, { stat: 'drainPct', min: -0.04, max: -0.07 }],
     weight: 6,
   }),
 
@@ -210,10 +202,7 @@ export const itemTemplates: ItemTemplate[] = [
     name: 'Воздушное охлаждение',
     category: 'cooling',
     description: 'Простая и экономичная система отвода тепла.',
-    base: [
-      { stat: 'coolRate', min: 6, max: 8 },
-      { stat: 'heatCap', min: 30, max: 40 },
-    ],
+    base: [{ stat: 'coolRate', min: 6, max: 8 }, { stat: 'heatCap', min: 30, max: 40 }, { stat: 'overdrive', min: 0.03, max: 0.05 }],
     energyCost: [1, 1.2],
   }),
   T({
@@ -221,10 +210,7 @@ export const itemTemplates: ItemTemplate[] = [
     name: 'Жидкостный контур',
     category: 'cooling',
     description: 'Быстро отводит тепло, но потребляет больше энергии.',
-    base: [
-      { stat: 'coolRate', min: 10, max: 13 },
-      { stat: 'heatCap', min: 20, max: 30 },
-    ],
+    base: [{ stat: 'coolRate', min: 10, max: 13 }, { stat: 'heatCap', min: 20, max: 30 }, { stat: 'coolRatePct', min: 0.05, max: 0.08 }],
     energyCost: [2, 2.5],
     weight: 7,
   }),
@@ -248,10 +234,7 @@ export const itemTemplates: ItemTemplate[] = [
     name: 'Радарный комплекс',
     category: 'sensor',
     description: 'Дальнее обнаружение: цели опознаются ещё на подходе.',
-    base: [
-      { stat: 'detectRange', min: 230, max: 270 },
-      { stat: 'identifiedBonus', min: 0.1, max: 0.14 },
-    ],
+    base: [{ stat: 'detectRange', min: 230, max: 270 }, { stat: 'identifiedBonus', min: 0.1, max: 0.14 }, { stat: 'identifySpeed', min: 0.15, max: 0.25 }],
     energyCost: [1.5, 2],
   }),
   T({
@@ -287,10 +270,7 @@ export const itemTemplates: ItemTemplate[] = [
     name: 'Бронированный контур',
     category: 'shield',
     description: 'Дополнительные бронеплиты: прочность и снижение урона.',
-    base: [
-      { stat: 'hullHp', min: 250, max: 350 },
-      { stat: 'damageReduction', min: 0.04, max: 0.06 },
-    ],
+    base: [{ stat: 'hullHp', min: 250, max: 350 }, { stat: 'damageReduction', min: 0.04, max: 0.06 }, { stat: 'regen', min: 0.5, max: 1 }],
     energyCost: [1, 1.5],
   }),
   T({
@@ -298,10 +278,7 @@ export const itemTemplates: ItemTemplate[] = [
     name: 'Энергетический барьер',
     category: 'shield',
     description: 'Поле снижает весь входящий урон, особенно энергетический.',
-    base: [
-      { stat: 'damageReduction', min: 0.08, max: 0.12 },
-      { stat: 'resist:energy', min: 0.1, max: 0.15 },
-    ],
+    base: [{ stat: 'damageReduction', min: 0.08, max: 0.12 }, { stat: 'hullHp', min: 120, max: 180 }, { stat: 'resist:energy', min: 0.05, max: 0.1 }],
     energyCost: [2.5, 3],
     weight: 7,
   }),
@@ -310,10 +287,7 @@ export const itemTemplates: ItemTemplate[] = [
     name: 'Аварийный ремонтный контур',
     category: 'shield',
     description: 'Постоянный ремонт и экстренное восстановление при критических повреждениях.',
-    base: [
-      { stat: 'regen', min: 1.5, max: 2.5 },
-      { stat: 'emergencyRepair', min: 0.15, max: 0.2 },
-    ],
+    base: [{ stat: 'regen', min: 1.5, max: 2.5 }, { stat: 'emergencyRepair', min: 0.15, max: 0.2 }, { stat: 'hullHp', min: 100, max: 160 }],
     energyCost: [1.5, 2],
     weight: 6,
   }),

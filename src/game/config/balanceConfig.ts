@@ -20,13 +20,23 @@ export const balanceConfig = {
     legendary: 1.45,
     unique: 1.35,
   } as Record<Rarity, number>,
+  /** Сколько основных характеристик у вещи: белая 1, зелёная 2, синяя и выше 3. */
+  rarityMainCount: {
+    common: 1,
+    uncommon: 2,
+    rare: 3,
+    epic: 3,
+    legendary: 3,
+    unique: 3,
+  } as Record<Rarity, number>,
+  /** Случайные дополнительные: фиолетовая +1, золотая +2 (красная в будущем +3). */
   rarityExtraCount: {
     common: [0, 0],
-    uncommon: [1, 1],
-    rare: [1, 2],
-    epic: [2, 3],
-    legendary: [3, 3],
-    unique: [2, 3],
+    uncommon: [0, 0],
+    rare: [0, 0],
+    epic: [1, 1],
+    legendary: [2, 2],
+    unique: [1, 2],
   } as Record<Rarity, [number, number]>,
   raritySlots: {
     common: [0, 1],
@@ -69,9 +79,11 @@ export const balanceConfig = {
     /** С 7-го уровня нужны энергоядра. */
     coresFromLevel: 7,
     coresPerLevel: 1,
-    /** Шанс успеха перехода с уровня N на N+1 (индекс = N−1). */
-    successChance: [0.95, 0.9, 0.85, 0.8, 0.75, 0.65, 0.55, 0.45, 0.35, 0.3, 0.25, 0.2, 0.18, 0.15],
-    minChance: 0.12,
+    /** Шанс успеха перехода с уровня N на N+1 (индекс = N−1). Последний шаг 9→10 — всего 10%. */
+    successChance: [0.9, 0.8, 0.7, 0.6, 0.48, 0.38, 0.28, 0.18, 0.1],
+    minChance: 0.1,
+    /** Абсолютный предел уровня вещи. */
+    maxLevel: 10,
   },
 
   sell: {

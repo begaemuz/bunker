@@ -17,6 +17,8 @@ import { ConfirmDialog } from '../common/Common';
 import { ItemIcon, ResourceIcon } from '../common/Icons';
 import { Sheet } from '../common/Sheet';
 import { UpgradeDialog } from './UpgradeDialog';
+import { BoostDialog, BoostTag } from './BoostDialog';
+import { BOOSTERS } from '../../game/items/Boost';
 import { ItemSlots } from '../parts/Parts';
 
 function sourceText(s: ItemSource): string {
@@ -91,6 +93,8 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
   const toast = useUi((s) => s.toast);
   const [confirmSell, setConfirmSell] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
+  const [boosting, setBoosting] = useState(false);
+  const hasBooster = BOOSTERS.some((k) => profile.resources[k] > 0);
   const [details, setDetails] = useState(false);
   const [chosenSlot, setChosenSlot] = useState<SlotId | null>(null);
 
@@ -157,6 +161,7 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
             </div>
             <div className="item-sub">
               Ур. {item.level}/{item.maxLevel} · тех. уровень {item.tier}
+              {item.boost != null && <BoostTag boost={item.boost} />}
             </div>
           </div>
           <QualityBadge q={itemQuality(item)} />
@@ -168,9 +173,16 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
           <button className="btn btn-ghost" onClick={onClose}>
             Закрыть
           </button>
-          <button className="btn btn-gold" disabled={!canUpgrade} onClick={() => setUpgrading(true)}>
-            Улучшить
-          </button>
+          {item.boost == null ? (
+            <>
+              <button className="btn btn-gold" disabled={!canUpgrade} onClick={() => setUpgrading(true)}>
+                Улучшить
+              </button>
+              <button className="btn btn-boost" disabled={!hasBooster} onClick={() => setBoosting(true)}>
+                Буст
+              </button>
+            </>
+          ) : null}
           {equippedSlot ? (
             <>
               {onReplace && (
@@ -244,7 +256,7 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
 
           {item.baseStats.length > 0 && (
             <>
-              <div className="section-title">Характеристики (с учётом уровня)</div>
+              <div className="section-title">Основные характеристики{item.boost != null ? ' (с бустом)' : ' (с учётом уровня)'}</div>
               <StatLines mods={mods.slice(0, item.baseStats.length)} rolls={rolls.base} />
             </>
           )}
@@ -309,6 +321,7 @@ export function ItemCard({ itemId, onClose, onReplace }: { itemId: string; onClo
     </Sheet>
 
       {upgrading && <UpgradeDialog itemId={item.id} onClose={() => setUpgrading(false)} onDestroyed={onClose} />}
+      {boosting && <BoostDialog itemId={item.id} onClose={() => setBoosting(false)} />}
       {confirmSell && (
         <ConfirmDialog
           title="Продать оборудование?"

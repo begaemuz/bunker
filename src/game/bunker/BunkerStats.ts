@@ -1,7 +1,7 @@
 import { vipLevel, vipPerks } from '../meta/vip';
 import { gameConfig, modeConfig } from '../config/gameConfig';
 import { coilProps, itemModifiers } from '../items/ItemGenerator';
-import { partMods } from '../items/Parts';
+import { partMods, resonanceMods } from '../items/Parts';
 import { equippedItems, type Profile } from '../profile/Profile';
 import { techStatMods } from '../progression/TechnologyTree';
 import {
@@ -124,6 +124,8 @@ export function computeBunkerStats(profile: Profile, layoutOverride?: EquipmentL
     }
   }
   for (const m of techStatMods(profile)) add(m.stat, m.value);
+  // Резонанс стихий модификаций.
+  for (const m of resonanceMods(p)) add(m.stat, m.value);
   const g = (k: StatKey) => sums.get(k) ?? 0;
 
   // ── Энергия ──
@@ -196,7 +198,7 @@ export function computeBunkerStats(profile: Profile, layoutOverride?: EquipmentL
   const identifiedBonus = g('identifiedBonus') * mb;
   const critChance = Math.min(0.6, g('critChance'));
   const critMultiplier = b.critMultiplier + g('critDamage');
-  const markBonus = uniqueValue(items, 'markTargets');
+  const markBonus = uniqueValue(items, 'markTargets') + g('b:markTargets');
 
   // ── Защита ──
   const maxHp = Math.round((b.hullHp + g('hullHp') * mb) * (1 + g('hullPct')));
@@ -249,10 +251,10 @@ export function computeBunkerStats(profile: Profile, layoutOverride?: EquipmentL
     damageReduction,
     resist,
     emergencyRepair: g('emergencyRepair') * mb,
-    reflect: uniqueValue(items, 'reflect'),
-    firstPulseBonus: uniqueValue(items, 'firstPulse'),
-    killEnergy: uniqueValue(items, 'killEnergy'),
-    coolOnKill: uniqueValue(items, 'coolOnKill'),
+    reflect: Math.min(1, uniqueValue(items, 'reflect') + g('b:reflect')),
+    firstPulseBonus: uniqueValue(items, 'firstPulse') + g('b:firstPulse'),
+    killEnergy: uniqueValue(items, 'killEnergy') + g('b:killEnergy'),
+    coolOnKill: uniqueValue(items, 'coolOnKill') + g('b:coolOnKill'),
     coinMult: 1 + g('coinPct') + vip.coinPct,
     dropChanceMult: 1 + g('dropChancePct') + vip.dropPct,
     xpMult: 1 + g('xpPct') + vip.xpPct,

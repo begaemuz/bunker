@@ -1,3 +1,4 @@
+import { boostMult } from './Boost';
 import { balanceConfig } from '../config/balanceConfig';
 import { gameConfig } from '../config/gameConfig';
 import { extraStatPools, itemTemplates, type ItemTemplate, type StatRange } from '../config/itemsConfig';
@@ -53,7 +54,9 @@ export function generateItem(opts: GenerateOptions): Item {
   const idx = rarityIndex(rarity);
   const costMult = balanceConfig.rarityCostMult[rarity] * (1 + balanceConfig.tier.costPerTier * (tier - 1));
 
-  const baseStats = tpl.base.map((r) => rollRange(r, rarity, tier));
+  // Особенности шаблона + основные характеристики по редкости (у уникальных — все).
+  const mainCount = tpl.unique ? tpl.base.length : balanceConfig.rarityMainCount[rarity];
+  const baseStats = [...(tpl.traits ?? []), ...tpl.base.slice(0, mainCount)].map((r) => rollRange(r, rarity, tier));
 
   let coil: CoilProps | undefined;
   if (tpl.coil) {
@@ -121,7 +124,12 @@ function levelMult(stat: StatKey, value: number, level: number): number {
 
 /** Итоговые модификаторы предмета с учётом уровня улучшения. */
 export function itemModifiers(item: Item): StatMod[] {
-  const base = item.baseStats.map((s) => ({ stat: s.stat, value: levelMult(s.stat, s.value, item.level) }));
+  const b = boostMult(item);
+  const base = item.baseStats.map((s) => {
+    const v = levelMult(s.stat, s.value, item.level);
+    // Буст меняет только основные характеристики, не особенности-недостатки.
+    return { stat: s.stat, value: isDrawback(s.stat, s.value) || b === 1 ? v : s.stat === 'conversion' ? Math.min(gameConfig.maxConversion, v * b) : v * b };
+  });
   return [...base, ...item.extraStats];
 }
 
@@ -130,11 +138,12 @@ export function coilProps(item: Item): CoilProps | null {
   if (!item.coil) return null;
   const n = item.level - 1;
   const c = item.coil;
+  const b = boostMult(item);
   return {
     ...c,
-    power: c.power * (1 + balanceConfig.item.statPerLevel * n),
-    radius: c.radius * (1 + 0.01 * n),
-    interval: c.interval * (1 - 0.01 * n),
+    power: c.power * (1 + balanceConfig.item.statPerLevel * n) * b,
+    radius: c.radius * (1 + 0.01 * n) * b,
+    interval: (c.interval * (1 - 0.01 * n)) / b,
   };
 }
 
@@ -170,7 +179,7 @@ function rollInfo(stat: StatKey, raw: number, r: StatRange, rarity: Rarity, tier
 export function itemStatRolls(item: Item): { base: (StatRoll | null)[]; extra: (StatRoll | null)[] } {
   const tpl = itemTemplates.find((t) => t.id === item.templateId);
   const base = item.baseStats.map((s) => {
-    const r = tpl?.base.find((x) => x.stat === s.stat);
+    const r = tpl?.base.find((x) => x.stat === s.stat) ?? tpl?.traits?.find((x) => x.stat === s.stat);
     return r ? rollInfo(s.stat, s.value, r, item.rarity, item.tier, item.level, true) : null;
   });
   const pool = extraStatPools[item.category] ?? [];

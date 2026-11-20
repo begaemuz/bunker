@@ -293,7 +293,7 @@ function LootFeed() {
   return (
     <div className="loot-feed">
       {feed.slice(0, 5).map((f) => (
-        <div key={f.id} className="loot-line" style={{ borderLeftColor: f.color, color: f.color }}>
+        <div key={f.id} className="loot-line" style={{ color: f.color }}>
           {f.text}
         </div>
       ))}

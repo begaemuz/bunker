@@ -142,7 +142,7 @@ export function UpgradeDialog({ itemId, onClose, onDestroyed }: { itemId: string
         )}
         {block === 'max' && (
           <div className="info-box" style={{ marginBottom: 10 }}>
-            Достигнут максимальный уровень. Его повышает технология «Предельные нагрузки».
+            Достигнут максимальный уровень 10. Теперь вещь можно усилить бустером.
           </div>
         )}
 

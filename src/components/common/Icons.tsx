@@ -106,6 +106,9 @@ const resColors: Record<ResourceKey, string> = {
   bossPasses: '#ff4d6a',
   expansionKeys: '#f2b53a',
   skillResets: '#ff9de2',
+  boost1: '#9fe6ff',
+  boost2: '#c58bff',
+  boost3: '#ffcf4d',
 };
 
 export function ResourceIcon({ type, size = 14 }: { type: ResourceKey; size?: number }) {
@@ -175,6 +178,20 @@ export function ResourceIcon({ type, size = 14 }: { type: ResourceKey; size?: nu
           <path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
         </svg>
       );
+    case 'boost1':
+    case 'boost2':
+    case 'boost3': {
+      const n = type === 'boost1' ? 1 : type === 'boost2' ? 2 : 3;
+      return (
+        <svg {...p}>
+          <path d="M5 1.5h6l-1 2.5v2l3.2 6.3A1.6 1.6 0 0 1 11.8 14.5H4.2a1.6 1.6 0 0 1-1.4-2.2L6 6V4z" fill={c} />
+          <path d="M8 7.2 6.4 10h3.2L8 12.8" fill="none" stroke="#11161b" strokeWidth="1.3" strokeLinejoin="round" />
+          {Array.from({ length: n }, (_, i) => (
+            <circle key={i} cx={5.5 + i * 2.5} cy={3} r={0.9} fill="#11161b" />
+          ))}
+        </svg>
+      );
+    }
     case 'skillResets':
       return (
         <svg {...p}>

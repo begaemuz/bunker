@@ -4,7 +4,7 @@ import type { ResourceKey } from './types';
  * Расходные предметы: хранятся в инвентаре стопками, а не как валюта.
  * Автопродажа их не трогает, лимит склада на них не распространяется.
  */
-export const CONSUMABLES = ['scrap', 'techParts', 'components', 'blueprints', 'energyCores', 'stabilizers', 'expansionKeys', 'bossPasses', 'skillResets'] as const;
+export const CONSUMABLES = ['scrap', 'techParts', 'components', 'blueprints', 'energyCores', 'stabilizers', 'expansionKeys', 'bossPasses', 'skillResets', 'boost1', 'boost2', 'boost3'] as const;
 /** Частые ресурсы не показываются в ленте добычи, чтобы не засорять её. */
 export const FEED_SKIP: ConsumableKey[] = ['scrap', 'techParts'];
 export type ConsumableKey = (typeof CONSUMABLES)[number];
@@ -47,6 +47,21 @@ export const consumableInfo: Record<ConsumableKey, { color: string; description:
     color: '#b46bff',
     description: 'Редкое энергоядро. Нужно для высоких уровней оборудования, исследований и извлечения модификаций.',
     use: 'Тратится автоматически там, где требуется.',
+  },
+  boost1: {
+    color: '#9fe6ff',
+    description: 'Слабый бустер. Меняет основные характеристики вещи на случайные 0–10% — в плюс или в минус, как повезёт.',
+    use: 'Откройте вещь и нажмите «Буст». После буста вещь нельзя улучшать и бустить снова — сначала точите до максимума.',
+  },
+  boost2: {
+    color: '#c58bff',
+    description: 'Сильный бустер. Меняет основные характеристики вещи на 10–20% — в плюс или в минус.',
+    use: 'Откройте вещь и нажмите «Буст». После буста вещь нельзя улучшать и бустить снова.',
+  },
+  boost3: {
+    color: '#ffcf4d',
+    description: 'Редчайший бустер. Меняет основные характеристики вещи на 15–30% — в плюс или в минус. Ставка на всё.',
+    use: 'Откройте вещь и нажмите «Буст». После буста вещь нельзя улучшать и бустить снова.',
   },
   skillResets: {
     color: '#ff9de2',

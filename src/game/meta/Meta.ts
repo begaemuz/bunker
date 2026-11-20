@@ -177,6 +177,10 @@ export function buySpecial(p: Profile, id: string): { profile: Profile; got?: st
       return { profile: addResources(paid, { stabilizers: 3 }), got: 'Стабилизаторы ×3' };
     case 'key':
       return { profile: addResources(paid, { expansionKeys: 1 }), got: 'Ключ расширения' };
+    case 'boost1':
+    case 'boost2':
+    case 'boost3':
+      return { profile: addResources(paid, { [o.kind]: 1 }), got: o.title };
   }
 }
 
@@ -261,6 +265,18 @@ export function emptyQuests(): QuestState {
   return { day: { key: '', list: [], bonusClaimed: false }, week: { key: '', list: [], bonusClaimed: false }, month: { key: '', list: [], bonusClaimed: false } };
 }
 
+/**
+ * Цель задания. Монеты растут с тех. уровнем. Счётчики боя (роботы, группы)
+ * на первых локациях мягче: там роботы слабее и идут реже.
+ */
+export function questTarget(target: number, scale: boolean, kind: string, tier: number): number {
+  if (scale) return target * tier;
+  const combat = kind === 'kill' || kind === 'killHeavy' || kind === 'groups' || kind === 'miniboss' || kind === 'items';
+  const k = combat ? Math.min(1, 0.6 + 0.1 * (tier - 1)) : 1;
+  const v = target * k;
+  return v >= 100 ? Math.round(v / 50) * 50 : Math.max(1, Math.round(v));
+}
+
 function genQuests(p: Profile, period: QuestPeriod): Quest[] {
   const tier = playerTier(p);
   const cfg = questConfig[period];
@@ -269,7 +285,7 @@ function genQuests(p: Profile, period: QuestPeriod): Quest[] {
     id: uid(),
     kind: q.kind,
     title: q.title,
-    target: q.scale ? q.target * tier : q.target,
+    target: questTarget(q.target, q.scale, q.kind, tier),
     progress: 0,
     reward: scaleSoft(q.reward, 1 + 0.5 * (tier - 1)),
     claimed: false,

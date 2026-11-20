@@ -1,7 +1,9 @@
+import { elementConfig, RESONANCE_STEPS } from '../../game/config/partsConfig';
+import type { Element } from '../../game/types';
 import { useMemo, useState } from 'react';
 import { fusionConfig, fusionCost } from '../../game/config/partsConfig';
 import { formatStatValue } from '../../game/items/statInfo';
-import { dismantleValue, extractCost, fusionQualityRange, partPowerScore, partStatRoll, partQuality, fusionPick, fusableCount, fusionChance, fusionGroup, getPartTemplate, nextRarity } from '../../game/items/Parts';
+import { elementCounts, dismantleValue, extractCost, fusionQualityRange, partPowerScore, partStatRoll, partQuality, fusionPick, fusableCount, fusionChance, fusionGroup, getPartTemplate, nextRarity } from '../../game/items/Parts';
 import { rarityIndex } from '../../game/items/ItemRarity';
 import { slotOf } from '../../game/profile/Profile';
 import { RARITIES, type Item, type Part, type Rarity } from '../../game/types';
@@ -35,10 +37,41 @@ export function PartTile({ part, canFuse, onClick }: { part: Part; canFuse?: boo
           <span style={{ fontWeight: 900, fontSize: 11 }}>3</span>
         </span>
       )}
+      {part.element && <ElementDot el={part.element} />}
       <span className="tile-name" style={{ color: col }}>
         {part.name}
       </span>
     </button>
+  );
+}
+
+/** Значок стихии модификации. */
+export function ElementDot({ el, label }: { el: Element; label?: boolean }) {
+  const c = elementConfig[el];
+  return (
+    <span className={`el-dot${label ? ' with-label' : ''}`} style={{ ['--ec' as string]: c.color }} title={c.name}>
+      <i />
+      {label && c.name}
+    </span>
+  );
+}
+
+/** Резонанс стихии: сколько стоит и какие ступени активны. */
+export function ResonanceInfo({ el }: { el: Element }) {
+  const profile = useProfile((s) => s.profile)!;
+  const n = elementCounts(profile)[el];
+  const c = elementConfig[el];
+  return (
+    <div className="reso" style={{ ['--ec' as string]: c.color }}>
+      <div className="reso-head">
+        <ElementDot el={el} label /> <span className="small muted">в надетых вещах: {n}</span>
+      </div>
+      {RESONANCE_STEPS.map((need, i) => (
+        <div key={need} className={`reso-step${n >= need ? ' on' : ''}`}>
+          <b>{need}</b> {c.text[i]}
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -108,7 +141,9 @@ export function PartCard({ partId, onClose }: { partId: string; onClose: () => v
           </div>
           <div className="grow">
             <div style={{ color: col, fontWeight: 900, fontSize: 16 }}>{part.name}</div>
-            <div className="item-sub">{ru.rarity[part.rarity]} модификация</div>
+            <div className="item-sub">
+              {ru.rarity[part.rarity]} модификация {part.element && <ElementDot el={part.element} label />}
+            </div>
           </div>
           <QualityBadge q={partQuality(part)} />
         </div>
@@ -150,7 +185,6 @@ export function PartCard({ partId, onClose }: { partId: string; onClose: () => v
                   label={
                     <>
                       {statLabel(s.stat)}
-                      {i === 0 && <span className="tag" style={{ marginLeft: 6 }}>основное</span>}
                     </>
                   }
                   value={formatStatValue(s.stat, s.value)}
@@ -163,8 +197,14 @@ export function PartCard({ partId, onClose }: { partId: string; onClose: () => v
             })}
           </div>
           <div className="small muted" style={{ marginTop: 6 }}>
-            Качество модификации: <b style={{ color: qualityColor(partQuality(part)) }}>{Math.round(partQuality(part) * 100)}%</b>. Под каждым свойством — диапазон для этой редкости и качество броска: 100% — лучшее возможное значение.
+            Качество модификации: <b style={{ color: qualityColor(partQuality(part)) }}>{Math.round(partQuality(part) * 100)}%</b>. Под эффектом — диапазон для этой редкости: 100% — лучшее возможное значение.
           </div>
+          {part.element && (
+            <>
+              <div className="section-title">Резонанс стихии</div>
+              <ResonanceInfo el={part.element} />
+            </>
+          )}
           <div className="small muted" style={{ marginTop: 8 }}>
             Подходит для: {t.fits.map((c) => ru.category[c].toLowerCase()).join(', ')}
           </div>
@@ -172,7 +212,7 @@ export function PartCard({ partId, onClose }: { partId: string; onClose: () => v
           <div className="section-title">Объединение</div>
           {next ? (
             <div className="info-box">
-              {fusionConfig.count} одинаковые → 1 {ru.rarity[next].toLowerCase()} с новыми свойствами. Есть: <b>{group.length}</b>. Шанс успеха {Math.round(fusionChance(part.rarity, profile) * 100)}%. При неудаче все три детали теряются.
+              {fusionConfig.count} одинаковые → 1 {ru.rarity[next].toLowerCase()} с более сильным эффектом той же стихии. Есть: <b>{group.length}</b>. Шанс успеха {Math.round(fusionChance(part.rarity, profile) * 100)}%. При неудаче все три детали теряются.
               {canFuse && (
                 <div style={{ marginTop: 6 }}>
                   Уйдут в объединение: эта и две самые слабые —{' '}

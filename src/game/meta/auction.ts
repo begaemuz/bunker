@@ -14,7 +14,7 @@ export const AUCTION_MAX_LOTS = 5;
 export type LotPayload = { item: Item; parts: Part[] } | { part: Part } | { res: TradableRes; amount: number };
 
 /** Расходники, которые можно продавать на аукционе. */
-export const TRADABLE_RES = ['skillResets'] as const;
+export const TRADABLE_RES = ['skillResets', 'boost1', 'boost2', 'boost3'] as const;
 export type TradableRes = (typeof TRADABLE_RES)[number];
 export type LotKind = 'item' | 'part' | 'res';
 

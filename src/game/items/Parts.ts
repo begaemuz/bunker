@@ -1,8 +1,8 @@
 import { vipLevel, vipPerks } from '../meta/vip';
-import { dismantleYield, fusionConfig, fusionCost, partExtraMult, partRarityMult, partStatCount, partTemplates, type PartTemplate } from '../config/partsConfig';
+import { elementConfig, RESONANCE_STEPS, dismantleYield, fusionConfig, fusionCost, partExtraMult, partRarityMult, partStatCount, partTemplates, type PartTemplate } from '../config/partsConfig';
 import { pushHistory, type Profile } from '../profile/Profile';
 import { chance, pickWeighted, randFloat, uid } from '../rng';
-import { RARITIES, type Part, type Rarity, type StatKey, type StatMod } from '../types';
+import { ELEMENTS, RARITIES, type Element, type Part, type Rarity, type StatKey, type StatMod } from '../types';
 import { rarityIndex } from './ItemRarity';
 
 export function getPartTemplate(id: string): PartTemplate {
@@ -45,7 +45,7 @@ export function fusionQualityRange(parts: Part[]): [number, number] {
   return [b * 0.7, b * 0.7 + 0.3];
 }
 
-export function generatePart(rarity: Rarity, templateId?: string, bias?: number): Part {
+export function generatePart(rarity: Rarity, templateId?: string, bias?: number, element?: Element): Part {
   const t = templateId ? getPartTemplate(templateId) : pickWeighted(partTemplates, (x) => x.weight);
   const stats: StatMod[] = [rollStat(t, rarity, 1, bias)];
   const pool = [...partExtraPool(t)];
@@ -55,7 +55,8 @@ export function generatePart(rarity: Rarity, templateId?: string, bias?: number)
     pool.splice(pool.indexOf(pick), 1);
     stats.push(rollStat(pick, rarity, partExtraMult, bias));
   }
-  return { id: uid(), templateId: t.id, name: t.name, rarity, stats, installedIn: null, obtainedAt: Date.now() };
+  const el = element ?? ELEMENTS[Math.floor(randFloat(0, ELEMENTS.length - 1e-9))];
+  return { id: uid(), templateId: t.id, name: t.name, rarity, stats, element: el, installedIn: null, obtainedAt: Date.now() };
 }
 
 /** Диапазон свойства модификации: первое — основное, остальные ослаблены. */
@@ -85,6 +86,32 @@ export function partStatRoll(part: Part, index: number): { min: number; max: num
 export function partQuality(part: Part): number {
   const qs = part.stats.map((_, i) => partStatRoll(part, i)?.quality ?? 0.5);
   return qs.reduce((a, b) => a + b, 0) / Math.max(1, qs.length);
+}
+
+/** Сколько модификаций каждой стихии стоит в надетых вещах. */
+export function elementCounts(p: Profile): Record<Element, number> {
+  const out = { shock: 0, frost: 0, magnet: 0, plasma: 0 } as Record<Element, number>;
+  for (const id of Object.values(p.equipment)) {
+    const item = id ? p.items[id] : null;
+    if (!item) continue;
+    for (const s of item.slots) {
+      const part = s.partId ? p.parts[s.partId] : null;
+      if (part?.element) out[part.element]++;
+    }
+  }
+  return out;
+}
+
+/** Бонусы резонанса стихий: 2, 4 и 6 одинаковых — по ступени. */
+export function resonanceMods(p: Profile): StatMod[] {
+  const counts = elementCounts(p);
+  const out: StatMod[] = [];
+  for (const el of ELEMENTS) {
+    RESONANCE_STEPS.forEach((need, i) => {
+      if (counts[el] >= need) out.push(elementConfig[el].bonuses[i]);
+    });
+  }
+  return out;
 }
 
 /** Характеристики всех деталей, установленных в предмет. */
@@ -220,7 +247,8 @@ export function fuseParts(p: Profile, partId: string, ids?: string[]): { profile
     return { profile: q, success: false };
   }
   // Новая деталь следующей редкости: больше свойств, качество тянется за исходными.
-  const res = generatePart(next, part.templateId, avgQ);
+  // Стихия результата — как у выбранной модификации.
+  const res = generatePart(next, part.templateId, avgQ, part.element);
   q = {
     ...q,
     parts: { ...q.parts, [res.id]: res },

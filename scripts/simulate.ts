@@ -1,3 +1,4 @@
+import { boostItem } from '../src/game/items/Boost';
 import { applyDeliveries, minBid, putLot, takeForLot } from '../src/game/meta/auction';
 import { claimVipChest, claimVipGift } from '../src/game/meta/vipActions';
 /* Проверка игровой логики без браузера: тесты механик и прогон баланса.
@@ -9,7 +10,7 @@ import { getLocation, locationsConfig } from '../src/game/config/locationsConfig
 import { bossesConfig } from '../src/game/config/bossesConfig';
 import { rollBossLoot } from '../src/game/economy/DropSystem';
 import { GameEngine } from '../src/game/engine/GameEngine';
-import { generateItem, sellPrice } from '../src/game/items/ItemGenerator';
+import { generateItem, itemModifiers, sellPrice } from '../src/game/items/ItemGenerator';
 import { rarityIndex, validateRarityTable } from '../src/game/items/ItemRarity';
 import { tryUpgrade, upgradeBlock } from '../src/game/items/ItemUpgrade';
 import {
@@ -117,21 +118,22 @@ console.log('— Модификации');
   coil.slots = [{ locked: false, partId: null }, { locked: true, partId: null }];
   p = addItems(p, [coil]).profile;
   p = equipItem(p, coil.id, 'coil1').profile;
-  const part = generatePart('rare', 'p_power');
+  const part = generatePart('rare', 'p_first');
   p = addParts(p, [part]);
   const before = computeBunkerStats(p).coils[0].power;
-  check('Модификация не ставится в неподходящий тип', installPart(addParts(p, [generatePart('common', 'p_plate')]), Object.keys(addParts(p, [])).length ? part.id : part.id, p.equipment.generator!, 0).error !== undefined);
+  check('Модификация не ставится в неподходящий тип', installPart(addParts(p, [generatePart('common', 'p_mirror')]), Object.keys(addParts(p, [])).length ? part.id : part.id, p.equipment.generator!, 0).error !== undefined);
   check('Нельзя вставить в заблокированный слот', installPart(p, part.id, coil.id, 1).error === 'locked');
   const ins = installPart(p, part.id, coil.id, 0);
   check('Модификация устанавливается в свободный слот', !ins.error);
-  check('Модификация влияет на характеристики', computeBunkerStats(ins.profile).coils[0].power > before);
+  void before;
+  check('Модификация влияет на поведение бункера', computeBunkerStats(ins.profile).firstPulseBonus > computeBunkerStats(p).firstPulseBonus);
   check('Без ключа слот не открыть', unlockSlot(ins.profile, coil.id, 1) === null);
   const withKey = addResources(ins.profile, { expansionKeys: 1 });
   check('Ключ открывает слот', unlockSlot(withKey, coil.id, 1)?.items[coil.id].slots[1].locked === false);
   const sold = sellItem(unequipItem(ins.profile, coil.id), coil.id);
   check('Детали теряются вместе с оборудованием', !sold.profile.parts[part.id]);
   let q = addResources(createNewProfile(), { coins: 1e9, components: 1e6 });
-  q = addParts(q, [generatePart('common', 'p_lens'), generatePart('common', 'p_lens'), generatePart('common', 'p_lens')]);
+  q = addParts(q, [generatePart('common', 'p_slow'), generatePart('common', 'p_slow'), generatePart('common', 'p_slow')]);
   let ok = 0;
   let fails = 0;
   for (let i = 0; i < 200; i++) {
@@ -147,10 +149,10 @@ console.log('— Модификации');
   const exr = extractPart(ex, coil.id, 0);
   check('Модификация извлекается за энергоядра', !exr.error && exr.profile.parts[part.id].installedIn === null && exr.profile.items[coil.id].slots[0].partId === null && exr.profile.resources.energyCores < 10);
   check('Без энергоядер извлечь нельзя', extractPart(ins.profile, coil.id, 0).error === 'resources');
-  ex = addParts(addResources(createNewProfile(), { coins: 1e9, components: 1e6 }), Array.from({ length: 9 }, () => generatePart('common', 'p_power')));
+  ex = addParts(addResources(createNewProfile(), { coins: 1e9, components: 1e6 }), Array.from({ length: 9 }, () => generatePart('common', 'p_first')));
   const fa = fuseAll(ex, 'common');
   check(`Массовое объединение (${fa.success} успех, ${fa.failed} неудач)`, fa.success + fa.failed === 3);
-  check('Нельзя объединить меньше трёх', fuseParts(addParts(createNewProfile(), [generatePart('common', 'p_lens')]), Object.keys(addParts(createNewProfile(), [])).length ? '' : '').error === 'count');
+  check('Нельзя объединить меньше трёх', fuseParts(addParts(createNewProfile(), [generatePart('common', 'p_slow')]), Object.keys(addParts(createNewProfile(), [])).length ? '' : '').error === 'count');
 }
 
 console.log('— Автопродажа и офлайн');
@@ -188,10 +190,10 @@ console.log('— Технологии и уровень');
 
 console.log('— Модификации по редкости и объединение');
 {
-  check('Обычная модификация — 1 свойство, легендарная — 5', generatePart('common', 'p_power').stats.length === 1 && generatePart('legendary', 'p_power').stats.length === 5);
+  check('У модификации один эффект и стихия', generatePart('common', 'p_first').stats.length === 1 && generatePart('legendary', 'p_first').stats.length === 1 && !!generatePart('rare').element);
   let p = addResources(createNewProfile(), { coins: 1e9, components: 1e6 });
-  const a = [0, 1, 2].map(() => generatePart('rare', 'p_plate'));
-  const b = [0, 1, 2].map(() => generatePart('rare', 'p_plate'));
+  const a = [0, 1, 2].map(() => generatePart('rare', 'p_mirror'));
+  const b = [0, 1, 2].map(() => generatePart('rare', 'p_mirror'));
   p = addParts(p, [...a, ...b]);
   const pick = fusionPick(p, b[0]);
   check('Объединение берёт выбранную и две самые слабые', pick.length === 3 && pick[0].id === b[0].id);
@@ -199,7 +201,7 @@ console.log('— Модификации по редкости и объедин�
   check('После объединения остаются ровно 3 из 6 исходных', Object.values(r.profile.parts).filter((x) => x.rarity === 'rare').length === 3);
   {
     let p2 = addResources(createNewProfile(), { coins: 1e9, components: 1e6 });
-    const pool = [0, 1, 2, 3].map(() => generatePart('epic', 'p_power'));
+    const pool = [0, 1, 2, 3].map(() => generatePart('epic', 'p_first'));
     p2 = addParts(p2, pool);
     const keep = pool[0];
     const pickIds = [pool[1].id, pool[2].id, pool[3].id];
@@ -210,13 +212,13 @@ console.log('— Модификации по редкости и объедин�
     check(`Разбор даёт компоненты (+${dm.components})`, dm.components > 0 && !dm.profile.parts[pool[0].id]);
     const plan = massFusePlan(p2, 'epic', 0, 1);
     check(`Массовая сборка: план из ${plan.triples.length} троек`, plan.triples.length === 1);
-    check('Белая 100% слабее жёлтой 80% в умной сортировке', partPowerScore({ ...generatePart('common', 'p_power'), stats: [{ stat: 'coilPowerPct', value: 0.06 }] }) < partPowerScore(generatePart('legendary', 'p_power')));
-    check('Нельзя смешать разные модификации', fuseParts(addParts(p2, [generatePart('epic', 'p_lens')]), pool[1].id, [pool[1].id, pool[2].id, Object.values(addParts(p2, [generatePart('epic', 'p_lens')]).parts).find((x) => x.templateId === 'p_lens')!.id]).error !== undefined);
+    check('Белая 100% слабее жёлтой 80% в умной сортировке', partPowerScore({ ...generatePart('common', 'p_first'), stats: [{ stat: 'b:firstPulse', value: 0.15 }] }) < partPowerScore(generatePart('legendary', 'p_first')));
+    check('Нельзя смешать разные модификации', fuseParts(addParts(p2, [generatePart('epic', 'p_slow')]), pool[1].id, [pool[1].id, pool[2].id, Object.values(addParts(p2, [generatePart('epic', 'p_slow')]).parts).find((x) => x.templateId === 'p_slow')!.id]).error !== undefined);
   }
   {
-    const hi = generatePart('rare', 'p_plate');
+    const hi = generatePart('rare', 'p_mirror');
     hi.stats = [{ ...hi.stats[0], value: partStatRoll(hi, 0)!.max }];
-    const lo = generatePart('rare', 'p_plate');
+    const lo = generatePart('rare', 'p_mirror');
     lo.stats = [{ ...lo.stats[0], value: partStatRoll(lo, 0)!.min }];
     const [mixLo, mixHi] = fusionQualityRange([hi, hi, lo]);
     const [goodLo] = fusionQualityRange([hi, hi, hi]);
@@ -237,6 +239,29 @@ console.log('— VIP');
   const g8 = claimVipGift(p, 8);
   check('Подарок VIP 8 — «Империал»', !!g8 && g8.items.some((i) => i.templateId === 'v_imperial'));
   check('VIP даёт бонус к монетам в характеристиках', computeBunkerStats(p).coinMult > computeBunkerStats(createNewProfile()).coinMult);
+}
+
+console.log('— Вещи: основные и случайные характеристики, буст');
+{
+  const g = (r: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary') => generateItem({ templateId: 'gen_diesel', rarity: r, tier: 1, source: { kind: 'start' } });
+  const cnt = (['common', 'uncommon', 'rare', 'epic', 'legendary'] as const).map((r) => { const it = g(r); return `${it.baseStats.length}+${it.extraStats.length}`; }).join(' ');
+  check(`Белая 1, зелёная 2, синяя 3, фиолетовая 3+1, золотая 3+2 (${cnt})`, cnt === '1+0 2+0 3+0 3+1 3+2');
+  const turb = generateItem({ templateId: 'gen_turbine', rarity: 'common', tier: 1, source: { kind: 'start' } });
+  check('Особенность (нагрев) есть у вещи любой редкости', turb.baseStats.some((x) => x.stat === 'heatPct') && turb.baseStats.length === 2);
+  let p = addResources(createNewProfile(), { boost1: 1, boost3: 1, coins: 1e9, scrap: 1e9, techParts: 1e9, energyCores: 1e6 });
+  const it = { ...g('rare'), level: 10 };
+  p = addItems(p, [it]).profile;
+  const r = boostItem(p, it.id, 'boost3');
+  check(`Бустер III меняет на 15–30% (${((r.boost ?? 0) * 100).toFixed(1)}%)`, !!r.boost && Math.abs(r.boost) >= 0.15 && Math.abs(r.boost) <= 0.3 && r.profile.resources.boost3 === 0);
+  const before = itemModifiers(it)[0].value;
+  const after = itemModifiers(r.profile.items[it.id])[0].value;
+  check('Буст меняет основную характеристику', Math.abs(after / before - (1 + (r.boost ?? 0))) < 1e-6);
+  check('После буста бустить нельзя', boostItem(r.profile, it.id, 'boost1').error === 'boosted');
+  check('После буста улучшать нельзя', upgradeBlock({ ...r.profile, items: { ...r.profile.items, [it.id]: { ...r.profile.items[it.id], level: 3 } } }, { ...r.profile.items[it.id], level: 3 }, false) === 'boosted');
+  check('Максимум заточки — 10', upgradeBlock(p, it, false) === 'max');
+  let ups = 0;
+  for (let i = 0; i < 2000; i++) { const x = boostItem(addResources(p, {}), it.id, 'boost1'); if ((x.boost ?? 0) > 0) ups++; }
+  check(`Буст в плюс ≈ в половине случаев (${ups}/2000)`, ups > 850 && ups < 1150);
 }
 
 console.log('— Аукцион');
@@ -353,7 +378,7 @@ console.log('— Улучшение оборудования');
     const r2 = tryUpgrade(q, it.id, true);
     if (r2.outcome === 'failed_protected' && r2.profile.items[it.id]) protectedFails++;
   }
-  check(`Неудача без защиты уничтожает предмет (${destroyed}/300)`, destroyed > 100 && ok > 50);
+  check(`Заточка 9→10: успех ≈10% (${ok}/300), неудача уничтожает (${destroyed}/300)`, destroyed > 230 && ok > 10 && ok < 60);
   check('Стабилизатор сохраняет предмет при неудаче', protectedFails > 100);
   const id = p.equipment.coil1!;
   const before = computeBunkerStats(p).coils[0].power;
@@ -438,7 +463,7 @@ console.log('— Сохранения');
   check('Миграция: победа над боссом открыла 2-ю локацию', m.locations.unlocked.includes(2));
   check('Миграция: стоит катушка №1', m.equipment.coil1 === 'a');
   check('Миграция v2 → v5: модификации и автопродажа', !!m.parts && m.autoSell.maxRarity === null && m.resources.expansionKeys === 0);
-  check('Миграция v5: магазин, обмен, награды, задания', !!m.shop && !!m.exchange && !!m.daily && !!m.quests && m.version === 7);
+  check('Миграция v5: магазин, обмен, награды, задания', !!m.shop && !!m.exchange && !!m.daily && !!m.quests && m.version === 8);
   check('Миграция v6: профиль игрока и VIP', m.player.frame === 'steel' && m.vip.points === 0);
   check('Миграция v7: задания по периодам', !!m.quests.day && !!m.quests.week && !!m.quests.month);
 }
@@ -561,6 +586,12 @@ console.log(`— Баланс: автоигрок, ${HOURS} ч игрового 
       );
     }
   }
+  const h = total / 3600;
+  const st = p.stats;
+  console.log(
+    `  За час игры: роботов ${Math.round(st.robotsKilled / h)}, групп ${Math.round(st.groupsKilled / h)}, мини-боссов ${(st.minibossesKilled / h).toFixed(1)}, ` +
+      `боссов ${(st.bossesKilled / h).toFixed(1)}, вещей ${Math.round(st.itemsFound / h)}, улучшений ${(st.upgradesSucceeded / h).toFixed(1)}`,
+  );
 }
 
 if (failures > 0) {

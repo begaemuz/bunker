@@ -10,7 +10,9 @@ import {
   SAVE_VERSION,
   type Profile,
 } from '../game/profile/Profile';
-import { RARITIES, type Item, type Rarity } from '../game/types';
+import { RARITIES, type Item, type Part, type Rarity } from '../game/types';
+import { generatePart } from '../game/items/Parts';
+import { legacyPartMap, partTemplates } from '../game/config/partsConfig';
 
 type AnySave = Record<string, unknown> & { version?: number };
 
@@ -117,6 +119,22 @@ const migrations: Record<number, (s: AnySave) => AnySave> = {
     const q = emptyQuests();
     if (typeof old.day === 'string' && Array.isArray(old.list)) q.day = { key: old.day, list: old.list as never[], bonusClaimed: !!old.bonusClaimed };
     return { ...s, quests: q, version: 7 };
+  },
+  // v7 → v8: заточка до 10 уровня; модификации стали эффектами со стихиями.
+  7: (s) => {
+    const items = { ...((s.items ?? {}) as Record<string, Item>) };
+    for (const [id, it] of Object.entries(items)) {
+      items[id] = { ...it, level: Math.min(10, it.level), maxLevel: Math.min(10, it.maxLevel ?? 10) };
+    }
+    const parts: Record<string, Part> = {};
+    const known = new Set(partTemplates.map((t) => t.id));
+    for (const [id, old] of Object.entries((s.parts ?? {}) as Record<string, Part>)) {
+      const tpl = known.has(old.templateId) && old.templateId !== 'p_chain' ? old.templateId : (legacyPartMap[old.templateId] ?? 'p_chain');
+      const fresh = generatePart(old.rarity, tpl, 0.5);
+      parts[id] = { ...fresh, id, installedIn: old.installedIn ?? null, obtainedAt: old.obtainedAt ?? Date.now() };
+    }
+    // Задания пересоздаются с новыми, более серьёзными целями.
+    return { ...s, items, parts, quests: emptyQuests(), version: 8 };
   },
 };
 

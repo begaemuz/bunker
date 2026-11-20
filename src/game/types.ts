@@ -46,6 +46,9 @@ export const RESOURCE_KEYS = [
   'expansionKeys',
   'components',
   'skillResets',
+  'boost1',
+  'boost2',
+  'boost3',
 ] as const;
 export type ResourceKey = (typeof RESOURCE_KEYS)[number];
 export type Resources = Record<ResourceKey, number>;
@@ -90,7 +93,16 @@ export type SimpleStatKey =
   | 'dropChancePct'
   | 'xpPct';
 
+/** Поведенческие эффекты модификаций (меняют то, как работает бункер). */
+export const BEHAVIOR_KINDS = ['killEnergy', 'coolOnKill', 'reflect', 'firstPulse', 'markTargets'] as const;
+export type BehaviorKind = (typeof BEHAVIOR_KINDS)[number];
+
+/** Стихии модификаций: одинаковые стихии в бункере дают резонанс. */
+export const ELEMENTS = ['shock', 'frost', 'magnet', 'plasma'] as const;
+export type Element = (typeof ELEMENTS)[number];
+
 export type StatKey =
+  | `b:${BehaviorKind}`
   | SimpleStatKey
   | `resist:${AttackType}`
   | `mode:${CoilMode}`
@@ -157,6 +169,9 @@ export interface Item {
   description: string;
   obtainedAt: number;
   source: ItemSource;
+  /** Результат бустера: доля изменения основных характеристик (+0.07 или −0.12). После буста улучшать нельзя. */
+  boost?: number;
+  boostedWith?: 'boost1' | 'boost2' | 'boost3';
 }
 
 export type EquipmentLayout = Record<SlotId, string | null>;
@@ -167,7 +182,10 @@ export interface Part {
   templateId: string;
   name: string;
   rarity: Rarity;
+  /** Один эффект модификации (раньше было несколько свойств). */
   stats: StatMod[];
+  /** Стихия: одинаковые стихии дают резонанс 2/4/6. */
+  element: Element;
   /** ID оборудования, в которое деталь установлена навсегда. */
   installedIn: string | null;
   obtainedAt: number;

@@ -59,6 +59,9 @@ export const ru = {
     stabilizers: 'Стабилизаторы',
     bossPasses: 'Пропуски вызова',
     skillResets: 'Сброс навыков',
+    boost1: 'Бустер I',
+    boost2: 'Бустер II',
+    boost3: 'Бустер III',
     expansionKeys: 'Ключи расширения',
     components: 'Компоненты синтеза',
   } as Record<ResourceKey, string>,
@@ -72,6 +75,9 @@ export const ru = {
     stabilizers: 'Защищают оборудование от уничтожения при неудачном улучшении.',
     bossPasses: 'Позволяют вызвать босса без уничтожения групп.',
     skillResets: 'Обнуляет навыки «Науки» и возвращает очки.',
+    boost1: 'Буст вещи ±0–10%.',
+    boost2: 'Буст вещи ±10–20%.',
+    boost3: 'Буст вещи ±15–30%.',
     expansionKeys: 'Открывают заблокированный слот модификации в оборудовании.',
     components: 'Нужны для объединения модификаций. Получаются при разборе модификаций.',
   } as Record<ResourceKey, string>,
@@ -128,10 +134,19 @@ export function modeName(m: CoilMode): string {
   return modeConfig[m].name;
 }
 
+const BEHAVIOR_LABEL: Record<string, string> = {
+  killEnergy: 'Энергия за уничтожение',
+  coolOnKill: 'Снятие нагрева за уничтожение',
+  reflect: 'Отражение урона',
+  firstPulse: 'Сила первого импульса',
+  markTargets: 'Урон по отмеченным целям',
+};
+
 export function statLabel(stat: string): string {
   if (stat.startsWith('resist:')) return `Защита: ${ru.attack[stat.slice(7) as AttackType].toLowerCase()}`;
   if (stat.startsWith('mode:')) return `Режим «${modeConfig[stat.slice(5) as CoilMode].short}»`;
   if (stat.startsWith('chance:')) return `Шанс: ${ru.effect[stat.slice(7) as EffectKind].toLowerCase()}`;
+  if (stat.startsWith('b:')) return BEHAVIOR_LABEL[stat.slice(2)] ?? stat;
   return ru.stat[stat as SimpleStatKey] ?? stat;
 }
 

@@ -1,3 +1,5 @@
+import { ResonanceInfo } from '../parts/Parts';
+import { ELEMENTS } from '../../game/types';
 import { useMemo, useRef, useState } from 'react';
 import { computeBunkerStats, type BunkerStats, type Warning } from '../../game/bunker/BunkerStats';
 import { combatPower, upgradeHints } from '../../game/bunker/compare';
@@ -90,7 +92,7 @@ function StatsSheet({ profile, stats, onClose }: { profile: Profile; stats: Bunk
               </span>
             </div>
             <div className="small muted" style={{ marginTop: 6 }}>
-              Уровень открывает исследования и повышает предел улучшения оборудования (сейчас до {lvl + balanceConfig.item.levelOverBunker}).
+              Уровень открывает исследования и повышает предел улучшения оборудования (сейчас до {Math.min(10, lvl + balanceConfig.item.levelOverBunker)}, максимум 10).
             </div>
           </div>
 
@@ -101,6 +103,13 @@ function StatsSheet({ profile, stats, onClose }: { profile: Profile; stats: Bunk
               <div key={i} className="warn-item">
                 {warningText(w)}
               </div>
+            ))}
+          </div>
+
+          <div className="section-title">Резонанс стихий</div>
+          <div className="reso-grid">
+            {ELEMENTS.map((el) => (
+              <ResonanceInfo key={el} el={el} />
             ))}
           </div>
 

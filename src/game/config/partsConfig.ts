@@ -1,4 +1,4 @@
-import type { EquipCategory, Rarity, StatKey } from '../types';
+import type { Element, EquipCategory, Rarity, StatKey, StatMod } from '../types';
 
 export interface PartTemplate {
   id: string;
@@ -12,20 +12,87 @@ export interface PartTemplate {
   weight: number;
 }
 
+/**
+ * Модификации меняют поведение бункера, а не просто добавляют цифры:
+ * цепные разряды, оглушение, энергия за убийство, отражение урона.
+ * У каждой — один эффект, сила зависит от редкости и качества.
+ */
 export const partTemplates: PartTemplate[] = [
-  { id: 'p_power', name: 'Усилитель мощности', description: 'Повышает мощность импульсов катушек.', fits: ['coil', 'capacitor'], stat: 'coilPowerPct', range: [0.04, 0.06], weight: 10 },
-  { id: 'p_lens', name: 'Фокусирующая линза', description: 'Расширяет зону воздействия катушек.', fits: ['coil'], stat: 'coilRadiusPct', range: [0.025, 0.04], weight: 8 },
-  { id: 'p_freq', name: 'Модулятор частоты', description: 'Ускоряет следующую серию импульсов.', fits: ['coil', 'capacitor'], stat: 'coilRatePct', range: [0.03, 0.05], weight: 8 },
-  { id: 'p_saver', name: 'Стабилизатор энергии', description: 'Снижает расход энергии на импульс.', fits: ['coil', 'converter'], stat: 'pulseCostPct', range: [-0.04, -0.06], weight: 7 },
-  { id: 'p_cell', name: 'Ёмкостная ячейка', description: 'Увеличивает ёмкость накопителя.', fits: ['capacitor', 'generator'], stat: 'capacityPct', range: [0.06, 0.1], weight: 7 },
-  { id: 'p_booster', name: 'Форсажный блок', description: 'Повышает мощность генератора.', fits: ['generator', 'converter'], stat: 'genPowerPct', range: [0.04, 0.06], weight: 7 },
-  { id: 'p_radiator', name: 'Радиатор', description: 'Ускоряет отвод тепла.', fits: ['cooling', 'generator'], stat: 'coolRatePct', range: [0.06, 0.1], weight: 7 },
-  { id: 'p_plate', name: 'Бронепластина', description: 'Укрепляет корпус бункера.', fits: ['shield', 'cooling'], stat: 'hullPct', range: [0.04, 0.06], weight: 7 },
-  { id: 'p_repair', name: 'Ремонтный модуль', description: 'Постоянный ремонт корпуса.', fits: ['shield', 'converter'], stat: 'regen', range: [0.5, 0.9], weight: 6 },
-  { id: 'p_crit', name: 'Модуль поражения узлов', description: 'Шанс найти и поразить уязвимый узел.', fits: ['sensor', 'coil'], stat: 'critChance', range: [0.02, 0.035], weight: 6 },
-  { id: 'p_chain', name: 'Генератор цепного разряда', description: 'Шанс перебросить разряд на соседние цели.', fits: ['coil', 'sensor'], stat: 'chance:chain', range: [0.025, 0.04], weight: 5 },
-  { id: 'p_scan', name: 'Блок анализа целей', description: 'Больше урона по опознанным целям.', fits: ['sensor'], stat: 'identifiedBonus', range: [0.04, 0.06], weight: 5 },
+  { id: 'p_chain', name: 'Цепной разрядник', description: 'Разряд может перескочить на соседние цели.', fits: ['coil', 'sensor'], stat: 'chance:chain', range: [0.03, 0.045], weight: 8 },
+  { id: 'p_stun', name: 'Оглушитель', description: 'Разряд может на мгновение оглушить робота.', fits: ['coil', 'capacitor'], stat: 'chance:stun', range: [0.025, 0.04], weight: 7 },
+  { id: 'p_slow', name: 'Вязкое поле', description: 'Разряд может замедлить робота.', fits: ['coil', 'cooling'], stat: 'chance:slow', range: [0.04, 0.06], weight: 8 },
+  { id: 'p_burn', name: 'Плазменный поджиг', description: 'Разряд может поджечь робота: урон со временем.', fits: ['coil', 'generator'], stat: 'chance:burn', range: [0.04, 0.06], weight: 8 },
+  { id: 'p_armor', name: 'Бронебой', description: 'Разряд может пробить броню робота.', fits: ['coil', 'sensor'], stat: 'chance:armorBreak', range: [0.04, 0.06], weight: 7 },
+  { id: 'p_shield', name: 'Срыв щитов', description: 'Разряд может сорвать энергощит робота.', fits: ['coil', 'capacitor'], stat: 'chance:shieldBreak', range: [0.04, 0.06], weight: 6 },
+  { id: 'p_jam', name: 'Глушитель систем', description: 'Разряд может сбить наведение робота.', fits: ['coil', 'converter'], stat: 'chance:jam', range: [0.03, 0.05], weight: 6 },
+  { id: 'p_vampire', name: 'Рекуператор', description: 'Каждое уничтожение робота возвращает энергию.', fits: ['capacitor', 'generator', 'converter'], stat: 'b:killEnergy', range: [0.4, 0.7], weight: 6 },
+  { id: 'p_frost', name: 'Криосброс', description: 'Каждое уничтожение робота снимает нагрев.', fits: ['cooling', 'generator'], stat: 'b:coolOnKill', range: [0.5, 0.9], weight: 6 },
+  { id: 'p_mirror', name: 'Зеркальная броня', description: 'Часть урона по бункеру возвращается атакующему.', fits: ['shield', 'cooling'], stat: 'b:reflect', range: [0.03, 0.05], weight: 5 },
+  { id: 'p_first', name: 'Первый удар', description: 'Первый импульс катушки после паузы сильнее.', fits: ['capacitor', 'coil'], stat: 'b:firstPulse', range: [0.1, 0.15], weight: 5 },
+  { id: 'p_mark', name: 'Целеуказатель', description: 'Подсвеченные цели получают больше урона.', fits: ['sensor', 'shield'], stat: 'b:markTargets', range: [0.03, 0.05], weight: 5 },
 ];
+
+/** Перенос старых модификаций (до версии 8) на новые эффекты. */
+export const legacyPartMap: Record<string, string> = {
+  p_power: 'p_first',
+  p_lens: 'p_slow',
+  p_freq: 'p_stun',
+  p_saver: 'p_jam',
+  p_cell: 'p_vampire',
+  p_booster: 'p_burn',
+  p_radiator: 'p_frost',
+  p_plate: 'p_mirror',
+  p_repair: 'p_mirror',
+  p_crit: 'p_armor',
+  p_chain: 'p_chain',
+  p_scan: 'p_mark',
+};
+
+/** Стихии и резонанс: 2, 4 и 6 модификаций одной стихии в надетых вещах. */
+export const elementConfig: Record<Element, { name: string; color: string; bonuses: [StatMod, StatMod, StatMod]; text: [string, string, string] }> = {
+  shock: {
+    name: 'Ток',
+    color: '#ffd84d',
+    bonuses: [
+      { stat: 'coilPowerPct', value: 0.08 },
+      { stat: 'coilRatePct', value: 0.12 },
+      { stat: 'chance:chain', value: 0.1 },
+    ],
+    text: ['+8% мощности катушек', '+12% скорости катушек', '+10% шанс цепного разряда'],
+  },
+  frost: {
+    name: 'Холод',
+    color: '#7fd8ff',
+    bonuses: [
+      { stat: 'coolRatePct', value: 0.1 },
+      { stat: 'heatCap', value: 40 },
+      { stat: 'chance:slow', value: 0.15 },
+    ],
+    text: ['+10% охлаждения', '+40 к пределу нагрева', '+15% шанс замедления'],
+  },
+  magnet: {
+    name: 'Магнит',
+    color: '#c58bff',
+    bonuses: [
+      { stat: 'hullPct', value: 0.06 },
+      { stat: 'damageReduction', value: 0.05 },
+      { stat: 'b:reflect', value: 0.1 },
+    ],
+    text: ['+6% прочности корпуса', '+5% снижения урона', '+10% отражения урона'],
+  },
+  plasma: {
+    name: 'Плазма',
+    color: '#ff7a4d',
+    bonuses: [
+      { stat: 'critDamage', value: 0.2 },
+      { stat: 'critChance', value: 0.05 },
+      { stat: 'chance:burn', value: 0.12 },
+    ],
+    text: ['+20% урона крита', '+5% шанса крита', '+12% шанс поджога'],
+  },
+};
+export const RESONANCE_STEPS = [2, 4, 6] as const;
+
 
 /** Множитель силы детали по редкости. */
 export const partRarityMult: Record<Rarity, number> = {
@@ -66,14 +133,14 @@ export const dismantleYield: Record<Rarity, number> = {
   unique: 50,
 };
 
-/** Сколько свойств у модификации каждой редкости (первое — основное). */
+/** У модификации один эффект; редкость определяет его силу. */
 export const partStatCount: Record<Rarity, number> = {
   common: 1,
-  uncommon: 2,
-  rare: 3,
-  epic: 4,
-  legendary: 5,
-  unique: 5,
+  uncommon: 1,
+  rare: 1,
+  epic: 1,
+  legendary: 1,
+  unique: 1,
 };
 
 /** Дополнительные свойства слабее основного. */
