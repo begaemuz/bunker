@@ -41,6 +41,9 @@ import {
 import { sellMany } from '../game/profile/Profile';
 import { migrate } from '../services/migrations';
 import { clearProfile, loadProfile, saveBackupSync, saveProfile, setStorageUser } from '../services/storage';
+import { serverAvailable, serverLoad, serverSave, type ServerSummary } from '../services/server';
+import { combatPower } from '../game/bunker/compare';
+import { computeBunkerStats } from '../game/bunker/BunkerStats';
 import { cloudAvailable, cloudLoad, cloudSave, initTelegram, tgUser, type TgUser } from '../services/telegram';
 
 interface ProfileState {
@@ -108,6 +111,35 @@ function persistCloud(p: Profile, immediate = false): void {
   else cloudTimer = setTimeout(run, 20_000);
 }
 
+let serverTimer: ReturnType<typeof setTimeout> | null = null;
+let lastServerSave = 0;
+
+/** Сводка для таблицы лидеров. */
+function summaryOf(p: Profile): ServerSummary {
+  return {
+    nick: p.player.nick,
+    avatar: p.player.avatar,
+    frame: p.player.frame,
+    level: p.bunker.level,
+    power: combatPower(computeBunkerStats(p)),
+    bosses: p.stats.bossesKilled,
+  };
+}
+
+/** Сохранение на сервер не чаще раза в 30 секунд (и сразу при сворачивании). */
+function persistServer(p: Profile, immediate = false): void {
+  if (!serverAvailable()) return;
+  if (serverTimer) clearTimeout(serverTimer);
+  const run = () => {
+    serverTimer = null;
+    lastServerSave = Date.now();
+    void serverSave(p, p.updatedAt, summaryOf(p));
+  };
+  const wait = Math.max(0, 30_000 - (Date.now() - lastServerSave));
+  if (immediate || wait === 0) run();
+  else serverTimer = setTimeout(run, wait);
+}
+
 function scheduleSave(get: () => ProfileState, immediate = false): void {
   if (saveTimer) clearTimeout(saveTimer);
   const run = () => {
@@ -116,6 +148,7 @@ function scheduleSave(get: () => ProfileState, immediate = false): void {
     if (!p) return;
     void saveProfile(p);
     persistCloud(p);
+    persistServer(p);
   };
   if (immediate) run();
   else saveTimer = setTimeout(run, 300);
@@ -161,6 +194,18 @@ export const useProfile = create<ProfileState>((set, get) => {
           }
         }
       }
+      // Сервер игры: самая свежая копия из всех.
+      if (serverAvailable()) {
+        const r = await safe(serverLoad(), 8000, null);
+        if (r?.save) {
+          try {
+            const remote = migrate(r.save);
+            if (!profile || remote.updatedAt > profile.updatedAt) profile = remote;
+          } catch {
+            /* повреждённая копия на сервере */
+          }
+        }
+      }
       let p = ensureMinimumKit(profile ?? createNewProfile()).profile;
       if (user) p = { ...p, tgUserId: user.id };
       try {
@@ -177,6 +222,7 @@ export const useProfile = create<ProfileState>((set, get) => {
       set({ profile: p, loaded: true, tg: user, cloud: cloudAvailable(), offlineReward });
       void saveProfile(p);
       persistCloud(p, true);
+      persistServer(p, true);
       installLifecycleSaves(get);
     },
 
@@ -536,6 +582,7 @@ function installLifecycleSaves(get: () => ProfileState): void {
     saveBackupSync(p);
     void saveProfile(p);
     persistCloud(p, true);
+    persistServer(p, true);
   };
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) flush();

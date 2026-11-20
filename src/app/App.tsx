@@ -22,12 +22,12 @@ import { LeadersScreen } from '../components/leaders/LeadersScreen';
 import { ShopScreen } from '../components/shop/ShopScreen';
 import { LoginSheet, QuestsSheet } from '../components/shop/QuestsSheet';
 
-const navItems: { id: Screen; label: string; icon: 'battle' | 'bunker' | 'tech' | 'shop' | 'trophy' }[] = [
+const navItems: { id: Screen; label: string; icon: 'battle' | 'bunker' | 'tech' | 'trophy' | 'menu' }[] = [
   { id: 'game', label: 'Бой', icon: 'battle' },
   { id: 'bunker', label: 'Бункер', icon: 'bunker' },
   { id: 'tech', label: 'Наука', icon: 'tech' },
-  { id: 'shop', label: 'Магазин', icon: 'shop' },
   { id: 'leaders', label: 'Лидеры', icon: 'trophy' },
+  { id: 'menu', label: 'Настройки', icon: 'menu' },
 ];
 
 export function App() {

@@ -206,3 +206,8 @@ export async function cloudSave(json: string, updatedAt: number): Promise<boolea
     cloudBusy = false;
   }
 }
+
+/** Подписанные данные запуска — сервер по ним проверяет игрока. */
+export function tgInitData(): string {
+  return app?.initData ?? '';
+}

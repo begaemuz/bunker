@@ -60,7 +60,6 @@ export function GameScreen() {
 function TopBar() {
   const profile = useProfile((s) => s.profile)!;
   const tg = useProfile((s) => s.tg);
-  const setScreen = useUi((s) => s.setScreen);
   const setProfileOpen = useUi((s) => s.setProfileOpen);
   const openShop = useUi((s) => s.openShop);
   const lvl = profile.bunker.level;
@@ -102,9 +101,7 @@ function TopBar() {
             </button>
           </div>
         </div>
-        <button className="btn top-btn" onClick={() => setScreen('menu')} aria-label="Настройки">
-          <UiIcon kind="menu" size={20} />
-        </button>
+        <LocCorner />
       </div>
     </div>
   );
@@ -124,23 +121,21 @@ function LocCorner() {
   return (
     <button className={`loc-corner${ready ? ' ready' : ''}`} onClick={() => setScreen('locations')} aria-label="Все локации">
       <span className="lc-top">
-        <UiIcon kind="map" size={13} />
-        <span className="lc-name">
-          Лок. {loc.id} · {loc.name}
-        </span>
+        <UiIcon kind="map" size={12} />
+        <span className="lc-name">Лок. {loc.id}</span>
         <span className="lc-chev">›</span>
       </span>
       <span className="lc-row">
-        <span>
-          <UiIcon kind="skull" size={11} /> {boss ? 'бой с боссом' : `${Math.min(prog.groups, loc.groupsForBoss)}/${loc.groupsForBoss}`}
-        </span>
-        <span style={{ color: threat > 40 ? '#ff6b5a' : undefined }}>угроза {threat}%</span>
+        <UiIcon kind="skull" size={11} /> {boss ? 'босс' : `${Math.min(prog.groups, loc.groupsForBoss)}/${loc.groupsForBoss}`}
       </span>
       {!boss && (
         <span className="lc-bar">
           <i style={{ width: `${k * 100}%` }} />
         </span>
       )}
+      <span className="lc-row" style={{ color: threat > 40 ? '#ff6b5a' : undefined }}>
+        угроза {threat}%
+      </span>
     </button>
   );
 }
@@ -157,6 +152,24 @@ function CalendarArt({ day }: { day: number }) {
       <text x="20" y="31" textAnchor="middle" fontSize="13" fill="#2a2f35" style={{ fontFamily: 'var(--display)' }}>
         {day}
       </text>
+    </svg>
+  );
+}
+
+/** Нарисованная лавка торговца с навесом. */
+function ShopArt() {
+  return (
+    <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden>
+      <rect x="7" y="17" width="26" height="19" rx="2" fill="#5a4630" />
+      <rect x="10" y="22" width="9" height="14" rx="1" fill="#2a2016" />
+      <rect x="22" y="22" width="8" height="7" rx="1" fill="#9fd9ff" opacity="0.85" />
+      <path d="M4 10h32l-2 8H6z" fill="#e5483a" />
+      {[0, 1, 2, 3].map((i) => (
+        <path key={i} d={`M${6 + i * 8} 10h4l-0.6 8h-4z`} fill="#f4efe3" />
+      ))}
+      <path d="M6 18q2 3 4 0q2 3 4 0q2 3 4 0q2 3 4 0q2 3 4 0q2 3 4 0q2 3 4 0" fill="#b4352a" />
+      <rect x="15" y="4" width="10" height="6" rx="1.5" fill="#f2a93b" />
+      <circle cx="17.5" cy="29" r="1" fill="#f2a93b" />
     </svg>
   );
 }
@@ -185,9 +198,14 @@ function SideActions() {
   const loginReady = useLoginBadge();
   const setLogin = useUi((s) => s.setLoginOpen);
   const setQuests = useUi((s) => s.setQuestsOpen);
+  const setScreen = useUi((s) => s.setScreen);
   const day = loginReady ? profile.daily.cycle + 1 : Math.max(1, profile.daily.cycle);
   return (
     <div className="side-actions">
+      <button className="side-act" onClick={() => setScreen('shop')} aria-label="Магазин">
+        <ShopArt />
+        <span>Магазин</span>
+      </button>
       <button className={`side-act${loginReady ? ' ready' : ''}`} onClick={() => setLogin(true)} aria-label="Ежедневный вход">
         <CalendarArt day={day} />
         <span>Вход</span>
@@ -289,7 +307,6 @@ function FieldOverlay() {
   if (!hud) return null;
   return (
     <>
-      <LocCorner />
       {hud.boss && (
         <div className="boss-bar">
           <div className="boss-name">{hud.boss.name}</div>

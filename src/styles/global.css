@@ -4795,3 +4795,38 @@ button.pavatar:active {
   top: -4px;
   right: -2px;
 }
+
+/* Локация в шапке справа */
+.topbar .loc-corner {
+  position: static;
+  flex: none;
+  max-width: none;
+  width: 96px;
+  gap: 2px;
+  padding: 5px 8px 6px;
+}
+.topbar .lc-top {
+  font-size: 12px;
+}
+.topbar .lc-row {
+  font-size: 10.5px;
+  gap: 3px;
+}
+.boss-bar {
+  top: 10px;
+}
+.side-actions {
+  gap: 8px;
+}
+
+/* Лидеры: живые данные */
+.lb-step.p1 { height: auto; min-height: 120px; padding-bottom: 8px; }
+.lb-step.p2 { height: auto; min-height: 96px; padding-bottom: 8px; }
+.lb-step.p3 { height: auto; min-height: 82px; padding-bottom: 8px; }
+.lb-step.me { box-shadow: inset 0 0 0 1.5px var(--amber); }
+.lb-step .lb-place { font-size: 18px; line-height: 1; }
+.lb-pname { display: flex; flex-direction: column; align-items: center; max-width: 100%; padding: 0 4px; text-align: center; }
+.lb-pname b { font-family: var(--display); font-weight: 400; font-size: 13px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lb-pname .small { color: var(--amber); }
+.lb-list { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.lb-list .lb-row { padding: 7px 10px; gap: 10px; }
