@@ -1,3 +1,4 @@
+import { Glossary } from './Glossary';
 import { useState } from 'react';
 import { balanceConfig } from '../../game/config/balanceConfig';
 import { modeConfig } from '../../game/config/gameConfig';
@@ -221,7 +222,7 @@ function ElementsInfo() {
 /** База: все вещи и модификации со всеми диапазонами свойств. */
 export function CodexSheet({ onClose }: { onClose: () => void }) {
   const profile = useProfile((s) => s.profile)!;
-  const [tab, setTab] = useState<'items' | 'parts' | 'other'>('items');
+  const [tab, setTab] = useState<'items' | 'parts' | 'other' | 'terms'>('items');
   const [rarity, setRarity] = useState<Rarity>('legendary');
   const [tier, setTier] = useState(playerTier(profile));
   const known = { items: new Set(profile.codex?.items ?? []), parts: new Set(profile.codex?.parts ?? []) };
@@ -243,8 +244,11 @@ export function CodexSheet({ onClose }: { onClose: () => void }) {
         <button className={tab === 'other' ? 'on' : ''} onClick={() => setTab('other')}>
           Предметы
         </button>
+        <button className={tab === 'terms' ? 'on' : ''} onClick={() => setTab('terms')}>
+          Термины
+        </button>
       </div>
-      {tab !== 'other' && (
+      {tab !== 'other' && tab !== 'terms' && (
       <div className="cx-rar">
         {GRADES.map((r) => (
           <button key={r} className={`cx-rar-b${rarity === r ? ' on' : ''}`} style={{ ['--rc' as string]: rarityColor[r] }} onClick={() => setRarity(r)}>
@@ -268,6 +272,7 @@ export function CodexSheet({ onClose }: { onClose: () => void }) {
           </button>
         </div>
       )}
+      {tab === 'terms' && <Glossary />}
       {tab === 'other' && (
         <div style={{ marginTop: 10 }}>
           {CONSUMABLES.map((k) => (
@@ -284,7 +289,7 @@ export function CodexSheet({ onClose }: { onClose: () => void }) {
           ))}
         </div>
       )}
-      {tab !== 'other' && (
+      {tab !== 'other' && tab !== 'terms' && (
       <div className="cx-intro">
         {tab === 'items'
           ? 'Вещи одинаковые во всех зонах, отличается Т-уровень зоны. С роботов падают белые и зелёные, синие — редко; с боссов — синие, фиолетовые и очень редко золотые. Белая — 1 основная характеристика, зелёная — 2, синяя — 3, фиолетовая — 3 + 1 случайная, золотая — 3 + 2. Значения без учёта заточки и буста.'

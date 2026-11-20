@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { computeBunkerStats } from '../../game/bunker/BunkerStats';
+import { ConfirmDialog } from '../common/Common';
 import { getTech, techBranches, techConfig, type TechBranch, type TechEffect, type TechNode } from '../../game/config/techConfig';
 import { formatStatValue } from '../../game/items/statInfo';
-import { branchPoints, effectValue, researchBlock, researchCost, skillPointsFree, skillPointsSpent, skillPointsTotal, techLevel } from '../../game/progression/TechnologyTree';
+import { branchPoints, effectValue, research, researchBlock, researchCost, skillPointsFree, skillPointsSpent, skillPointsTotal, techLevel } from '../../game/progression/TechnologyTree';
 import { RESOURCE_KEYS, type StatKey } from '../../game/types';
 import { fmtNum } from '../../i18n/ru';
 import { sfx } from '../../services/sound';
@@ -31,6 +33,26 @@ function NodeSheet({ node, onClose }: { node: TechNode; onClose: () => void }) {
   const cost = researchCost(node, lvl);
   const branch = techBranches.find((b) => b.id === node.branch)!;
 
+  // Как изменится бункер после изучения: урон, энергия, охлаждение.
+  const impact = useMemo(() => {
+    if (block) return null;
+    const next = research(profile, node.id);
+    if (next.error) return null;
+    const a = computeBunkerStats(profile);
+    const b = computeBunkerStats(next.profile);
+    const advice: string[] = [];
+    if (b.energyFactor < 0.98 && b.energyFactor < a.energyFactor - 0.005)
+      advice.push(
+        `Катушкам не хватит энергии: будут стрелять на ${Math.round(b.energyFactor * 100)}% силы. Нужен генератор мощнее, накопитель с быстрой зарядкой или преобразователь с высоким КПД — либо навыки ветки «Энергия».`,
+      );
+    if (b.heatFactor < 0.98 && b.heatFactor < a.heatFactor - 0.005)
+      advice.push(
+        `Охлаждение не справится: катушки будут перегреваться и работать на ${Math.round(b.heatFactor * 100)}%. Нужна система охлаждения сильнее или навыки на теплоотвод.`,
+      );
+    return { dps0: a.sustainedDps, dps1: b.sustainedDps, e0: a.energyFactor, e1: b.energyFactor, h0: a.heatFactor, h1: b.heatFactor, advice };
+  }, [profile, node.id, block]);
+  const [confirmRisk, setConfirmRisk] = useState(false);
+
   const learn = (times: number) => {
     let n = 0;
     for (let i = 0; i < times; i++) {
@@ -53,7 +75,7 @@ function NodeSheet({ node, onClose }: { node: TechNode; onClose: () => void }) {
           <button className="btn btn-ghost" onClick={onClose}>
             Закрыть
           </button>
-          <button className="btn btn-primary btn-hazard" style={{ flex: 2 }} disabled={!!block} onClick={() => learn(1)}>
+          <button className="btn btn-primary btn-hazard" style={{ flex: 2 }} disabled={!!block} onClick={() => (impact?.advice.length ? setConfirmRisk(true) : learn(1))}>
             Изучить
           </button>
         </>
@@ -73,6 +95,49 @@ function NodeSheet({ node, onClose }: { node: TechNode; onClose: () => void }) {
           </div>
         </div>
       </div>
+      {impact && (
+        <div className="impact">
+          <div className="section-title" style={{ marginTop: 0 }}>
+            Как изменится бункер
+          </div>
+          <div className="impact-row">
+            <span>Устойчивый урон</span>
+            <b className={impact.dps1 > impact.dps0 + 0.5 ? 'pos' : impact.dps1 < impact.dps0 - 0.5 ? 'neg' : ''}>
+              {fmtNum(impact.dps0)} → {fmtNum(impact.dps1)}
+            </b>
+          </div>
+          <div className="impact-row">
+            <span>Хватает энергии</span>
+            <b className={impact.e1 < 0.98 ? 'neg' : ''}>
+              {Math.round(impact.e0 * 100)}% → {Math.round(impact.e1 * 100)}%
+            </b>
+          </div>
+          <div className="impact-row">
+            <span>Хватает охлаждения</span>
+            <b className={impact.h1 < 0.98 ? 'neg' : ''}>
+              {Math.round(impact.h0 * 100)}% → {Math.round(impact.h1 * 100)}%
+            </b>
+          </div>
+          {impact.advice.map((t, i) => (
+            <div key={i} className="warn-box" style={{ marginTop: 8 }}>
+              {t}
+            </div>
+          ))}
+        </div>
+      )}
+      {confirmRisk && impact && (
+        <ConfirmDialog
+          title="Бункер не потянет?"
+          text="После изучения оборудование не будет успевать за новой мощностью — часть урона пропадёт."
+          warning={impact.advice.join(' ')}
+          confirmLabel="Всё равно изучить"
+          onConfirm={() => {
+            setConfirmRisk(false);
+            learn(1);
+          }}
+          onCancel={() => setConfirmRisk(false)}
+        />
+      )}
       {node.effects.some((e) => e.cap !== undefined) && (
         <div className="small muted" style={{ marginBottom: 10 }}>
           Эффект растёт бесконечно, но приближается к пределу {fmtEffect({ ...node.effects[0], perLevel: node.effects[0].cap! }, 1)}.

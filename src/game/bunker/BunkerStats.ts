@@ -150,11 +150,15 @@ export function computeBunkerStats(profile: Profile, layoutOverride?: EquipmentL
     const cp = it ? coilProps(it) : null;
     if (!it || !cp) continue;
     const mode = modeConfig[cp.mode];
-    const power = cp.power * (1 + g('coilPowerPct') + g(`mode:${cp.mode}`) + dual);
+    const powerBonus = g('coilPowerPct') + g(`mode:${cp.mode}`) + dual;
+    const power = cp.power * (1 + powerBonus);
+    // Мощнее импульс — больше энергии и нагрева на выстрел: без подходящего
+    // генератора и охлаждения прирост урона упрётся в нехватку.
+    const loadMult = 1 + gameConfig.powerLoad * Math.max(0, powerBonus);
     const radius = Math.min(gameConfig.maxCoilRadius, cp.radius * (1 + g('coilRadiusPct')));
     const interval = Math.max(gameConfig.minCoilInterval, cp.interval / (1 + g('coilRatePct')));
-    const energyPerPulse = cp.energyPerPulse * Math.max(0.3, 1 + g('pulseCostPct'));
-    const heatPerPulse = cp.heatPerPulse * heatMult;
+    const energyPerPulse = cp.energyPerPulse * Math.max(0.3, 1 + g('pulseCostPct')) * loadMult;
+    const heatPerPulse = cp.heatPerPulse * heatMult * loadMult;
     const effects: CoilStats['effects'] = [];
     if (mode.effect) effects.push({ ...mode.effect });
     for (const k of EFFECT_KINDS) {

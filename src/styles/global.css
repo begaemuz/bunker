@@ -5024,3 +5024,15 @@ button.pavatar:active {
 .zmap-pulse { transform-box: fill-box; transform-origin: center; animation: map-pulse 1.6s ease-out infinite; }
 .zmap-here-t { font-size: 8px; font-weight: 800; fill: #1a1205; letter-spacing: 0.04em; }
 @media (prefers-reduced-motion: reduce) { .zmap-pulse { animation: none; } }
+.impact { margin-bottom: 12px; padding: 10px 12px; border-radius: 12px; background: #12171c; box-shadow: inset 0 0 0 1px #2a3138; }
+.impact-row { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; font-size: 13px; }
+.impact-row b { font-weight: 700; }
+.gl-item { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; margin-bottom: 8px; border-radius: 12px; background: #161b20; box-shadow: inset 0 0 0 1px #2a3138; }
+.gl-item b { font-size: 14px; }
+.gl-item span { font-size: 12.5px; line-height: 1.45; color: #aeb7bf; }
+.pick-list { display: flex; flex-direction: column; gap: 8px; }
+.pick-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--rc) 45%, #2e363e); background: linear-gradient(180deg, #20262d, #161a1f); color: inherit; text-align: left; }
+.pick-row b { display: block; font-size: 14px; }
+.pick-row .small { display: block; margin-top: 2px; }
+.pick-ic { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: #0b0e11; }
+.pick-side { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; font-family: var(--display); font-size: 13px; }

@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { elementConfig, RESONANCE_STEPS } from '../../game/config/partsConfig';
 import type { Element } from '../../game/types';
 import { useMemo, useState } from 'react';
@@ -328,39 +329,49 @@ export function ItemSlots({ item }: { item: Item }) {
           </div>
         );
       })}
-      {pickSlot !== null && (
-        <div style={{ marginTop: 8 }}>
-          <div className="small muted" style={{ marginBottom: 6 }}>
-            Модификация устанавливается навсегда и пропадёт вместе с оборудованием.
-          </div>
-          {fits.map((p) => (
-            <button
-              key={p.id}
-              className="item-row"
-              style={{ borderLeftColor: rarityColor[p.rarity] }}
-              onClick={() => {
-                const err = install(p.id, item.id, pickSlot);
-                if (err) toast('Не удалось установить', 'bad');
-                else {
-                  sfx.item(true);
-                  toast(`Установлено: ${p.name}`, 'good');
-                }
-                setPickSlot(null);
-              }}
-            >
-              <div className="item-icon" style={{ width: 36, height: 36, borderColor: rarityColor[p.rarity] }}>
-                <PartGlyph color={rarityColor[p.rarity]} size={22} />
-              </div>
-              <div className="grow">
-                <div className="item-name" style={{ color: rarityColor[p.rarity] }}>
-                  {p.name}
-                </div>
-                <div className="item-stats">{partStatsText(p)}</div>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
+      {pickSlot !== null &&
+        createPortal(
+          <Sheet title={`Вставить в слот ${pickSlot + 1}`} subtitle={`${item.name} · подходящие модификации: ${fits.length}`} onClose={() => setPickSlot(null)}>
+            <div className="info-box" style={{ marginBottom: 10 }}>
+              Модификация ставится навсегда и пропадёт вместе с оборудованием. Извлечь можно за энергоядра.
+            </div>
+            <div className="pick-list">
+              {fits.map((p) => {
+                const col = rarityColor[p.rarity];
+                const q = partQuality(p);
+                return (
+                  <button
+                    key={p.id}
+                    className="pick-row"
+                    style={{ ['--rc' as string]: col }}
+                    onClick={() => {
+                      const err = install(p.id, item.id, pickSlot);
+                      if (err) toast('Не удалось установить', 'bad');
+                      else {
+                        sfx.item(true);
+                        toast(`Установлено: ${p.name}`, 'good');
+                      }
+                      setPickSlot(null);
+                    }}
+                  >
+                    <span className="pick-ic">
+                      <PartGlyph color={col} size={24} />
+                    </span>
+                    <span className="grow" style={{ minWidth: 0 }}>
+                      <b style={{ color: col }}>{p.name}</b>
+                      <span className="small muted">{partStatsText(p)}</span>
+                    </span>
+                    <span className="pick-side">
+                      <span style={{ color: qualityColor(q) }}>{Math.round(q * 100)}%</span>
+                      {p.element && <ElementDot el={p.element} />}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </Sheet>,
+          document.querySelector('.app') ?? document.body,
+        )}
       {exPart && extractSlot !== null && (
         <ConfirmDialog
           title="Извлечь модификацию?"
