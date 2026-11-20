@@ -75,12 +75,11 @@ export function PartGlyph({ color, size = 26 }: { color: string; size?: number }
   );
 }
 
-/** Рисунки оборудования: строка — тип, столбец — цвет редкости. */
+/** Рисунки оборудования: строка — тип вещи. */
 const SPRITE_ROW: Record<EquipCategory, number> = { coil: 0, generator: 1, capacitor: 2, converter: 3, cooling: 4, sensor: 5, shield: 6 };
-const SPRITE_COL: Record<Rarity, number> = { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4, unique: 4, mythic: 5 };
 
 /** Цветной рисунок вещи по типу и редкости. */
-export function ItemSprite({ category, rarity, size = 44 }: { category: EquipCategory; rarity: Rarity; size?: number }) {
+export function ItemSprite({ category, size = 44 }: { category: EquipCategory; rarity?: Rarity; size?: number }) {
   return (
     <span
       className="item-sprite"
@@ -88,8 +87,9 @@ export function ItemSprite({ category, rarity, size = 44 }: { category: EquipCat
         width: size,
         height: size,
         backgroundImage: `url(${itemsAtlas})`,
-        backgroundSize: `${size * 6}px ${size * 7}px`,
-        backgroundPosition: `${-SPRITE_COL[rarity] * size}px ${-SPRITE_ROW[category] * size}px`,
+        // Один рисунок на тип для всех цветов: редкость видна по цвету названия и рамке.
+        backgroundSize: `${size}px ${size * 7}px`,
+        backgroundPosition: `0px ${-SPRITE_ROW[category] * size}px`,
       }}
       aria-hidden
     />
