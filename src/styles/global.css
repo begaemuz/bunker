@@ -3632,3 +3632,13 @@ button.pavatar:active {
 .quest.claimed {
   opacity: 0.5;
 }
+.login-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 5px;
+}
+.lday.grand {
+  grid-column: auto;
+}
+.lday.grand .lday-v {
+  font-size: 12px;
+}

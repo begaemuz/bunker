@@ -90,7 +90,7 @@ export function LoginSheet({ onClose }: { onClose: () => void }) {
           return (
             <div key={i} className={`lday${done ? ' done' : ''}${today ? ' today' : ''}${d.milestone ? ` ${d.milestone}` : ''}`} title={RESOURCE_KEYS.filter((k) => r[k]).map((k) => `${ru.resource[k]} ${r[k]}`).join(', ')}>
               <span className="lday-n">{i + 1}</span>
-              <ResourceIcon type={main} size={d.milestone === 'grand' ? 28 : 20} />
+              <ResourceIcon type={main} size={d.milestone === 'grand' ? 24 : 18} />
               <span className="lday-v">{fmtNum(r[main]!)}</span>
               {done && <span className="lday-check">✓</span>}
             </div>
