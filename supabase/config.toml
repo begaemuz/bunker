@@ -1,0 +1,6 @@
+# Конфигурация Supabase для деплоя из GitHub Actions.
+project_id = "bunker"
+
+[functions.api]
+# Вход проверяется по подписи Telegram, а не по JWT Supabase.
+verify_jwt = false

@@ -1,0 +1,46 @@
+name: Server
+
+on:
+  push:
+    branches: [main]
+    paths: ['supabase/**', '.github/workflows/server.yml']
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      PW: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      BOT: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check secrets
+        run: |
+          for v in SUPABASE_ACCESS_TOKEN REF PW BOT; do
+            if [ -z "${!v}" ]; then echo "::error::Секрет $v не задан"; exit 1; fi
+          done
+          echo "Все секреты заданы"
+      - name: Check bot token
+        run: |
+          ok=$(curl -s "https://api.telegram.org/bot${BOT}/getMe" | jq -r .ok)
+          if [ "$ok" != "true" ]; then echo "::error::Токен бота не подходит"; exit 1; fi
+          echo "Токен бота действителен"
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Link project
+        run: supabase link --project-ref "$REF" --password "$PW"
+      - name: Database migrations
+        run: supabase db push --password "$PW" --include-all
+      - name: Function secrets
+        run: supabase secrets set --project-ref "$REF" TELEGRAM_BOT_TOKEN="$BOT"
+      - name: Deploy function
+        run: supabase functions deploy api --project-ref "$REF" --no-verify-jwt
+      - name: Smoke test
+        run: |
+          code=$(curl -s -o /tmp/r.json -w '%{http_code}' -X POST "https://${REF}.supabase.co/functions/v1/api" -H 'content-type: application/json' -d '{"action":"ping"}')
+          cat /tmp/r.json; echo
+          if [ "$code" != "401" ]; then echo "::error::Функция ответила $code, ожидалось 401 без подписи Telegram"; exit 1; fi
+          echo "Сервер работает: без подписи Telegram доступ закрыт"
