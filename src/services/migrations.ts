@@ -168,6 +168,11 @@ export function migrate(raw: unknown): Profile {
     techs: p.techs ?? {},
     locations: p.locations ?? base.locations,
     items: p.items ?? {},
+    // База: всё, что уже лежит у игрока, считается найденным.
+    codex: {
+      items: [...new Set([...(p.codex?.items ?? []), ...Object.values(p.items ?? {}).map((i) => i.templateId)])],
+      parts: [...new Set([...(p.codex?.parts ?? []), ...Object.values(p.parts ?? {}).map((x) => x.templateId)])],
+    },
     history: p.history ?? [],
     bunker: p.bunker ?? base.bunker,
     parts: p.parts ?? {},

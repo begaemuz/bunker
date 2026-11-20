@@ -34,6 +34,21 @@ function num(a: number, b: number, d = 1, unit = ''): string {
   return x === y ? `${x}${unit}` : `${x} – ${y}${unit}`;
 }
 
+/** Ещё не найденная вещь или модификация: тёмный силуэт. */
+function Unknown({ part, category }: { part?: boolean; category?: ItemTemplate['category'] }) {
+  return (
+    <div className="cx-entry unknown">
+      <div className="cx-head">
+        <span className="cx-icon">{part ? <PartGlyph color="#3a434b" size={24} /> : <CategoryGlyph category={category!} color="#3a434b" size={26} />}</span>
+        <span className="grow" style={{ minWidth: 0 }}>
+          <span className="cx-name">???</span>
+          <span className="cx-sub">Ещё не найдено — выбейте, чтобы узнать характеристики</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function ItemEntry({ t, rarity, tier }: { t: ItemTemplate; rarity: Rarity; tier: number }) {
   const [open, setOpen] = useState(false);
   const r: Rarity = t.unique ? 'legendary' : rarity;
@@ -208,6 +223,10 @@ export function CodexSheet({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<'items' | 'parts' | 'other'>('items');
   const [rarity, setRarity] = useState<Rarity>('legendary');
   const [tier, setTier] = useState(playerTier(profile));
+  const known = { items: new Set(profile.codex?.items ?? []), parts: new Set(profile.codex?.parts ?? []) };
+  const itemTotal = itemTemplates.filter((t) => !t.unique || t.id.startsWith('v_')).length;
+  const itemFound = itemTemplates.filter((t) => (!t.unique || t.id.startsWith('v_')) && known.items.has(t.id)).length;
+  const partFound = partTemplates.filter((t) => known.parts.has(t.id)).length;
   return (
     <Sheet
       title="База"
@@ -220,10 +239,10 @@ export function CodexSheet({ onClose }: { onClose: () => void }) {
     >
       <div className="seg quest-tabs">
         <button className={tab === 'items' ? 'on' : ''} onClick={() => setTab('items')}>
-          Вещи
+          Вещи {itemFound}/{itemTotal}
         </button>
         <button className={tab === 'parts' ? 'on' : ''} onClick={() => setTab('parts')}>
-          Модификации
+          Модиф. {partFound}/{partTemplates.length}
         </button>
         <button className={tab === 'other' ? 'on' : ''} onClick={() => setTab('other')}>
           Предметы
@@ -240,7 +259,7 @@ export function CodexSheet({ onClose }: { onClose: () => void }) {
       )}
       {tab === 'items' && (
         <div className="cx-grades">
-          {[1, 2, 3, 4, 5, 6, 7].map((t) => (
+          {Array.from({ length: 20 }, (_, i) => i + 1).map((t) => (
             <button key={t} className={`cx-grade tier${tier === t ? ' on' : ''}`} onClick={() => setTier(t)}>
               Т{t}
             </button>
@@ -277,12 +296,12 @@ export function CodexSheet({ onClose }: { onClose: () => void }) {
             {itemTemplates
               .filter((t) => t.category === c && (!t.unique || t.id.startsWith('v_')))
               .sort((a, b) => Number(!!a.unique) - Number(!!b.unique))
-              .map((t) => (
-                <ItemEntry key={t.id} t={t} rarity={rarity} tier={tier} />
-              ))}
+              .map((t) =>
+                known.items.has(t.id) ? <ItemEntry key={t.id} t={t} rarity={rarity} tier={tier} /> : <Unknown key={t.id} category={t.category} />,
+              )}
           </div>
         ))}
-      {tab === 'parts' && partTemplates.map((t) => <PartEntry key={t.id} id={t.id} rarity={rarity} />)}
+      {tab === 'parts' && partTemplates.map((t) => (known.parts.has(t.id) ? <PartEntry key={t.id} id={t.id} rarity={rarity} /> : <Unknown key={t.id} part />))}
       {tab === 'parts' && <ElementsInfo />}
     </Sheet>
   );

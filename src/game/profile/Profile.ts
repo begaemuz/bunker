@@ -101,6 +101,8 @@ export interface Profile {
   player: { nick: string; avatar: number; frame: string };
   /** Очки VIP (за покупку кристаллов за реальные деньги). */
   vip: { points: number; chestDay?: string; gifts?: number[] };
+  /** База: какие вещи и модификации игрок уже находил (по шаблонам). */
+  codex: { items: string[]; parts: string[] };
 }
 
 export function emptyMeta(): Pick<Profile, 'shop' | 'exchange' | 'limits' | 'daily' | 'quests'> {
@@ -178,10 +180,19 @@ export function createNewProfile(): Profile {
     ...emptyMeta(),
     player: { nick: '', avatar: 0, frame: 'steel' },
     vip: { points: 0, chestDay: '', gifts: [] },
+    codex: { items: Object.values(items).map((i) => i.templateId), parts: [] },
   };
 }
 
 // ───────────── Чистые операции над профилем ─────────────
+
+/** Отмечает найденные шаблоны в базе. */
+export function discover(c: Profile['codex'] | undefined, kind: 'items' | 'parts', ids: string[]): Profile['codex'] {
+  const base = c ?? { items: [], parts: [] };
+  const fresh = ids.filter((id) => !base[kind].includes(id));
+  if (!fresh.length) return base;
+  return { ...base, [kind]: [...base[kind], ...new Set(fresh)] };
+}
 
 const HISTORY_LIMIT = 150;
 
@@ -256,6 +267,7 @@ export function addItems(p: Profile, newItems: Item[]): { profile: Profile; scra
       ...p,
       items,
       history,
+      codex: discover(p.codex, 'items', newItems.map((x) => x.templateId)),
       resources: { ...p.resources, scrap: p.resources.scrap + scrap },
       stats: {
         ...p.stats,

@@ -4959,3 +4959,5 @@ button.pavatar:active {
 .quality-bar i { display: block; height: 100%; background: var(--qc); border-radius: 2px; }
 /* Плитка модификации: «×3» под процентом качества */
 .tile-fuse { position: absolute; top: 22px; right: 4px; font-family: var(--display); font-size: 10px; padding: 0 4px; border-radius: 5px; color: #241500; background: linear-gradient(#ffe7a3, #d99b1c); box-shadow: 0 0 8px rgba(242, 181, 58, 0.6); }
+.cx-entry.unknown { opacity: 0.55; filter: grayscale(1); }
+.cx-entry.unknown .cx-name { color: #6b757e; letter-spacing: 0.1em; }

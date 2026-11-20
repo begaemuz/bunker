@@ -1,6 +1,6 @@
 import { vipLevel, vipPerks } from '../meta/vip';
 import { elementConfig, RESONANCE_STEPS, dismantleYield, fusionConfig, fusionCost, partExtraMult, partRarityMult, partStatCount, partTemplates, type PartTemplate } from '../config/partsConfig';
-import { pushHistory, type Profile } from '../profile/Profile';
+import { discover, pushHistory, type Profile } from '../profile/Profile';
 import { chance, pickWeighted, randFloat, uid } from '../rng';
 import { ELEMENTS, RARITIES, type Element, type Part, type Rarity, type StatKey, type StatMod } from '../types';
 import { rarityIndex } from './ItemRarity';
@@ -130,7 +130,7 @@ export function addParts(p: Profile, parts: Part[]): Profile {
   if (!parts.length) return p;
   const all = { ...p.parts };
   for (const x of parts) all[x.id] = x;
-  return { ...p, parts: all };
+  return { ...p, parts: all, codex: discover(p.codex, 'parts', parts.map((x) => x.templateId)) };
 }
 
 export type InstallError = 'not_found' | 'slot' | 'locked' | 'busy' | 'fits' | 'installed';
