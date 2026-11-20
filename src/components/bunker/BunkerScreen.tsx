@@ -185,6 +185,27 @@ function StatsSheet({ profile, stats, onClose }: { profile: Profile; stats: Bunk
 }
 
 type SortKey = 'better' | 'quality' | 'rarity' | 'level' | 'tier' | 'new';
+/** Состояние, которое сохраняется в браузере. */
+function usePersistent<T extends string>(key: string, def: T, allowed: readonly T[]): [T, (v: T) => void] {
+  const [v, setV] = useState<T>(() => {
+    try {
+      const s = localStorage.getItem(key) as T | null;
+      return s && allowed.includes(s) ? s : def;
+    } catch {
+      return def;
+    }
+  });
+  const set = (x: T) => {
+    setV(x);
+    try {
+      localStorage.setItem(key, x);
+    } catch {
+      /* недоступно */
+    }
+  };
+  return [v, set];
+}
+
 const SORTS: [SortKey, string, string][] = [
   ['better', 'Сначала лучшие', 'Вещи, которые лучше установленных, — первыми'],
   ['quality', 'По качеству', 'От самого высокого процента к низкому'],
@@ -213,8 +234,9 @@ export function BunkerScreen() {
   const [sortOpen, setSortOpen] = useState(false);
   const [massDismantle, setMassDismantle] = useState(false);
   const [massAssemble, setMassAssemble] = useState(false);
-  const [sortKey, setSortKey] = useState<SortKey>('better');
-  const [kind, setKind] = useState<'all' | 'gear' | 'parts' | 'cons'>('all');
+  // Сортировка и вкладка склада запоминаются между заходами.
+  const [sortKey, setSortKey] = usePersistent<SortKey>('bls-sort', 'better', SORTS.map((x) => x[0]));
+  const [kind, setKind] = usePersistent<'all' | 'gear' | 'parts' | 'cons'>('bls-store-tab', 'all', ['all', 'gear', 'parts', 'cons']);
   const freeParts = Object.values(profile.parts).filter((p) => !p.installedIn).length;
   const listRef = useRef<HTMLDivElement>(null);
 
