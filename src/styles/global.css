@@ -5022,3 +5022,6 @@ button.pavatar:active {
 .field-threat { right: 12px; }
 .field-threat.hot { color: #ff6b5a; }
 .boss-bar { left: 12px; right: 12px; top: 30px; }
+.zmap-pulse { transform-box: fill-box; transform-origin: center; animation: map-pulse 1.6s ease-out infinite; }
+.zmap-here-t { font-size: 8px; font-weight: 800; fill: #1a1205; letter-spacing: 0.04em; }
+@media (prefers-reduced-motion: reduce) { .zmap-pulse { animation: none; } }

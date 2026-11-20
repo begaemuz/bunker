@@ -120,24 +120,35 @@ export function LocationsScreen() {
             const danger = dangerOf(profile, l);
             const col = DANGER[danger].color;
             const here = current === l.id;
-            const ready = canSummonBoss(profile, l.id);
             const lines = splitName(l.name);
             const small = r.r < 24;
             return (
               <g key={r.id} className="zmap-label" onClick={() => setOpen(l)}>
-                {here && <circle cx={r.x} cy={r.y - 10} r={16} fill="#f2b53a" opacity="0.5" filter="url(#zmap-glow)" />}
-                <circle cx={r.x} cy={r.y - 10} r={11} fill="#0b0e11" stroke={col} strokeWidth="2.2" />
+                {here && (
+                  <>
+                    <circle className="zmap-pulse" cx={r.x} cy={r.y - 10} r={13} fill="none" stroke="#f2b53a" strokeWidth="2" />
+                    <circle cx={r.x} cy={r.y - 10} r={16} fill="#f2b53a" opacity="0.45" filter="url(#zmap-glow)" />
+                  </>
+                )}
+                <circle cx={r.x} cy={r.y - 10} r={11} fill={here ? '#f2b53a' : '#0b0e11'} stroke={here ? '#fff3c4' : col} strokeWidth="2.2" />
                 {danger === 'locked' ? (
                   <g transform={`translate(${r.x - 5} ${r.y - 16})`} stroke="#8a949c" strokeWidth="1.5" fill="none">
                     <rect x="0.5" y="5" width="9" height="7" rx="1.5" />
                     <path d="M2.5 5V3.5a2.5 2.5 0 0 1 5 0V5" />
                   </g>
                 ) : (
-                  <text x={r.x} y={r.y - 6} textAnchor="middle" className="zmap-num" fill={col}>
+                  <text x={r.x} y={r.y - 6} textAnchor="middle" className="zmap-num" fill={here ? '#1a1205' : col}>
                     {l.id}
                   </text>
                 )}
-                {ready && <circle cx={r.x + 9} cy={r.y - 19} r={4} fill="#ff4d4d" stroke="#0b0e11" strokeWidth="1.5" />}
+                {here && (
+                  <g className="zmap-here-tag">
+                    <rect x={r.x - 27} y={r.y - 40} width={54} height={14} rx={7} fill="#f2b53a" />
+                    <text x={r.x} y={r.y - 30} textAnchor="middle" className="zmap-here-t">
+                      ВЫ ЗДЕСЬ
+                    </text>
+                  </g>
+                )}
                 {lines.map((t, i) => (
                   <text key={i} x={r.x} y={r.y + 11 + i * 10} textAnchor="middle" className={`zmap-name${small ? ' sm' : ''}${danger === 'locked' ? ' off' : ''}`}>
                     {t}
