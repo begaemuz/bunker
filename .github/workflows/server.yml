@@ -14,6 +14,7 @@ jobs:
       REF: ${{ secrets.SUPABASE_PROJECT_REF }}
       PW: ${{ secrets.SUPABASE_DB_PASSWORD }}
       BOT: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - name: Check secrets
@@ -31,9 +32,9 @@ jobs:
         with:
           version: latest
       - name: Link project
-        run: supabase link --project-ref "$REF" --password "$PW"
+        run: supabase link --project-ref "$REF"
       - name: Database migrations
-        run: supabase db push --password "$PW" --include-all
+        run: supabase db push --remote --include-all --yes || supabase db push --linked --include-all --yes
       - name: Function secrets
         run: supabase secrets set --project-ref "$REF" TELEGRAM_BOT_TOKEN="$BOT"
       - name: Deploy function
