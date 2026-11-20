@@ -101,6 +101,7 @@ export type QuestKind =
   | 'coins'
   | 'upgrade'
   | 'research'
+  | 'dismantle'
   | 'boss'
   | 'login'
   | 'dailyAll';
@@ -130,7 +131,7 @@ export const questConfig: Record<QuestPeriod, { count: number; pool: QuestDef[];
       { kind: 'miniboss', title: 'Уничтожить мини-боссов', target: 50, scale: false, reward: { coins: 1200, stabilizers: 2 } },
       { kind: 'items', title: 'Получить оборудование', target: 180, scale: false, reward: { coins: 1500, techParts: 30 } },
       { kind: 'coins', title: 'Собрать монет с роботов', target: 40000, scale: true, reward: { techParts: 35, crystals: 4 } },
-      { kind: 'upgrade', title: 'Успешно улучшить оборудование', target: 12, scale: false, reward: { coins: 1200, stabilizers: 2 } },
+      { kind: 'dismantle', title: 'Разобрать модификаций', target: 60, scale: false, reward: { coins: 1200, components: 15 } },
       { kind: 'boss', title: 'Победить боссов', target: 6, scale: false, reward: { coins: 1500, energyCores: 2 } },
     ],
   },
@@ -146,7 +147,8 @@ export const questConfig: Record<QuestPeriod, { count: number; pool: QuestDef[];
       { kind: 'miniboss', title: 'Уничтожить мини-боссов', target: 220, scale: false, reward: { stabilizers: 6, energyCores: 3 } },
       { kind: 'boss', title: 'Победить боссов', target: 27, scale: false, reward: { crystals: 25, bossPasses: 1 } },
       { kind: 'coins', title: 'Собрать монет с роботов', target: 180000, scale: true, reward: { techParts: 150, crystals: 10 } },
-      { kind: 'upgrade', title: 'Успешно улучшить оборудование', target: 55, scale: false, reward: { stabilizers: 6, coins: 5000 } },
+      { kind: 'upgrade', title: 'Успешно улучшить оборудование', target: 10, scale: false, reward: { stabilizers: 6, coins: 5000 } },
+      { kind: 'dismantle', title: 'Разобрать модификаций', target: 270, scale: false, reward: { components: 60, coins: 5000 } },
       { kind: 'items', title: 'Получить оборудование', target: 800, scale: false, reward: { coins: 6000, expansionKeys: 1 } },
       { kind: 'login', title: 'Забрать награду за вход (дней)', target: 5, scale: false, reward: { crystals: 15, energyCores: 1 } },
       { kind: 'dailyAll', title: 'Выполнить все ежедневные задания (раз)', target: 5, scale: false, reward: { crystals: 20, expansionKeys: 1 } },
@@ -163,7 +165,8 @@ export const questConfig: Record<QuestPeriod, { count: number; pool: QuestDef[];
       { kind: 'miniboss', title: 'Уничтожить мини-боссов', target: 950, scale: false, reward: { stabilizers: 20, energyCores: 10 } },
       { kind: 'boss', title: 'Победить боссов', target: 110, scale: false, reward: { crystals: 80, bossPasses: 3 } },
       { kind: 'items', title: 'Получить оборудование', target: 3400, scale: false, reward: { coins: 25000, expansionKeys: 2 } },
-      { kind: 'upgrade', title: 'Успешно улучшить оборудование', target: 230, scale: false, reward: { stabilizers: 20, coins: 20000 } },
+      { kind: 'upgrade', title: 'Успешно улучшить оборудование', target: 35, scale: false, reward: { stabilizers: 20, coins: 20000 } },
+      { kind: 'dismantle', title: 'Разобрать модификаций', target: 1100, scale: false, reward: { components: 250, energyCores: 5 } },
       { kind: 'login', title: 'Забрать награду за вход (дней)', target: 20, scale: false, reward: { crystals: 60, expansionKeys: 1 } },
       { kind: 'dailyAll', title: 'Выполнить все ежедневные задания (раз)', target: 18, scale: false, reward: { crystals: 80, energyCores: 5 } },
     ],

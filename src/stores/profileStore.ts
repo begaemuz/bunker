@@ -548,7 +548,7 @@ export const useProfile = create<ProfileState>((set, get) => {
       const p = get().profile;
       if (!p) return { components: 0, count: 0 };
       const r = dismantleParts(p, ids);
-      commit(r.profile, false, true);
+      commit(questProgress(r.profile, 'dismantle', r.count), false, true);
       return { components: r.components, count: r.count };
     },
 
@@ -576,7 +576,7 @@ export const useProfile = create<ProfileState>((set, get) => {
       const part = p?.parts[partId];
       if (!p || !part || part.installedIn) return 0;
       const r = dismantleParts(p, [partId]);
-      commit(r.profile, false, true);
+      commit(questProgress(r.profile, 'dismantle', r.count), false, true);
       return r.components;
     },
 

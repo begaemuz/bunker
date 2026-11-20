@@ -285,7 +285,7 @@ export function emptyQuests(): QuestState {
  */
 export function questTarget(target: number, scale: boolean, kind: string, tier: number): number {
   if (scale) return target * tier;
-  const combat = kind === 'kill' || kind === 'killHeavy' || kind === 'groups' || kind === 'miniboss' || kind === 'items';
+  const combat = kind === 'kill' || kind === 'killHeavy' || kind === 'groups' || kind === 'miniboss' || kind === 'items' || kind === 'dismantle';
   const k = combat ? Math.min(1, 0.6 + 0.1 * (tier - 1)) : 1;
   const v = target * k;
   return v >= 100 ? Math.round(v / 50) * 50 : Math.max(1, Math.round(v));
@@ -317,7 +317,9 @@ export function ensureQuests(p: Profile): Profile {
   for (const period of QUEST_PERIODS) {
     const key = periodKey(period);
     const cur = q[period];
-    if (cur && cur.key === key && cur.list.length) continue;
+    // Если задание убрали из списка (например, «улучшить» из ежедневных) — пересоздаём период.
+    const valid = cur?.list.every((x) => questConfig[period].pool.some((d) => d.kind === x.kind));
+    if (cur && cur.key === key && cur.list.length && valid) continue;
     q = { ...q, [period]: { key, list: genQuests(p, period), bonusClaimed: false } };
     changed = true;
   }
