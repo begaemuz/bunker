@@ -62,6 +62,7 @@ function TopBar() {
   const tg = useProfile((s) => s.tg);
   const setProfileOpen = useUi((s) => s.setProfileOpen);
   const openShop = useUi((s) => s.openShop);
+  const setScreen = useUi((s) => s.setScreen);
   const lvl = profile.bunker.level;
   const power = useMemo(
     () => combatPower(computeBunkerStats(profile)),
@@ -101,7 +102,9 @@ function TopBar() {
             </button>
           </div>
         </div>
-        <LocCorner />
+        <button className="top-gear" onClick={() => setScreen('menu')} aria-label="Настройки">
+          <UiIcon kind="menu" size={22} />
+        </button>
       </div>
     </div>
   );
@@ -307,6 +310,7 @@ function FieldOverlay() {
   if (!hud) return null;
   return (
     <>
+      <LocCorner />
       {hud.boss && (
         <div className="boss-bar">
           <div className="boss-name">{hud.boss.name}</div>

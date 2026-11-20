@@ -27,7 +27,6 @@ const navItems: { id: Screen; label: string; icon: 'battle' | 'bunker' | 'tech' 
   { id: 'bunker', label: 'Бункер', icon: 'bunker' },
   { id: 'tech', label: 'Наука', icon: 'tech' },
   { id: 'leaders', label: 'Лидеры', icon: 'trophy' },
-  { id: 'menu', label: 'Настройки', icon: 'menu' },
 ];
 
 export function App() {

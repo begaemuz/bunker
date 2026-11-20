@@ -2,19 +2,24 @@ import { useUi } from '../../stores/uiStore';
 import { useState } from 'react';
 import { Switch } from '../common/Common';
 import { CodexSheet } from '../codex/CodexSheet';
+import { UiIcon } from '../common/Icons';
 
 export function MenuScreen() {
   const settings = useUi((s) => s.settings);
   const toggleSound = useUi((s) => s.toggleSound);
   const setVolume = useUi((s) => s.setVolume);
   const toggleNumbers = useUi((s) => s.toggleDamageNumbers);
-  const toggleToasts = useUi((s) => s.toggleToasts);
+  const [codex, setCodex] = useState(false);
+  const setScreen = useUi((s) => s.setScreen);
   const [codex, setCodex] = useState(false);
 
   return (
     <div className="screen">
       <div className="screen-header">
         <h2 className="grow">Настройки</h2>
+        <button className="top-gear" onClick={() => setScreen('game')} aria-label="Закрыть">
+          <UiIcon kind="close" size={20} />
+        </button>
       </div>
       <div className="screen-body">
         <div className="section-title" style={{ marginTop: 0 }}>

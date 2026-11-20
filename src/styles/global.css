@@ -4994,3 +4994,11 @@ button.pavatar:active {
 .cx-line > span:first-child { min-width: 0; }
 .cx-entry.unknown { margin-bottom: 6px; }
 .cx-entry.unknown .cx-head { padding: 8px 16px; }
+
+/* Шапка: настройки справа; локация — на поле слева сверху */
+.top-gear { flex: none; align-self: center; display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; color: #c9d1d8; background: linear-gradient(180deg, #2a3138, #1a1f24); box-shadow: inset 0 0 0 1px #343d46; }
+.top-gear:active { transform: scale(0.94); }
+.field-wrap .loc-corner, .loc-corner { position: absolute; top: 8px; left: 8px; width: 96px; max-width: none; z-index: 4; padding: 5px 8px 6px; gap: 2px; }
+.loc-corner .lc-top { font-size: 12px; }
+.loc-corner .lc-row { font-size: 10.5px; gap: 3px; }
+.boss-bar { left: 114px; right: 10px; top: 10px; }
