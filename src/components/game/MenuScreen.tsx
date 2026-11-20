@@ -1,5 +1,7 @@
 import { useUi } from '../../stores/uiStore';
+import { useState } from 'react';
 import { Switch } from '../common/Common';
+import { CodexSheet } from '../codex/CodexSheet';
 
 export function MenuScreen() {
   const settings = useUi((s) => s.settings);
@@ -7,6 +9,7 @@ export function MenuScreen() {
   const setVolume = useUi((s) => s.setVolume);
   const toggleNumbers = useUi((s) => s.toggleDamageNumbers);
   const toggleToasts = useUi((s) => s.toggleToasts);
+  const [codex, setCodex] = useState(false);
 
   return (
     <div className="screen">
@@ -58,7 +61,13 @@ export function MenuScreen() {
             <Switch on={settings.showToasts} onChange={toggleToasts} />
           </div>
         </div>
+
+        <div className="section-title">Справочник</div>
+        <button className="btn btn-block codex-btn" onClick={() => setCodex(true)}>
+          База вещей и модификаций
+        </button>
       </div>
+      {codex && <CodexSheet onClose={() => setCodex(false)} />}
     </div>
   );
 }

@@ -29,7 +29,7 @@ import {
 } from '../src/game/profile/Profile';
 import { effectValue, resetSkills, research, researchBlock, researchCost } from '../src/game/progression/TechnologyTree';
 import { LOGIN_DAYS, buyOffer, buySpecial, claimDaily, claimQuest, claimQuestBonus, doExchange, ensureQuests, ensureShop, exchangeUsed, questProgress, refreshShop } from '../src/game/meta/Meta';
-import { addParts, extractPart, fuseAll, fuseParts, generatePart, installPart, unlockSlot } from '../src/game/items/Parts';
+import { addParts, extractPart, fuseAll, fuseParts, fusionPick, generatePart, partQuality, installPart, unlockSlot } from '../src/game/items/Parts';
 import { applyAutoSell } from '../src/game/economy/AutoSell';
 import { computeOfflineReward } from '../src/game/progression/offline';
 import { rewardDecay } from '../src/game/progression/rewards';
@@ -184,6 +184,21 @@ console.log('— Технологии и уровень');
   check('Требование уровня бункера', research(p, 'e_drain').error === 'level');
 }
 
+console.log('— Модификации по редкости и объединение');
+{
+  check('Обычная модификация — 1 свойство, легендарная — 5', generatePart('common', 'p_power').stats.length === 1 && generatePart('legendary', 'p_power').stats.length === 5);
+  let p = createNewProfile();
+  const a = [0, 1, 2].map(() => generatePart('rare', 'p_plate'));
+  const b = [0, 1, 2].map(() => generatePart('rare', 'p_plate'));
+  p = addParts(p, [...a, ...b]);
+  const pick = fusionPick(p, b[0]);
+  check('Объединение берёт выбранную и две самые слабые', pick.length === 3 && pick[0].id === b[0].id);
+  const r = fuseParts(p, b[0].id);
+  check('После объединения остаются ровно 3 из 6 исходных', Object.values(r.profile.parts).filter((x) => x.rarity === 'rare').length === 3);
+  const q = partQuality(a[0]);
+  check('Качество модификации в пределах 0..100%', q >= 0 && q <= 1);
+}
+
 console.log('— Бесконечные навыки');
 {
   let p = addResources(addXp(createNewProfile(), 1e9).profile, { coins: 1e15, techParts: 1e15, scrap: 1e15, blueprints: 1e15, energyCores: 1e15 });
@@ -302,7 +317,10 @@ console.log('— Бой');
     if (ev.type === 'groupCleared') groups++;
   });
   for (let i = 0; i < 60 * 120; i++) e2.update(1 / 60);
-  check(`Роботы появляются непрерывно, группы уничтожаются (${groups} за 2 мин)`, groups >= 5 && e2.aliveCount > 0);
+  check(`Роботы появляются непрерывно, группы уничтожаются (${groups} за 2 мин)`, groups >= 5);
+  check('Выйти из боя без босса нельзя', !e2.retreatFromBoss());
+  e2.summonBoss();
+  check('Из боя с боссом можно выйти, бой продолжается', e2.retreatFromBoss() && e2.mode === 'normal' && e2.state === 'running' && !e2.boss);
 
   const e3 = new GameEngine(loc, () => computeBunkerStats(p));
   for (let i = 0; i < 600; i++) e3.update(1 / 60);

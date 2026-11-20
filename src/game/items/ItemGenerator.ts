@@ -201,3 +201,32 @@ export function coilRolls(item: Item): Record<'power' | 'radius' | 'interval', S
     interval: mk(c.interval[0] * (1 - 0.035 * idx), c.interval[1] * (1 - 0.035 * idx), item.coil.interval, true, 1 - 0.01 * n),
   };
 }
+
+/** Диапазон характеристики шаблона при редкости и тех. уровне (для базы). */
+export function statRangeAt(r: StatRange, rarity: Rarity, tier: number): { min: number; max: number } {
+  const a = round(r.stat, scaleStat(r.stat, r.min, rarity, tier));
+  const b = round(r.stat, scaleStat(r.stat, r.max, rarity, tier));
+  return { min: Math.min(a, b), max: Math.max(a, b) };
+}
+
+/** Диапазоны параметров катушки шаблона (для базы). */
+export function coilRangesAt(tpl: ItemTemplate, rarity: Rarity, tier: number) {
+  if (!tpl.coil) return null;
+  const c = tpl.coil;
+  const idx = rarityIndex(rarity);
+  const pMult = balanceConfig.rarityStatMult[rarity] * (1 + balanceConfig.tier.coilPowerPerTier * (tier - 1));
+  const costMult = balanceConfig.rarityCostMult[rarity] * (1 + balanceConfig.tier.costPerTier * (tier - 1));
+  return {
+    mode: c.mode,
+    power: [c.power[0] * pMult, c.power[1] * pMult],
+    radius: [Math.round(c.radius[0] * (1 + 0.05 * idx)), Math.round(c.radius[1] * (1 + 0.05 * idx))],
+    interval: [c.interval[0] * (1 - 0.035 * idx), c.interval[1] * (1 - 0.035 * idx)],
+    energy: [c.energy[0] * costMult, c.energy[1] * costMult],
+    heat: [c.heat[0] * balanceConfig.rarityCostMult[rarity], c.heat[1] * balanceConfig.rarityCostMult[rarity]],
+  };
+}
+
+export function energyCostAt(tpl: ItemTemplate, rarity: Rarity, tier: number): [number, number] {
+  const costMult = balanceConfig.rarityCostMult[rarity] * (1 + balanceConfig.tier.costPerTier * (tier - 1));
+  return [tpl.energyCost[0] * costMult, tpl.energyCost[1] * costMult];
+}

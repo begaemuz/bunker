@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { fusionConfig } from '../../game/config/partsConfig';
 import { formatStatValue } from '../../game/items/statInfo';
-import { extractCost, partStatRoll, fusableCount, fusionChance, fusionGroup, getPartTemplate, nextRarity } from '../../game/items/Parts';
+import { extractCost, partStatRoll, partQuality, fusionPick, fusableCount, fusionChance, fusionGroup, getPartTemplate, nextRarity } from '../../game/items/Parts';
 import { rarityIndex } from '../../game/items/ItemRarity';
 import { slotOf } from '../../game/profile/Profile';
 import { RARITIES, type Item, type Part, type Rarity } from '../../game/types';
@@ -13,21 +13,24 @@ import { rarityColor } from '../../ui/theme';
 import { ConfirmDialog } from '../common/Common';
 import { ItemIcon, PartGlyph, ResourceIcon } from '../common/Icons';
 import { Sheet } from '../common/Sheet';
-import { RollLine } from '../inventory/Roll';
+import { qualityColor, RollLine } from '../inventory/Roll';
 
 export function partStatsText(p: Part): string {
   return p.stats.map((s) => `${statLabel(s.stat)} ${formatStatValue(s.stat, s.value)}`).join(' · ');
 }
 
-export function PartTile({ part, count, onClick }: { part: Part; count?: number; onClick: () => void }) {
+export function PartTile({ part, canFuse, onClick }: { part: Part; canFuse?: boolean; onClick: () => void }) {
   const col = rarityColor[part.rarity];
+  const q = partQuality(part);
   return (
     <button className="item-tile" style={{ borderColor: col, boxShadow: `inset 0 0 18px ${col}2a` }} onClick={onClick}>
       <span className="tile-glyph">
         <PartGlyph color={col} size={32} />
       </span>
-      {count !== undefined && count > 1 && <span className="tile-lvl">×{count}</span>}
-      {count !== undefined && count >= fusionConfig.count && nextRarity(part.rarity) && (
+      <span className="tile-lvl" style={{ color: qualityColor(q) }}>
+        {Math.round(q * 100)}%
+      </span>
+      {canFuse && (
         <span className="tile-better" style={{ background: 'radial-gradient(circle at 40% 35%, #ffe7a3, #d99b1c)', boxShadow: '0 0 12px rgba(242,181,58,0.9)' }} title="Можно объединить">
           <span style={{ fontWeight: 900, fontSize: 11 }}>3</span>
         </span>
@@ -39,35 +42,26 @@ export function PartTile({ part, count, onClick }: { part: Part; count?: number;
   );
 }
 
-/** Сетка свободных модификаций: одинаковые детали складываются в стопку. */
+/** Свободные модификации: каждая отдельной плиткой, как вещи. */
 export function PartsGrid({ onOpen, bare }: { onOpen: (id: string) => void; bare?: boolean }) {
   const profile = useProfile((s) => s.profile)!;
-  const stacks = useMemo(() => {
+  const list = useMemo(() => {
     const free = Object.values(profile.parts).filter((p) => !p.installedIn);
-    const map = new Map<string, Part[]>();
-    for (const p of free) {
-      const k = `${p.templateId}|${p.rarity}|${p.stats.length}`;
-      map.set(k, [...(map.get(k) ?? []), p]);
-    }
-    return [...map.values()].sort((a, b) => rarityIndex(b[0].rarity) - rarityIndex(a[0].rarity) || b.length - a.length);
+    const groups = new Map<string, number>();
+    for (const p of free) groups.set(`${p.templateId}|${p.rarity}`, (groups.get(`${p.templateId}|${p.rarity}`) ?? 0) + 1);
+    return free
+      .map((p) => ({ p, q: partQuality(p), fuse: (groups.get(`${p.templateId}|${p.rarity}`) ?? 0) >= fusionConfig.count && !!nextRarity(p.rarity) }))
+      .sort((a, b) => rarityIndex(b.p.rarity) - rarityIndex(a.p.rarity) || a.p.templateId.localeCompare(b.p.templateId) || b.q - a.q);
   }, [profile.parts]);
-  const tiles = stacks.map((st) => <PartTile key={st[0].id} part={st[0]} count={fusionGroup(profile, st[0]).length} onClick={() => onOpen(st[0].id)} />);
+  const tiles = list.map(({ p, fuse }) => <PartTile key={p.id} part={p} canFuse={fuse} onClick={() => onOpen(p.id)} />);
   if (bare) return <>{tiles}</>;
-  if (!stacks.length)
+  if (!list.length)
     return (
       <div className="empty">
         Модификаций пока нет. Они выпадают с роботов, мини-боссов и боссов.
-        <br />
-        Модификация вставляется в слот оборудования навсегда, а три одинаковые можно объединить в более редкую.
       </div>
     );
-  return (
-    <div className="item-grid">
-      {stacks.map((st) => (
-        <PartTile key={st[0].id} part={st[0]} count={fusionGroup(profile, st[0]).length} onClick={() => onOpen(st[0].id)} />
-      ))}
-    </div>
-  );
+  return <div className="item-grid">{tiles}</div>;
 }
 
 /** Карточка модификации: установка, объединение, разборка. */
@@ -141,11 +135,16 @@ export function PartCard({ partId, onClose }: { partId: string; onClose: () => v
           </div>
           <div className="stat-list">
             {part.stats.map((s, i) => {
-              const r = partStatRoll(part.rarity, s);
+              const r = partStatRoll(part, i);
               return (
                 <RollLine
                   key={i}
-                  label={statLabel(s.stat)}
+                  label={
+                    <>
+                      {statLabel(s.stat)}
+                      {i === 0 && <span className="tag" style={{ marginLeft: 6 }}>основное</span>}
+                    </>
+                  }
                   value={formatStatValue(s.stat, s.value)}
                   valueClass="pos"
                   min={r ? formatStatValue(s.stat, r.min) : undefined}
@@ -156,7 +155,7 @@ export function PartCard({ partId, onClose }: { partId: string; onClose: () => v
             })}
           </div>
           <div className="small muted" style={{ marginTop: 6 }}>
-            Под каждым свойством — диапазон для этой редкости и качество броска: 100% — лучшее возможное значение.
+            Качество модификации: <b style={{ color: qualityColor(partQuality(part)) }}>{Math.round(partQuality(part) * 100)}%</b>. Под каждым свойством — диапазон для этой редкости и качество броска: 100% — лучшее возможное значение.
           </div>
           <div className="small muted" style={{ marginTop: 8 }}>
             Подходит для: {t.fits.map((c) => ru.category[c].toLowerCase()).join(', ')}
@@ -165,7 +164,17 @@ export function PartCard({ partId, onClose }: { partId: string; onClose: () => v
           <div className="section-title">Объединение</div>
           {next ? (
             <div className="info-box">
-              {fusionConfig.count} одинаковые → 1 {ru.rarity[next].toLowerCase()}. Есть: <b>{group.length}</b>. Шанс успеха {Math.round(fusionChance(part.rarity) * 100)}%. При неудаче все три детали теряются.
+              {fusionConfig.count} одинаковые → 1 {ru.rarity[next].toLowerCase()} с новыми свойствами. Есть: <b>{group.length}</b>. Шанс успеха {Math.round(fusionChance(part.rarity) * 100)}%. При неудаче все три детали теряются.
+              {canFuse && (
+                <div style={{ marginTop: 6 }}>
+                  Уйдут в объединение: эта и две самые слабые —{' '}
+                  {fusionPick(profile, part)
+                    .slice(1)
+                    .map((x) => `${Math.round(partQuality(x) * 100)}%`)
+                    .join(', ')}
+                  .
+                </div>
+              )}
             </div>
           ) : (
             <div className="muted small">Это максимальная редкость для объединения.</div>

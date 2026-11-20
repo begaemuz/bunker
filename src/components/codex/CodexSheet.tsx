@@ -1,0 +1,230 @@
+import { useState } from 'react';
+import { balanceConfig } from '../../game/config/balanceConfig';
+import { modeConfig } from '../../game/config/gameConfig';
+import { extraStatPools, itemTemplates, type ItemTemplate } from '../../game/config/itemsConfig';
+import { partStatCount, partTemplates } from '../../game/config/partsConfig';
+import { coilRangesAt, energyCostAt, statRangeAt } from '../../game/items/ItemGenerator';
+import { partExtraPool, partStatRange } from '../../game/items/Parts';
+import { formatStatValue } from '../../game/items/statInfo';
+import { playerTier } from '../../game/meta/Meta';
+import { EQUIP_CATEGORIES, RARITIES, type Rarity, type StatKey } from '../../game/types';
+import { ru, statLabel, uniqueText } from '../../i18n/ru';
+import { useProfile } from '../../stores/profileStore';
+import { rarityColor } from '../../ui/theme';
+import { CategoryGlyph, PartGlyph } from '../common/Icons';
+import { Sheet } from '../common/Sheet';
+
+const GRADES: Rarity[] = RARITIES.filter((r) => r !== 'unique');
+
+function Range({ stat, min, max }: { stat: StatKey; min: number; max: number }) {
+  const a = formatStatValue(stat, min);
+  const b = formatStatValue(stat, max);
+  return (
+    <div className="cx-line">
+      <span>{statLabel(stat)}</span>
+      <b>{a === b ? a : `${a} – ${b}`}</b>
+    </div>
+  );
+}
+
+function num(a: number, b: number, d = 1, unit = ''): string {
+  const x = a.toFixed(d);
+  const y = b.toFixed(d);
+  return x === y ? `${x}${unit}` : `${x} – ${y}${unit}`;
+}
+
+function ItemEntry({ t, rarity, tier }: { t: ItemTemplate; rarity: Rarity; tier: number }) {
+  const [open, setOpen] = useState(false);
+  const r: Rarity = t.unique ? 'unique' : rarity;
+  const col = rarityColor[r];
+  const coil = coilRangesAt(t, r, tier);
+  const energy = energyCostAt(t, r, tier);
+  const [eMin, eMax] = balanceConfig.rarityExtraCount[r];
+  const [sMin, sMax] = balanceConfig.raritySlots[r];
+  const used = new Set(t.base.map((b) => b.stat));
+  const pool = extraStatPools[t.category].filter((x) => !used.has(x.stat));
+  return (
+    <div className={`cx-entry${open ? ' open' : ''}`} style={{ ['--rc' as string]: col }}>
+      <button className="cx-head" onClick={() => setOpen(!open)}>
+        <span className="cx-icon">
+          <CategoryGlyph category={t.category} color={col} size={26} />
+        </span>
+        <span className="grow" style={{ minWidth: 0 }}>
+          <span className="cx-name" style={{ color: col }}>
+            {t.name}
+          </span>
+          <span className="cx-sub">
+            {t.unique ? 'Уникальное · трофей босса' : `${ru.rarity[r]} · Т${tier}`}
+          </span>
+        </span>
+        <span className="cx-chev">{open ? '−' : '+'}</span>
+      </button>
+      {open && (
+        <div className="cx-body">
+          <div className="small muted" style={{ marginBottom: 6 }}>
+            {t.description}
+          </div>
+          {t.unique && <div className="info-box" style={{ marginBottom: 6 }}>{uniqueText(t.unique)}</div>}
+          {coil && (
+            <>
+              <div className="cx-h">Катушка · {modeConfig[coil.mode].name}</div>
+              <div className="cx-line">
+                <span>Мощность импульса</span>
+                <b>{num(coil.power[0], coil.power[1])}</b>
+              </div>
+              <div className="cx-line">
+                <span>Радиус</span>
+                <b>{num(coil.radius[0], coil.radius[1], 0)}</b>
+              </div>
+              <div className="cx-line">
+                <span>Интервал</span>
+                <b>{num(coil.interval[0], coil.interval[1], 2, ' с')}</b>
+              </div>
+              <div className="cx-line">
+                <span>Энергия / нагрев на импульс</span>
+                <b>
+                  {num(coil.energy[0], coil.energy[1])} / {num(coil.heat[0], coil.heat[1])}
+                </b>
+              </div>
+            </>
+          )}
+          {t.base.length > 0 && <div className="cx-h">Основные свойства</div>}
+          {t.base.map((b) => {
+            const x = statRangeAt(b, r, tier);
+            return <Range key={b.stat} stat={b.stat} min={x.min} max={x.max} />;
+          })}
+          {energy[1] > 0 && (
+            <div className="cx-line">
+              <span>Постоянное потребление</span>
+              <b>{num(energy[0], energy[1], 1, '/с')}</b>
+            </div>
+          )}
+          <div className="cx-h">
+            Дополнительные свойства: {eMin === eMax ? eMin : `${eMin}–${eMax}`} шт.
+          </div>
+          {eMax === 0 ? (
+            <div className="small muted">У этой редкости нет дополнительных свойств.</div>
+          ) : (
+            pool.map((b) => {
+              const x = statRangeAt(b, r, tier);
+              return <Range key={b.stat} stat={b.stat} min={x.min} max={x.max} />;
+            })
+          )}
+          <div className="cx-line" style={{ marginTop: 6 }}>
+            <span>Гнёзда модификаций</span>
+            <b>{sMin === sMax ? sMin : `${sMin}–${sMax}`}</b>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PartEntry({ id, rarity }: { id: string; rarity: Rarity }) {
+  const [open, setOpen] = useState(false);
+  const t = partTemplates.find((x) => x.id === id)!;
+  const col = rarityColor[rarity];
+  const main = partStatRange(rarity, t.stat, true)!;
+  const extras = partExtraPool(t);
+  const n = partStatCount[rarity];
+  return (
+    <div className={`cx-entry${open ? ' open' : ''}`} style={{ ['--rc' as string]: col }}>
+      <button className="cx-head" onClick={() => setOpen(!open)}>
+        <span className="cx-icon">
+          <PartGlyph color={col} size={24} />
+        </span>
+        <span className="grow" style={{ minWidth: 0 }}>
+          <span className="cx-name" style={{ color: col }}>
+            {t.name}
+          </span>
+          <span className="cx-sub">
+            {ru.rarity[rarity]} · свойств: {n}
+          </span>
+        </span>
+        <span className="cx-chev">{open ? '−' : '+'}</span>
+      </button>
+      {open && (
+        <div className="cx-body">
+          <div className="small muted" style={{ marginBottom: 6 }}>
+            {t.description} Ставится в: {t.fits.map((c) => ru.category[c].toLowerCase()).join(', ')}.
+          </div>
+          <div className="cx-h">Основное свойство</div>
+          <Range stat={t.stat} min={main.min} max={main.max} />
+          {n > 1 && (
+            <>
+              <div className="cx-h">
+                Ещё {Math.min(n - 1, extras.length)} случайных из списка (сила ×0.5)
+              </div>
+              {extras.map((x) => {
+                const r = partStatRange(rarity, x.stat, false)!;
+                return <Range key={x.id} stat={x.stat} min={r.min} max={r.max} />;
+              })}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** База: все вещи и модификации со всеми диапазонами свойств. */
+export function CodexSheet({ onClose }: { onClose: () => void }) {
+  const profile = useProfile((s) => s.profile)!;
+  const [tab, setTab] = useState<'items' | 'parts'>('items');
+  const [rarity, setRarity] = useState<Rarity>('legendary');
+  const [tier, setTier] = useState(playerTier(profile));
+  return (
+    <Sheet
+      title="База"
+      onClose={onClose}
+      actions={
+        <button className="btn btn-ghost grow" onClick={onClose}>
+          Закрыть
+        </button>
+      }
+    >
+      <div className="seg quest-tabs">
+        <button className={tab === 'items' ? 'on' : ''} onClick={() => setTab('items')}>
+          Вещи
+        </button>
+        <button className={tab === 'parts' ? 'on' : ''} onClick={() => setTab('parts')}>
+          Модификации
+        </button>
+      </div>
+      <div className="cx-grades">
+        {GRADES.map((r) => (
+          <button key={r} className={`cx-grade${rarity === r ? ' on' : ''}`} style={{ ['--rc' as string]: rarityColor[r] }} onClick={() => setRarity(r)}>
+            {ru.rarity[r]}
+          </button>
+        ))}
+      </div>
+      {tab === 'items' && (
+        <div className="cx-grades">
+          {[1, 2, 3, 4, 5, 6, 7].map((t) => (
+            <button key={t} className={`cx-grade tier${tier === t ? ' on' : ''}`} onClick={() => setTier(t)}>
+              Т{t}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="small muted" style={{ margin: '4px 2px 10px' }}>
+        {tab === 'items'
+          ? 'Свойства выпадают случайно в указанных пределах. Т — технический уровень локации. Значения без учёта улучшений.'
+          : 'Чем выше редкость, тем больше свойств. Каждое выпадает случайно в своих пределах — модификация со всеми максимумами встречается очень редко.'}
+      </div>
+      {tab === 'items' &&
+        EQUIP_CATEGORIES.map((c) => (
+          <div key={c}>
+            <div className="section-title">{ru.category[c]}</div>
+            {itemTemplates
+              .filter((t) => t.category === c)
+              .sort((a, b) => Number(!!a.unique) - Number(!!b.unique))
+              .map((t) => (
+                <ItemEntry key={t.id} t={t} rarity={rarity} tier={tier} />
+              ))}
+          </div>
+        ))}
+      {tab === 'parts' && partTemplates.map((t) => <PartEntry key={t.id} id={t.id} rarity={rarity} />)}
+    </Sheet>
+  );
+}

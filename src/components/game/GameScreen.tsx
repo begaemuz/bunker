@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { computeBunkerStats } from '../../game/bunker/BunkerStats';
 import { combatPower } from '../../game/bunker/compare';
 import { useLoginBadge, useQuestBadge } from '../shop/QuestsSheet';
@@ -11,7 +11,7 @@ import { unlockAudio } from '../../services/sound';
 import { useProfile } from '../../stores/profileStore';
 import { useUi, type CoilHud } from '../../stores/uiStore';
 import { colors } from '../../ui/theme';
-import { Bar } from '../common/Common';
+import { Bar, ConfirmDialog } from '../common/Common';
 import { PlayerAvatar } from '../player/Avatar';
 import { playerNick } from '../player/ProfileSheet';
 import { vipLevel } from '../../game/meta/vip';
@@ -156,7 +156,29 @@ function BossButton() {
   const loc = getLocation(profile.locations.current);
   const ready = canSummonBoss(profile, loc.id);
   const passes = profile.resources.bossPasses;
-  if (!hud || hud.mode === 'boss' || hud.state !== 'running') return null;
+  const [confirmExit, setConfirmExit] = useState(false);
+  if (!hud || hud.state !== 'running') return null;
+  if (hud.mode === 'boss')
+    return (
+      <>
+        <button className="btn btn-sm boss-btn exit" onClick={() => setConfirmExit(true)}>
+          Выйти из боя
+        </button>
+        {confirmExit && (
+          <ConfirmDialog
+            title="Выйти из боя с боссом?"
+            text="Босс уйдёт, обычный бой продолжится. Прогресс групп и пропуск вернутся — босса можно будет вызвать снова."
+            confirmLabel="Выйти"
+            danger
+            onConfirm={() => {
+              setConfirmExit(false);
+              getActiveSession()?.retreatBoss();
+            }}
+            onCancel={() => setConfirmExit(false)}
+          />
+        )}
+      </>
+    );
   const summon = (usePass: boolean) => {
     const ok = getActiveSession()?.summonBoss(usePass);
     if (!ok) toast('Сейчас вызвать босса нельзя', 'bad');

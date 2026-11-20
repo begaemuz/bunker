@@ -46,9 +46,20 @@ export const fusionConfig = {
     rare: 0.7,
     epic: 0.5,
   } as Partial<Record<Rarity, number>>,
-  /** Шанс, что при объединении деталь получит второе свойство. */
-  bonusStatChance: 0.25,
 };
+
+/** Сколько свойств у модификации каждой редкости (первое — основное). */
+export const partStatCount: Record<Rarity, number> = {
+  common: 1,
+  uncommon: 2,
+  rare: 3,
+  epic: 4,
+  legendary: 5,
+  unique: 5,
+};
+
+/** Дополнительные свойства слабее основного. */
+export const partExtraMult = 0.5;
 
 /** Выпадение деталей. */
 export const partDrops = {

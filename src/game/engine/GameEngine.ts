@@ -24,7 +24,8 @@ export type GameEvent =
   | { type: 'pulse'; coil: number; crit: boolean }
   | { type: 'overheat' }
   | { type: 'emergencyRepair' }
-  | { type: 'defeat'; duringBoss: boolean };
+  | { type: 'defeat'; duringBoss: boolean }
+  | { type: 'bossRetreat' };
 
 export interface RunStats {
   time: number;
@@ -79,6 +80,8 @@ export interface CoilRuntime {
   /** Причина ожидания, если катушка готова, но не стреляет. */
   blocked: 'energy' | 'heat' | 'jammed' | 'target' | null;
   jamT: number;
+  /** Захваченная цель одиночного разряда: держится, пока жива и в радиусе. */
+  lockId?: number | null;
 }
 
 export interface BunkerRuntime {
@@ -563,7 +566,7 @@ export class GameEngine {
         rt.blocked = 'jammed';
         continue;
       }
-      const targets = this.findTargets(c);
+      const targets = this.findTargets(c, i);
       if (targets.length === 0) {
         rt.blocked = 'target';
         rt.idle += dt;
@@ -585,16 +588,26 @@ export class GameEngine {
     }
   }
 
-  private findTargets(c: CoilStats): Enemy[] {
+  private findTargets(c: CoilStats, index: number): Enemy[] {
     const out: Enemy[] = [];
     for (const e of this.enemies) {
       if (!e.alive) continue;
       if (Math.hypot(e.x, e.y) - e.size <= c.radius) out.push(e);
     }
-    if (modeConfig[c.mode].area || out.length <= 1) return out;
-    // Разряд бьёт самую прочную цель.
+    if (modeConfig[c.mode].area) return out;
+    const rt = this.bunker.coils[index];
+    if (!out.length) {
+      rt.lockId = null;
+      return out;
+    }
+    // Одиночный разряд не меняет цель, пока она жива и в радиусе.
+    const locked = rt.lockId != null ? out.find((e) => e.id === rt.lockId) : undefined;
+    if (locked) return [locked];
+    // Новая цель: сначала те, кто уже бьёт бункер, среди них — самая прочная.
     let best = out[0];
-    for (const e of out) if (e.hp + e.shield > best.hp + best.shield) best = e;
+    const score = (e: Enemy) => (e.attacking ? 1e12 : 0) + e.hp + e.shield;
+    for (const e of out) if (score(e) > score(best)) best = e;
+    rt.lockId = best.id;
     return [best];
   }
 
@@ -792,6 +805,23 @@ export class GameEngine {
       this.visuals.lootFly(x, y, it.rarity);
     }
     if (this.recentDrops.length > 5) this.recentDrops.length = 5;
+  }
+
+  /** Выйти из боя с боссом: босс уходит, обычный бой продолжается. */
+  retreatFromBoss(): boolean {
+    if (this.mode !== 'boss' || this.state !== 'running') return false;
+    for (const e of this.enemies) {
+      if (!e.alive) continue;
+      e.alive = false;
+      this.visuals.burst(e.x, e.y, '#6b7680', 6, 50, 2, 0.5);
+    }
+    this.groupAlive.clear();
+    this.mode = 'normal';
+    this.bossId = null;
+    this.resumeTimer = 3;
+    this.groupTimer = 0;
+    this.emit({ type: 'bossRetreat' });
+    return true;
   }
 
   /** Сдаться (завершить попытку вручную). */

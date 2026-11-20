@@ -119,6 +119,16 @@ export class GameSession {
     if (rates) useProfile.getState().setRates(rates);
   }
 
+  /** Выйти из боя с боссом: вызов возвращается, бой продолжается. */
+  retreatBoss(): boolean {
+    if (!this.engine.retreatFromBoss()) return false;
+    useProfile.getState().refundSummon(this.engine.location.id, this.summonedWithPass);
+    setMusicMode('calm');
+    useUi.getState().toast('Вы вышли из боя с боссом. Вызов можно повторить', 'info');
+    this.publishHud();
+    return true;
+  }
+
   summonBoss(usePass: boolean): boolean {
     const loc = this.engine.location;
     const prof = useProfile.getState();
@@ -179,6 +189,8 @@ export class GameSession {
         break;
       case 'emergencyRepair':
         ui.toast('Аварийный ремонт', 'good');
+        break;
+      case 'bossRetreat':
         break;
       case 'bossSpawn':
         setMusicMode('boss');
