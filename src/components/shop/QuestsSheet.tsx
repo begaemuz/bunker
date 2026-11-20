@@ -133,6 +133,7 @@ export function QuestsSheet({ onClose }: { onClose: () => void }) {
   const ensureMeta = useProfile((s) => s.ensureMeta);
   const claimQuest = useProfile((s) => s.claimQuest);
   const claimBonus = useProfile((s) => s.claimQuestBonus);
+  const claimAll = useProfile((s) => s.claimAllQuests);
   const toast = useUi((s) => s.toast);
   const [tab, setTab] = useState<QuestPeriod>('day');
   const [now, setNow] = useState(gameNow());
@@ -146,15 +147,32 @@ export function QuestsSheet({ onClose }: { onClose: () => void }) {
   const set = profile.quests[tab];
   const done = set.list.filter((q) => q.claimed).length;
   const bonusReady = canClaimQuestBonus(profile, tab);
+  const anyReady = QUEST_PERIODS.some((per) => questClaimable(profile, per) > 0 || canClaimQuestBonus(profile, per));
 
   return (
     <Sheet
       title="Задания"
       onClose={onClose}
       actions={
-        <button className="btn btn-ghost grow" onClick={onClose}>
-          Закрыть
-        </button>
+        <>
+          <button className="btn btn-ghost" onClick={onClose}>
+            Закрыть
+          </button>
+          <button
+            className={`btn ${anyReady ? 'btn-gold btn-hazard' : ''}`}
+            style={{ flex: 2 }}
+            disabled={!anyReady}
+            onClick={() => {
+              const n = claimAll();
+              if (n > 0) {
+                sfx.victory();
+                toast(`Получено наград: ${n}`, 'rare');
+              }
+            }}
+          >
+            Забрать всё
+          </button>
+        </>
       }
     >
       <div className="seg quest-tabs">

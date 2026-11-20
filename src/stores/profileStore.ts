@@ -32,6 +32,8 @@ import {
   claimDaily,
   claimQuest,
   claimQuestBonus,
+  canClaimQuestBonus,
+  QUEST_PERIODS,
   doExchange,
   ensureQuests,
   ensureShop,
@@ -68,6 +70,8 @@ interface ProfileState {
   claimDaily: () => Partial<Resources> | null;
   claimQuest: (id: string) => boolean;
   claimQuestBonus: (period: QuestPeriod) => boolean;
+  /** Забрать все выполненные задания и сундуки за все периоды. */
+  claimAllQuests: () => number;
   addGroup: (locationId: number) => void;
   summon: (locationId: number, usePass: boolean) => boolean;
   refundSummon: (locationId: number, usedPass: boolean) => void;
@@ -332,6 +336,34 @@ export const useProfile = create<ProfileState>((set, get) => {
       if (!q) return false;
       commit(q, false, true);
       return true;
+    },
+
+    claimAllQuests: () => {
+      let p = get().profile;
+      if (!p) return 0;
+      let n = 0;
+      // Сначала задания (они могут открыть сундук), потом сундуки — по кругу, пока есть что забрать.
+      for (let pass = 0; pass < 3; pass++) {
+        for (const per of QUEST_PERIODS) {
+          for (const q of p.quests[per].list) {
+            if (q.claimed || q.progress < q.target) continue;
+            const r = claimQuest(p, q.id);
+            if (r) {
+              p = r;
+              n++;
+            }
+          }
+          if (canClaimQuestBonus(p, per)) {
+            const r = claimQuestBonus(p, per);
+            if (r) {
+              p = r;
+              n++;
+            }
+          }
+        }
+      }
+      if (n > 0) commit(p, false, true);
+      return n;
     },
 
     claimQuestBonus: (period) => {
