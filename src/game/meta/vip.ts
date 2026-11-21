@@ -117,12 +117,12 @@ export const VIP_GIFTS: Record<number, VipGift[]> = {
   2: [{ kind: 'res', res: { energyCores: 5, blueprints: 5, crystals: 30 } }],
   3: [{ kind: 'parts', rarity: 'epic', count: 2 }, { kind: 'frame', id: 'vip3' }],
   4: [{ kind: 'item', rarity: 'epic', category: 'coil' }, { kind: 'res', res: { expansionKeys: 3, bossPasses: 3 } }],
-  5: [{ kind: 'item', rarity: 'legendary' }, { kind: 'avatar', id: 6 }, { kind: 'frame', id: 'vip5' }],
+  5: [{ kind: 'item', rarity: 'legendary' }, { kind: 'frame', id: 'vip5' }],
   6: [{ kind: 'parts', rarity: 'legendary', count: 2 }, { kind: 'res', res: { energyCores: 15 } }],
   7: [{ kind: 'item', rarity: 'legendary', category: 'coil' }, { kind: 'item', rarity: 'legendary', category: 'generator' }],
   8: [{ kind: 'unique', templateId: 'v_imperial' }, { kind: 'frame', id: 'vip8' }],
   9: [{ kind: 'parts', rarity: 'legendary', count: 4 }, { kind: 'res', res: { expansionKeys: 10, crystals: 300 } }],
-  10: [{ kind: 'unique', templateId: 'v_crown' }, { kind: 'avatar', id: 7 }, { kind: 'frame', id: 'vip10' }],
+  10: [{ kind: 'unique', templateId: 'v_crown' }, { kind: 'frame', id: 'vip10' }],
 };
 
 /** Наборы кристаллов за Telegram Stars. */
@@ -140,28 +140,14 @@ export type Gender = 'm' | 'f';
 export const AVATARS_PER_GENDER = 8;
 
 /**
- * Аватары инженеров: 0–7 мужские, 8–15 женские. Под одним номером в паре
- * (0 и 8, 1 и 9 …) одинаковые условия открытия. От аватара зависит и
- * инженер в лаборатории бункера.
+ * Аватары инженеров: номера 0–7 мужские, 8–15 женские (пока есть только 0).
+ * От аватара зависит и инженер в лаборатории бункера. Новый аватар —
+ * запись здесь и рисунки в assets/avatars и assets/engineers.
  */
-export const AVATARS: { id: number; name: string; gender: Gender; vip?: number }[] = [
-  { id: 0, name: 'Инженер', gender: 'm' },
-  { id: 1, name: 'Штурмовик', gender: 'm' },
-  { id: 2, name: 'Механик', gender: 'm' },
-  { id: 3, name: 'Связист', gender: 'm' },
-  { id: 4, name: 'Сварщик', gender: 'm' },
-  { id: 5, name: 'Радист', gender: 'm' },
-  { id: 6, name: 'Командор', gender: 'm', vip: 5 },
-  { id: 7, name: 'Император', gender: 'm', vip: 10 },
-  { id: 8, name: 'Инженер', gender: 'f' },
-  { id: 9, name: 'Разведчица', gender: 'f' },
-  { id: 10, name: 'Механик', gender: 'f' },
-  { id: 11, name: 'Связистка', gender: 'f' },
-  { id: 12, name: 'Учёная', gender: 'f' },
-  { id: 13, name: 'Радистка', gender: 'f' },
-  { id: 14, name: 'Командор', gender: 'f', vip: 5 },
-  { id: 15, name: 'Императрица', gender: 'f', vip: 10 },
-];
+export const AVATARS: { id: number; name: string; gender: Gender; vip?: number }[] = [{ id: 0, name: 'Инженер', gender: 'm' }];
+
+/** Выбор пола показываем, когда есть аватары обоих полов. */
+export const HAS_GENDERS = new Set(AVATARS.map((a) => a.gender)).size > 1;
 
 export function avatarDef(id: number) {
   return AVATARS[id] ?? AVATARS[0];

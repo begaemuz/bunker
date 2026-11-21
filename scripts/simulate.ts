@@ -498,6 +498,8 @@ console.log('— Сохранения');
   check('Миграция: стоит катушка №1', m.equipment.coil1 === 'a');
   check('Миграция v2 → v5: модификации и автопродажа', !!m.parts && m.autoSell.maxRarity === null && m.autoSell.minQuality === null && m.resources.expansionKeys === 0);
   check('Миграция v5: магазин, обмен, награды, задания', !!m.shop && !!m.exchange && !!m.daily && !!m.quests && m.version === 9);
+  const oldAvatar = migrate({ ...createNewProfile(), player: { nick: 'X', avatar: 9, frame: 'steel' } });
+  check('Несуществующий аватар заменяется инженером', oldAvatar.player.avatar === 0 && oldAvatar.player.nick === 'X');
   check('Миграция v6: профиль игрока и VIP', m.player.frame === 'steel' && m.vip.points === 0);
   check('Миграция v7: задания по периодам', !!m.quests.day && !!m.quests.week && !!m.quests.month);
 }

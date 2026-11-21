@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { computeBunkerStats } from '../../game/bunker/BunkerStats';
 import { combatPower } from '../../game/bunker/compare';
-import { AVATARS, avatarDef, avatarFor, avatarGender, FRAMES, type Gender, frameUnlocked, VIP_GIFTS, VIP_THRESHOLDS, vipChest, vipLevel, vipNext, vipPerkList, type VipGift } from '../../game/meta/vip';
+import { AVATARS, avatarDef, avatarFor, avatarGender, FRAMES, HAS_GENDERS, type Gender, frameUnlocked, VIP_GIFTS, VIP_THRESHOLDS, vipChest, vipLevel, vipNext, vipPerkList, type VipGift } from '../../game/meta/vip';
 import { canClaimVipChest, giftClaimable } from '../../game/meta/vipActions';
 import { itemTemplates } from '../../game/config/itemsConfig';
 import { RESOURCE_KEYS, type Rarity } from '../../game/types';
@@ -48,7 +48,7 @@ export function NickDialog({
     <div className="modal-back center" onClick={onCancel}>
       <div className="dialog" onClick={(e) => e.stopPropagation()}>
         <h3>{title}</h3>
-        {pickGender && (
+        {pickGender && HAS_GENDERS && (
           <div className="gender-pick">
             {GENDERS.map(([g, label]) => (
               <button key={g} className={`pick${gender === g ? ' on' : ''}`} onClick={() => setGender(g)}>
@@ -360,22 +360,24 @@ export function ProfileSheet({ onClose }: { onClose: () => void }) {
 
         {tab === 'avatar' && (
           <>
-            <div className="seg quest-tabs" style={{ marginBottom: 10 }}>
-              {GENDERS.map(([g, label]) => (
-                <button
-                  key={g}
-                  className={gender === g ? 'on' : ''}
-                  onClick={() => {
-                    if (g === gender) return;
-                    // Тот же по счёту аватар другого пола, если он открыт, иначе первый.
-                    const same = avatarFor(g, profile.player.avatar);
-                    setPlayer({ avatar: (avatarDef(same).vip ?? 0) <= vip ? same : avatarFor(g, 0) });
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            {HAS_GENDERS && (
+              <div className="seg quest-tabs" style={{ marginBottom: 10 }}>
+                {GENDERS.map(([g, label]) => (
+                  <button
+                    key={g}
+                    className={gender === g ? 'on' : ''}
+                    onClick={() => {
+                      if (g === gender) return;
+                      // Тот же по счёту аватар другого пола, если он открыт, иначе первый.
+                      const same = avatarFor(g, profile.player.avatar);
+                      setPlayer({ avatar: (avatarDef(same).vip ?? 0) <= vip ? same : avatarFor(g, 0) });
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="pick-grid">
               {AVATARS.filter((a) => a.gender === gender).map((a) => {
                 const open = (a.vip ?? 0) <= vip;

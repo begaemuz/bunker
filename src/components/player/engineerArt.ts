@@ -16,24 +16,9 @@ export const engineerUrl = (id: number) => pick(engineerFiles, 'engineers', id);
  * Где стоит фигура в сцене лаборатории (координаты viewBox 200×262):
  * лицо по центру, низ уходит под стол.
  */
-const ENGINEER_FIT: [x: number, y: number, w: number, h: number][] = [
-  [41, 90, 123.3, 144.5],
-  [59.5, 96, 75, 135.8],
-  [60.2, 96, 75.8, 135.8],
-  [60.2, 96, 73.9, 135.8],
-  [62.9, 96, 72.8, 135.8],
-  [63.2, 96, 72.8, 135.8],
-  [67, 96, 71.2, 135.8],
-  [64.4, 96, 69, 135.8],
-  [64.8, 96, 81.8, 135.8],
-  [57.2, 96, 78, 135.8],
-  [61.4, 96, 74.2, 135.8],
-  [62.5, 96, 74.2, 135.8],
-  [64, 96, 74.2, 135.8],
-  [64.8, 96, 72.8, 135.8],
-  [64.8, 96, 74.2, 135.8],
-  [64.4, 96, 69, 135.8],
-];
+const ENGINEER_FIT: Record<number, [x: number, y: number, w: number, h: number]> = {
+  0: [41, 90, 123.3, 144.5],
+};
 
 export function engineerFit(id: number) {
   const [x, y, w, h] = ENGINEER_FIT[id] ?? ENGINEER_FIT[0];

@@ -1,3 +1,4 @@
+import { AVATARS } from '../game/meta/vip';
 import { emptyQuests } from '../game/meta/Meta';
 import { generateItem } from '../game/items/ItemGenerator';
 import {
@@ -183,7 +184,7 @@ export function migrate(raw: unknown): Profile {
     exchange: p.exchange ?? base.exchange,
     daily: p.daily ?? base.daily,
     quests: { ...base.quests, ...(p.quests ?? {}) },
-    player: { ...base.player, ...(p.player ?? {}) },
+    player: { ...base.player, ...(p.player ?? {}), ...(AVATARS[p.player?.avatar ?? 0] ? {} : { avatar: 0 }) },
     vip: { ...base.vip, ...(p.vip ?? {}) },
   };
 }
