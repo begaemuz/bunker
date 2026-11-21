@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { computeBunkerStats } from '../../game/bunker/BunkerStats';
 import { combatPower } from '../../game/bunker/compare';
-import { AVATARS, FRAMES, frameUnlocked, VIP_GIFTS, VIP_THRESHOLDS, vipChest, vipLevel, vipNext, vipPerkList, type VipGift } from '../../game/meta/vip';
+import { AVATARS, avatarDef, avatarFor, avatarGender, FRAMES, type Gender, frameUnlocked, VIP_GIFTS, VIP_THRESHOLDS, vipChest, vipLevel, vipNext, vipPerkList, type VipGift } from '../../game/meta/vip';
 import { canClaimVipChest, giftClaimable } from '../../game/meta/vipActions';
 import { itemTemplates } from '../../game/config/itemsConfig';
 import { RESOURCE_KEYS, type Rarity } from '../../game/types';
@@ -14,19 +14,52 @@ import { UiIcon } from '../common/Icons';
 import { Sheet } from '../common/Sheet';
 import { EngineerFace, PlayerAvatar } from './Avatar';
 
+const GENDERS = [
+  ['m', 'Мужской'],
+  ['f', 'Женский'],
+] as const;
+
 export function playerNick(nick: string, tgName?: string): string {
   return nick.trim() || tgName || 'Инженер';
 }
 
-/** Окно ввода ника: используется в профиле и при создании бункера. */
-export function NickDialog({ initial, title, onSave, onCancel }: { initial: string; title: string; onSave: (nick: string) => void; onCancel?: () => void }) {
+/**
+ * Окно ввода ника: используется в профиле и при создании бункера.
+ * При создании (pickGender) ещё выбирается пол — от него аватар и инженер.
+ */
+export function NickDialog({
+  initial,
+  title,
+  onSave,
+  onCancel,
+  pickGender,
+}: {
+  initial: string;
+  title: string;
+  onSave: (nick: string, gender: Gender) => void;
+  onCancel?: () => void;
+  pickGender?: boolean;
+}) {
   const [nick, setNick] = useState(initial);
+  const [gender, setGender] = useState<Gender>('m');
   const v = nick.trim();
   const ok = v.length >= 2 && v.length <= 16;
   return (
     <div className="modal-back center" onClick={onCancel}>
       <div className="dialog" onClick={(e) => e.stopPropagation()}>
         <h3>{title}</h3>
+        {pickGender && (
+          <div className="gender-pick">
+            {GENDERS.map(([g, label]) => (
+              <button key={g} className={`pick${gender === g ? ' on' : ''}`} onClick={() => setGender(g)}>
+                <span className="pick-face" style={{ width: 64, height: 64 }}>
+                  <EngineerFace id={avatarFor(g, 0)} size={64} />
+                </span>
+                <span className="pick-name">{label}</span>
+              </button>
+            ))}
+          </div>
+        )}
         <p className="small muted">От 2 до 16 символов. Его увидят другие игроки.</p>
         <input
           className="nick-input"
@@ -36,7 +69,7 @@ export function NickDialog({ initial, title, onSave, onCancel }: { initial: stri
           autoFocus
           onChange={(e) => setNick(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && ok) onSave(v);
+            if (e.key === 'Enter' && ok) onSave(v, gender);
           }}
           placeholder="Ваш ник"
         />
@@ -46,7 +79,7 @@ export function NickDialog({ initial, title, onSave, onCancel }: { initial: stri
               Отмена
             </button>
           )}
-          <button className="btn btn-gold" disabled={!ok} onClick={() => onSave(v)}>
+          <button className="btn btn-gold" disabled={!ok} onClick={() => onSave(v, gender)}>
             Сохранить
           </button>
         </div>
@@ -91,7 +124,7 @@ function giftLabel(g: VipGift): string {
     case 'unique':
       return `Эксклюзив: ${itemTemplates.find((t) => t.id === g.templateId)?.name ?? ''}`;
     case 'avatar':
-      return `Аватар «${AVATARS.find((a) => a.id === g.id)?.name ?? ''}»`;
+      return `Аватар «${[...new Set([avatarDef(g.id).name, avatarDef(avatarFor('f', g.id)).name])].join('» / «')}»`;
     case 'frame':
       return `Рамка «${FRAMES.find((f) => f.id === g.id)?.name ?? ''}»`;
   }
@@ -272,6 +305,7 @@ export function ProfileSheet({ onClose }: { onClose: () => void }) {
   const toast = useUi((s) => s.toast);
   const [tab, setTab] = useState<'vip' | 'avatar' | 'frame'>('vip');
   const [editing, setEditing] = useState(false);
+  const gender = avatarGender(profile.player.avatar);
   const lvl = profile.bunker.level;
   const vip = vipLevel(profile.vip.points);
   const power = combatPower(computeBunkerStats(profile));
@@ -325,23 +359,41 @@ export function ProfileSheet({ onClose }: { onClose: () => void }) {
         {tab === 'vip' && <VipTab />}
 
         {tab === 'avatar' && (
-          <div className="pick-grid">
-            {AVATARS.map((a) => {
-              const open = (a.vip ?? 0) <= vip;
-              return (
+          <>
+            <div className="seg quest-tabs" style={{ marginBottom: 10 }}>
+              {GENDERS.map(([g, label]) => (
                 <button
-                  key={a.id}
-                  className={`pick${profile.player.avatar === a.id ? ' on' : ''}${open ? '' : ' locked'}`}
-                  onClick={() => (open ? setPlayer({ avatar: a.id }) : toast(`Нужен VIP ${a.vip}`, 'bad'))}
+                  key={g}
+                  className={gender === g ? 'on' : ''}
+                  onClick={() => {
+                    if (g === gender) return;
+                    // Тот же по счёту аватар другого пола, если он открыт, иначе первый.
+                    const same = avatarFor(g, profile.player.avatar);
+                    setPlayer({ avatar: (avatarDef(same).vip ?? 0) <= vip ? same : avatarFor(g, 0) });
+                  }}
                 >
-                  <span className="pick-face">
-                    <EngineerFace id={a.id} size={56} />
-                  </span>
-                  <span className="pick-name">{open ? a.name : `VIP ${a.vip}`}</span>
+                  {label}
                 </button>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+            <div className="pick-grid">
+              {AVATARS.filter((a) => a.gender === gender).map((a) => {
+                const open = (a.vip ?? 0) <= vip;
+                return (
+                  <button
+                    key={a.id}
+                    className={`pick${profile.player.avatar === a.id ? ' on' : ''}${open ? '' : ' locked'}`}
+                    onClick={() => (open ? setPlayer({ avatar: a.id }) : toast(`Нужен VIP ${a.vip}`, 'bad'))}
+                  >
+                    <span className="pick-face">
+                      <EngineerFace id={a.id} size={56} />
+                    </span>
+                    <span className="pick-name">{open ? a.name : `VIP ${a.vip}`}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
         )}
 
         {tab === 'frame' && (

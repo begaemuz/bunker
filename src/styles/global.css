@@ -3217,6 +3217,15 @@ body,
 .pavatar-face svg {
   display: block;
 }
+.eng-face {
+  display: block;
+  background: radial-gradient(circle at 50% 35%, #33404b, #10161a 72%);
+}
+.eng-face img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
 .pavatar-lvl {
   position: absolute;
   left: 50%;
@@ -3391,6 +3400,16 @@ button.pavatar:active {
 }
 .pick.locked {
   opacity: 0.45;
+}
+.gender-pick {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 4px 0 10px;
+}
+.gender-pick .pick-name {
+  font-size: 13px;
+  font-weight: 800;
 }
 .pick-name {
   font-size: 10px;

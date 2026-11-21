@@ -13,6 +13,7 @@ import { BunkerScreen } from '../components/bunker/BunkerScreen';
 import { Toasts } from '../components/common/Common';
 import { UiIcon } from '../components/common/Icons';
 import { NickDialog, ProfileSheet } from '../components/player/ProfileSheet';
+import { avatarFor } from '../game/meta/vip';
 import { GameScreen } from '../components/game/GameScreen';
 import { MenuScreen } from '../components/game/MenuScreen';
 import { BossRewardModal, OfflineRewardModal, ResultScreen } from '../components/game/ResultScreen';
@@ -115,8 +116,9 @@ function Main() {
           <NickDialog
             title="Как зовут командира бункера?"
             initial={tgName ?? ''}
-            onSave={(n) => {
-              setPlayer({ nick: n });
+            pickGender
+            onSave={(n, g) => {
+              setPlayer({ nick: n, avatar: avatarFor(g, 0) });
             }}
           />
         )}

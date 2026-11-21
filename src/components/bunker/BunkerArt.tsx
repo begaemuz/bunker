@@ -1,11 +1,11 @@
 import { modeConfig } from '../../game/config/gameConfig';
 import type { Profile } from '../../game/profile/Profile';
 import type { SlotId } from '../../game/types';
-import engineerUrl from '../../assets/engineer.webp';
+import { engineerFit, engineerUrl } from '../player/engineerArt';
 import { rarityColor } from '../../ui/theme';
 
 /**
- * Лаборатория бункера: инженер в белом халате за рабочим столом (рисунок).
+ * Лаборатория бункера: инженер (по выбранному аватару) за рабочим столом.
  * Каждый установленный модуль оживляет свой прибор: катушки на столе,
  * реактор, накопители, радио-преобразователь, вентилятор, монитор
  * сенсоров и голограмма защитного контура.
@@ -23,6 +23,8 @@ export function BunkerArt({ profile, highlight }: { profile: Profile; highlight?
     const x = it(s);
     return x?.coil ? modeConfig[x.coil.mode].color : x ? rarityColor[x.rarity] : null;
   };
+  const avatar = profile.player.avatar;
+  const fit = engineerFit(avatar);
   const c1 = coilCol('coil1');
   const c2 = coilCol('coil2');
   const on = (s: SlotId) => !!it(s);
@@ -132,8 +134,8 @@ export function BunkerArt({ profile, highlight }: { profile: Profile; highlight?
       {ring('shield', 100, 73, 26)}
 
       {/* ───── инженер ───── */}
-      <ellipse cx="100" cy="224" rx="56" ry="8" fill="#000" opacity="0.35" />
-      <image href={engineerUrl} x="41" y="90" width="123.3" height="144.5" preserveAspectRatio="xMidYMin meet" />
+      <ellipse cx="100" cy="224" rx={Math.min(56, fit.w * 0.5)} ry="8" fill="#000" opacity="0.35" />
+      <image href={engineerUrl(avatar)} x={fit.x} y={fit.y} width={fit.w} height={fit.h} preserveAspectRatio="xMidYMin meet" />
 
       {/* ───── стол ───── */}
       <rect x="0" y="226" width="200" height="74" fill="url(#lb-desk)" />

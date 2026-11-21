@@ -134,17 +134,47 @@ export const crystalPacks = [
   { id: 'c3000', crystals: 3000, bonus: 900, stars: 2000 },
 ];
 
-/** Аватары инженеров и рамки. */
-export const AVATARS = [
-  { id: 0, name: 'Механик', skin: '#e8b98f', hair: '#3a2a1e', gear: '#f2a93b', visor: '#46d4ff' },
-  { id: 1, name: 'Связистка', skin: '#f0c7a5', hair: '#b4532a', gear: '#46d4ff', visor: '#ffd27a' },
-  { id: 2, name: 'Сварщик', skin: '#c98e66', hair: '#1b1b1b', gear: '#7d858c', visor: '#ff7a3d' },
-  { id: 3, name: 'Хакер', skin: '#e2b08a', hair: '#5a3a8a', gear: '#b46bff', visor: '#7be38a' },
-  { id: 4, name: 'Инженер-полевик', skin: '#8d5a3b', hair: '#2a1d14', gear: '#5fd16a', visor: '#46d4ff' },
-  { id: 5, name: 'Ветеран', skin: '#d9a982', hair: '#9aa0a6', gear: '#ff4d6a', visor: '#ffd27a' },
-  { id: 6, name: 'Командор', skin: '#e8b98f', hair: '#1b1b1b', gear: '#b46bff', visor: '#ffd06a', vip: 5 },
-  { id: 7, name: 'Император', skin: '#f0c7a5', hair: '#e8c26a', gear: '#ffd06a', visor: '#ff4d6a', vip: 10 },
-] as { id: number; name: string; skin: string; hair: string; gear: string; visor: string; vip?: number }[];
+export type Gender = 'm' | 'f';
+
+/** Сколько аватаров у каждого пола. */
+export const AVATARS_PER_GENDER = 8;
+
+/**
+ * Аватары инженеров: 0–7 мужские, 8–15 женские. Под одним номером в паре
+ * (0 и 8, 1 и 9 …) одинаковые условия открытия. От аватара зависит и
+ * инженер в лаборатории бункера.
+ */
+export const AVATARS: { id: number; name: string; gender: Gender; vip?: number }[] = [
+  { id: 0, name: 'Инженер', gender: 'm' },
+  { id: 1, name: 'Штурмовик', gender: 'm' },
+  { id: 2, name: 'Механик', gender: 'm' },
+  { id: 3, name: 'Связист', gender: 'm' },
+  { id: 4, name: 'Сварщик', gender: 'm' },
+  { id: 5, name: 'Радист', gender: 'm' },
+  { id: 6, name: 'Командор', gender: 'm', vip: 5 },
+  { id: 7, name: 'Император', gender: 'm', vip: 10 },
+  { id: 8, name: 'Инженер', gender: 'f' },
+  { id: 9, name: 'Разведчица', gender: 'f' },
+  { id: 10, name: 'Механик', gender: 'f' },
+  { id: 11, name: 'Связистка', gender: 'f' },
+  { id: 12, name: 'Учёная', gender: 'f' },
+  { id: 13, name: 'Радистка', gender: 'f' },
+  { id: 14, name: 'Командор', gender: 'f', vip: 5 },
+  { id: 15, name: 'Императрица', gender: 'f', vip: 10 },
+];
+
+export function avatarDef(id: number) {
+  return AVATARS[id] ?? AVATARS[0];
+}
+
+export function avatarGender(id: number): Gender {
+  return avatarDef(id).gender;
+}
+
+/** Тот же по счёту аватар другого пола. */
+export function avatarFor(gender: Gender, index: number): number {
+  return (gender === 'f' ? AVATARS_PER_GENDER : 0) + (index % AVATARS_PER_GENDER);
+}
 
 export interface FrameDef {
   id: string;
