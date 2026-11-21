@@ -176,7 +176,7 @@ export function migrate(raw: unknown): Profile {
     history: p.history ?? [],
     bunker: p.bunker ?? base.bunker,
     parts: p.parts ?? {},
-    autoSell: p.autoSell ?? base.autoSell,
+    autoSell: { ...base.autoSell, ...(p.autoSell ?? {}) },
     offline: p.offline ?? base.offline,
     tgUserId: p.tgUserId ?? null,
     shop: p.shop ?? base.shop,

@@ -10,7 +10,7 @@ import { getLocation, locationsConfig } from '../src/game/config/locationsConfig
 import { bossesConfig } from '../src/game/config/bossesConfig';
 import { rollBossLoot } from '../src/game/economy/DropSystem';
 import { GameEngine } from '../src/game/engine/GameEngine';
-import { generateItem, itemModifiers, sellPrice } from '../src/game/items/ItemGenerator';
+import { generateItem, itemModifiers, itemQuality, sellPrice } from '../src/game/items/ItemGenerator';
 import { rarityIndex, validateRarityTable } from '../src/game/items/ItemRarity';
 import { tryUpgrade, upgradeBlock } from '../src/game/items/ItemUpgrade';
 import {
@@ -34,7 +34,7 @@ import {
 import { applySkillReset, effectValue, resetSkills, research, researchBlock, researchCost } from '../src/game/progression/TechnologyTree';
 import { LOGIN_DAYS, buyOffer, buySpecial, claimDaily, claimQuest, claimQuestBonus, doExchange, ensureQuests, ensureShop, exchangeUsed, questProgress, refreshShop } from '../src/game/meta/Meta';
 import { addParts, dismantleParts, massFusePlan, partPowerScore, extractPart, fuseAll, fuseParts, fusionPick, fusionQualityRange, generatePart, partQuality, partStatRoll, installPart, unlockSlot } from '../src/game/items/Parts';
-import { applyAutoSell } from '../src/game/economy/AutoSell';
+import { applyAutoSell, autoSellMatches } from '../src/game/economy/AutoSell';
 import { computeOfflineReward } from '../src/game/progression/offline';
 import { rewardDecay } from '../src/game/progression/rewards';
 import { migrate } from '../src/services/migrations';
@@ -158,7 +158,7 @@ console.log('— Модификации');
 
 console.log('— Автопродажа и офлайн');
 {
-  let p = { ...createNewProfile(), autoSell: { maxRarity: 'uncommon' as const } };
+  let p = { ...createNewProfile(), autoSell: { maxRarity: 'uncommon' as const, minQuality: null } };
   const junk = generateItem({ templateId: 'gen_diesel', rarity: 'common', tier: 1, source: { kind: 'start' } });
   junk.baseStats = [{ stat: 'genPower', value: 3 }];
   const rare = generateItem({ templateId: 'gen_diesel', rarity: 'rare', tier: 1, source: { kind: 'start' } });
@@ -167,6 +167,29 @@ console.log('— Автопродажа и офлайн');
   check('Слабое обычное продаётся автоматически', r.sold.some((x) => x.id === junk.id) && r.coins > 0);
   check('Редкость выше порога не продаётся', r.keep.some((x) => x.id === rare.id));
   check('Предмет для пустого слота не продаётся', r.keep.some((x) => x.id === free.id));
+  {
+    // По качеству: слабые копии генератора любой редкости, которые не лучше установленного.
+    const q = { ...p, autoSell: { maxRarity: null, minQuality: 70 } };
+    const gen = (rarity: 'common' | 'epic' | 'mythic') => {
+      const it = generateItem({ templateId: 'gen_diesel', rarity, tier: 1, source: { kind: 'start' } });
+      it.baseStats = [{ stat: 'genPower', value: 3 }];
+      return it;
+    };
+    // Слабые броски (качество 0%) — продаются; случайные проверяем по порогу напрямую.
+    const low = gen('epic');
+    const myth = gen('mythic');
+    const pool = Array.from({ length: 40 }, () => generateItem({ templateId: 'gen_diesel', rarity: 'rare', tier: 1, source: { kind: 'start' } }));
+    check('Порог качества: ниже 70% — подходит, от 70% — нет', pool.every((x) => autoSellMatches(q, x) === Math.round(itemQuality(x) * 100) < 70));
+    const high = pool.find((x) => !autoSellMatches(q, x))!;
+    const rq = applyAutoSell(q, [low, high, myth]);
+    check(`Качество ниже порога продаётся (${Math.round(itemQuality(low) * 100)}%, ${low.rarity})`, rq.sold.some((x) => x.id === low.id));
+    check(`Качество не ниже порога не продаётся (${Math.round(itemQuality(high) * 100)}%)`, rq.keep.some((x) => x.id === high.id));
+    check('Мифическое не продаётся по качеству', rq.keep.some((x) => x.id === myth.id));
+    const both = applyAutoSell({ ...q, autoSell: { maxRarity: 'uncommon', minQuality: 70 } }, [junk, low]);
+    check('Правила редкости и качества работают вместе', both.sold.length === 2);
+    const off = applyAutoSell({ ...q, autoSell: { maxRarity: null, minQuality: null } }, [low]);
+    check('Выключенная автопродажа ничего не продаёт', off.sold.length === 0);
+  }
   p = { ...p, offline: { lastSeen: Date.now() - 2 * 3600 * 1000, rates: { location: 1, resources: { coins: 2, scrap: 0.5 }, xp: 1, kills: 0.5, groups: 0.1, items: 0.01, parts: 0.002 } } };
   const off = computeOfflineReward(p)!;
   check(`Офлайн-награда за 2 часа (${off.resources.coins} монет, ${off.items.length} предметов)`, !!off && off.resources.coins! > 6000 && off.items.length > 10);
@@ -473,7 +496,7 @@ console.log('— Сохранения');
   check('Миграция: реактор стал генератором и остался установлен', m.items.b?.category === 'generator' && m.equipment.generator === 'b');
   check('Миграция: победа над боссом открыла 2-ю локацию', m.locations.unlocked.includes(2));
   check('Миграция: стоит катушка №1', m.equipment.coil1 === 'a');
-  check('Миграция v2 → v5: модификации и автопродажа', !!m.parts && m.autoSell.maxRarity === null && m.resources.expansionKeys === 0);
+  check('Миграция v2 → v5: модификации и автопродажа', !!m.parts && m.autoSell.maxRarity === null && m.autoSell.minQuality === null && m.resources.expansionKeys === 0);
   check('Миграция v5: магазин, обмен, награды, задания', !!m.shop && !!m.exchange && !!m.daily && !!m.quests && m.version === 9);
   check('Миграция v6: профиль игрока и VIP', m.player.frame === 'steel' && m.vip.points === 0);
   check('Миграция v7: задания по периодам', !!m.quests.day && !!m.quests.week && !!m.quests.month);

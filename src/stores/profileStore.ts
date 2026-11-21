@@ -18,6 +18,7 @@ import {
   dismantleItem,
   setCurrentLocation,
   unequipItem,
+  type AutoSellSettings,
   type GlobalStats,
   type OfflineRates,
   type Profile,
@@ -89,7 +90,7 @@ interface ProfileState {
   /** Применить предмет «Сброс навыков». */
   resetSkills: () => boolean;
   setLocation: (id: number) => void;
-  setAutoSell: (r: Rarity | null) => void;
+  setAutoSell: (patch: Partial<AutoSellSettings>) => void;
   installPart: (partId: string, itemId: string, slot: number) => InstallError | null;
   unlockSlot: (itemId: string, slot: number) => boolean;
   fuse: (partId: string, ids?: string[]) => { success?: boolean; result?: Part; error?: string };
@@ -491,9 +492,9 @@ export const useProfile = create<ProfileState>((set, get) => {
       if (p) commit(setCurrentLocation(p, id), false, true);
     },
 
-    setAutoSell: (maxRarity) => {
+    setAutoSell: (patch) => {
       const p = get().profile;
-      if (p) commit({ ...p, autoSell: { maxRarity } }, false, true);
+      if (p) commit({ ...p, autoSell: { ...p.autoSell, ...patch } }, false, true);
     },
 
     installPart: (partId, itemId, slot) => {

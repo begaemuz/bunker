@@ -218,6 +218,9 @@ const SORTS: [SortKey, string, string][] = [
 const LEFT: SlotId[] = ['coil1', 'generator', 'capacitor', 'converter'];
 const RIGHT: SlotId[] = ['coil2', 'cooling', 'sensor', 'shield'];
 
+/** Пороги автопродажи по качеству, в процентах. */
+const AUTO_SELL_QUALITY = [30, 40, 50, 60, 70, 80, 90];
+
 export function BunkerScreen() {
   const profile = useProfile((s) => s.profile)!;
   const selected = useUi((s) => s.selectedItemId);
@@ -349,7 +352,9 @@ export function BunkerScreen() {
           {kind !== 'parts' && kind !== 'cons' && (
             <button className="btn btn-sm gear-btn" onClick={() => setAutoOpen(true)} aria-label="Автопродажа">
               <UiIcon kind="menu" size={18} />
-              {profile.autoSell.maxRarity && <span className="gear-dot" style={{ background: rarityColor[profile.autoSell.maxRarity] }} />}
+              {(profile.autoSell.maxRarity || profile.autoSell.minQuality != null) && (
+                <span className="gear-dot" style={{ background: profile.autoSell.maxRarity ? rarityColor[profile.autoSell.maxRarity] : '#f2a93b' }} />
+              )}
             </button>
           )}
         </div>
@@ -436,21 +441,37 @@ export function BunkerScreen() {
       {autoOpen && (
         <Sheet title="Автопродажа" onClose={() => setAutoOpen(false)}>
           <div className="small muted" style={{ marginBottom: 10 }}>
-            Новые вещи выбранной редкости и ниже продаются сразу при выпадении. Лучшие, чем установленные, и уникальные не продаются. Модификации и расходники не продаются никогда.
+            Новые вещи продаются сразу при выпадении, если подходят по редкости или по качеству. Лучшие, чем установленные, уникальные и мифические не продаются. Модификации и расходники не продаются никогда.
           </div>
+          <div className="section-title">По редкости</div>
           <div className="option-list">
             {[null, ...RARITIES.filter((r) => r !== 'unique' && r !== 'mythic')].map((r) => (
               <button
                 key={r ?? 'off'}
                 className={`option${profile.autoSell.maxRarity === r ? ' on' : ''}`}
-                onClick={() => {
-                  setAutoSell(r as Rarity | null);
-                  setAutoOpen(false);
-                }}
+                onClick={() => setAutoSell({ maxRarity: r as Rarity | null })}
               >
                 <span className="radio" />
                 <span className="grow" style={{ color: r ? rarityColor[r] : undefined, fontWeight: 800 }}>
                   {r ? `До «${ru.rarity[r]}» включительно` : 'Выключена'}
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="section-title">По качеству</div>
+          <div className="small muted" style={{ marginBottom: 8 }}>
+            Вещи любой редкости с качеством ниже порога.
+          </div>
+          <div className="option-list">
+            {[null, ...AUTO_SELL_QUALITY].map((q) => (
+              <button
+                key={q ?? 'off'}
+                className={`option${profile.autoSell.minQuality === q ? ' on' : ''}`}
+                onClick={() => setAutoSell({ minQuality: q })}
+              >
+                <span className="radio" />
+                <span className="grow" style={{ fontWeight: 800 }}>
+                  {q != null ? `Качество ниже ${q}%` : 'Выключена'}
                 </span>
               </button>
             ))}

@@ -70,6 +70,17 @@ export interface OfflineRates {
   parts: number;
 }
 
+/**
+ * Автопродажа нового оборудования. Правила независимы: вещь продаётся,
+ * если подходит хотя бы под одно из включённых.
+ */
+export interface AutoSellSettings {
+  /** Продавать вещи до этой редкости включительно. */
+  maxRarity: Rarity | null;
+  /** Продавать вещи любой редкости с качеством ниже порога, в процентах (0–100). */
+  minQuality: number | null;
+}
+
 export interface Profile {
   version: number;
   createdAt: number;
@@ -87,8 +98,7 @@ export interface Profile {
   stats: GlobalStats;
   history: HistoryEntry[];
   parts: Record<string, Part>;
-  /** Автопродажа нового оборудования до указанной редкости включительно. */
-  autoSell: { maxRarity: Rarity | null };
+  autoSell: AutoSellSettings;
   offline: { lastSeen: number; rates: OfflineRates | null };
   /** Игрок Telegram, к которому привязан прогресс. */
   tgUserId: number | null;
@@ -175,7 +185,7 @@ export function createNewProfile(): Profile {
     stats: emptyStats(),
     history: [],
     parts: {},
-    autoSell: { maxRarity: null },
+    autoSell: { maxRarity: null, minQuality: null },
     offline: { lastSeen: now, rates: null },
     tgUserId: null,
     ...emptyMeta(),
