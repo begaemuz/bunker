@@ -1,10 +1,11 @@
 import { modeConfig } from '../../game/config/gameConfig';
 import type { Profile } from '../../game/profile/Profile';
 import type { SlotId } from '../../game/types';
+import engineerUrl from '../../assets/engineer.webp';
 import { rarityColor } from '../../ui/theme';
 
 /**
- * Лаборатория бункера: инженер в белом халате за рабочим столом.
+ * Лаборатория бункера: инженер в белом халате за рабочим столом (рисунок).
  * Каждый установленный модуль оживляет свой прибор: катушки на столе,
  * реактор, накопители, радио-преобразователь, вентилятор, монитор
  * сенсоров и голограмма защитного контура.
@@ -39,23 +40,6 @@ export function BunkerArt({ profile, highlight }: { profile: Profile; highlight?
           <stop offset="0" stopColor="#fff4d6" stopOpacity="0.35" />
           <stop offset="1" stopColor="#fff4d6" stopOpacity="0" />
         </radialGradient>
-        <linearGradient id="lb-coat" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#ffffff" />
-          <stop offset="0.6" stopColor="#e8eef2" />
-          <stop offset="1" stopColor="#b9c6cf" />
-        </linearGradient>
-        <linearGradient id="lb-coat-s" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#c9d4db" />
-          <stop offset="1" stopColor="#f4f8fa" />
-        </linearGradient>
-        <linearGradient id="lb-skin" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#f3c9a4" />
-          <stop offset="1" stopColor="#dca37b" />
-        </linearGradient>
-        <linearGradient id="lb-hair" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#6b4a32" />
-          <stop offset="1" stopColor="#3a2617" />
-        </linearGradient>
         <linearGradient id="lb-desk" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#5b6772" />
           <stop offset="0.12" stopColor="#3c4650" />
@@ -148,63 +132,8 @@ export function BunkerArt({ profile, highlight }: { profile: Profile; highlight?
       {ring('shield', 100, 73, 26)}
 
       {/* ───── инженер ───── */}
-      <g>
-        <ellipse cx="100" cy="222" rx="54" ry="8" fill="#000" opacity="0.35" />
-        {/* халат: плечи и корпус */}
-        <path d="M52 228 C 54 178 70 162 100 160 C 130 162 146 178 148 228 Z" fill="url(#lb-coat)" stroke="#8fa0aa" strokeWidth="1" />
-        {/* рубашка и галстук */}
-        <path d="M88 162 L100 196 L112 162 C 106 160 94 160 88 162z" fill="#2c5f6e" />
-        <path d="M97 168 l3 -3 l3 3 l-1.5 22 l-1.5 3 l-1.5 -3z" fill="#f2a93b" />
-        {/* лацканы */}
-        <path d="M88 162 L100 200 L92 214 L80 172 Z" fill="url(#lb-coat-s)" stroke="#9fb0ba" strokeWidth="0.8" />
-        <path d="M112 162 L100 200 L108 214 L120 172 Z" fill="#dfe7ec" stroke="#9fb0ba" strokeWidth="0.8" />
-        {/* карман с ручками */}
-        <rect x="118" y="186" width="16" height="12" rx="2" fill="#e2eaef" stroke="#9fb0ba" strokeWidth="0.8" />
-        <rect x="121" y="180" width="2" height="9" fill="#ff4b3e" />
-        <rect x="125" y="179" width="2" height="10" fill="#46d4ff" />
-        <rect x="129" y="181" width="2" height="8" fill="#2a3438" />
-        {/* бейдж */}
-        <rect x="67" y="188" width="14" height="10" rx="1.5" fill="#f2a93b" />
-        <rect x="69" y="190" width="5" height="6" fill="#fff" opacity="0.8" />
-        {/* руки к столу */}
-        <path d="M56 214 C 58 200 64 194 70 196 L76 224 L60 226 Z" fill="url(#lb-coat-s)" stroke="#8fa0aa" strokeWidth="0.8" />
-        <path d="M144 214 C 142 200 136 194 130 196 L124 224 L140 226 Z" fill="#e6edf1" stroke="#8fa0aa" strokeWidth="0.8" />
-        <ellipse cx="70" cy="226" rx="8" ry="5" fill="url(#lb-skin)" />
-        <ellipse cx="131" cy="226" rx="8" ry="5" fill="url(#lb-skin)" />
-
-        {/* шея и голова */}
-        <path d="M92 150 h16 v14 c-5 4 -11 4 -16 0z" fill="#d9a07a" />
-        <ellipse cx="100" cy="128" rx="21" ry="25" fill="url(#lb-skin)" />
-        <ellipse cx="79" cy="130" rx="4" ry="6" fill="#e0ab85" />
-        <ellipse cx="121" cy="130" rx="4" ry="6" fill="#e0ab85" />
-        {/* волосы */}
-        <path
-          d="M78 124 C 74 104 84 92 98 92 C 104 86 116 88 118 96 C 126 98 128 110 122 122 C 120 112 114 106 106 106 C 100 112 90 110 86 106 C 82 110 80 116 78 124z"
-          fill="url(#lb-hair)"
-        />
-        <path d="M96 92 c4 -6 10 -7 14 -4 c-5 0 -9 2 -11 6z" fill="#7a5638" />
-        {/* очки-гогглы на лбу: стёкла светятся цветом катушек */}
-        <path d="M80 112 C 90 106 110 106 120 112" stroke="#2a3438" strokeWidth="3" fill="none" />
-        <circle cx="91" cy="110" r="6" fill="#2a3438" />
-        <circle cx="109" cy="110" r="6" fill="#2a3438" />
-        <circle cx="91" cy="110" r="4.2" fill={c1 ?? '#f2a93b'} opacity="0.85" />
-        <circle cx="109" cy="110" r="4.2" fill={c2 ?? c1 ?? '#f2a93b'} opacity="0.85" />
-        <circle cx="89.5" cy="108.5" r="1.3" fill="#fff" opacity="0.8" />
-        <circle cx="107.5" cy="108.5" r="1.3" fill="#fff" opacity="0.8" />
-        {/* лицо */}
-        <path d="M86 122 q5 -3 10 0" stroke="#4a3220" strokeWidth="2" fill="none" strokeLinecap="round" />
-        <path d="M104 122 q5 -3 10 0" stroke="#4a3220" strokeWidth="2" fill="none" strokeLinecap="round" />
-        <ellipse cx="91" cy="128" rx="3" ry="3.4" fill="#fff" />
-        <ellipse cx="109" cy="128" rx="3" ry="3.4" fill="#fff" />
-        <circle cx="91.6" cy="128.5" r="2" fill="#2d4a5a" />
-        <circle cx="109.6" cy="128.5" r="2" fill="#2d4a5a" />
-        <circle cx="92.2" cy="127.8" r="0.7" fill="#fff" />
-        <circle cx="110.2" cy="127.8" r="0.7" fill="#fff" />
-        <path d="M100 129 q-2 7 1 8" stroke="#c48a64" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-        <path d="M92 142 q8 6 16 0" stroke="#8c4a34" strokeWidth="1.8" fill="none" strokeLinecap="round" />
-        <ellipse cx="85" cy="137" rx="4" ry="2.4" fill="#ff8a7a" opacity="0.25" />
-        <ellipse cx="115" cy="137" rx="4" ry="2.4" fill="#ff8a7a" opacity="0.25" />
-      </g>
+      <ellipse cx="100" cy="224" rx="56" ry="8" fill="#000" opacity="0.35" />
+      <image href={engineerUrl} x="41" y="90" width="123.3" height="144.5" preserveAspectRatio="xMidYMin meet" />
 
       {/* ───── стол ───── */}
       <rect x="0" y="226" width="200" height="74" fill="url(#lb-desk)" />
