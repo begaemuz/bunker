@@ -167,7 +167,7 @@ export function OfflineRewardModal() {
           onClick={() => {
             const r = claim();
             if (r.sold > 0) toast(`Автопродажа: ${r.sold} шт.`, 'info');
-            if (r.levels > 0) toast(`Уровень бункера ${useProfile.getState().profile!.bunker.level}`, 'good');
+            if (r.levels > 0) toast(`Уровень инженера ${useProfile.getState().profile!.bunker.level}`, 'good');
           }}
         >
           Забрать

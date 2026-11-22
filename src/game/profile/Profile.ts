@@ -1,4 +1,5 @@
 import { chance } from '../rng';
+import { emptyEngineer, type EngineerState } from '../engineer/types';
 import { balanceConfig } from '../config/balanceConfig';
 import { starterKit } from '../config/itemsConfig';
 import { getLocation, locationsConfig } from '../config/locationsConfig';
@@ -114,6 +115,8 @@ export interface Profile {
   vip: { points: number; chestDay?: string; gifts?: number[] };
   /** База: какие вещи и модификации игрок уже находил (по шаблонам). */
   codex: { items: string[]; parts: string[] };
+  /** Инженер: очки характеристик и снаряжение. */
+  engineer: EngineerState;
 }
 
 export function emptyMeta(): Pick<Profile, 'shop' | 'exchange' | 'limits' | 'daily' | 'quests'> {
@@ -192,6 +195,7 @@ export function createNewProfile(): Profile {
     player: { nick: '', avatar: 0, frame: 'steel' },
     vip: { points: 0, chestDay: '', gifts: [] },
     codex: { items: Object.values(items).map((i) => i.templateId), parts: [] },
+    engineer: emptyEngineer(),
   };
 }
 

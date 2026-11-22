@@ -38,6 +38,7 @@ import { applyAutoSell, autoSellMatches } from '../src/game/economy/AutoSell';
 import { computeOfflineReward } from '../src/game/progression/offline';
 import { rewardDecay } from '../src/game/progression/rewards';
 import { migrate } from '../src/services/migrations';
+import { addStatPoints, buyScroll, craftGear, craftPreview, engineerStats, equipGear, resetStatPoints, sellGear, statPointsFree } from '../src/game/engineer/Engineer';
 import { setSeed } from '../src/game/rng';
 import { RARITIES, SLOT_CATEGORY, SLOT_IDS, type Item } from '../src/game/types';
 
@@ -473,6 +474,49 @@ console.log('— Бой');
   for (const l of locationsConfig) robotHigh += l.rarity.epic + l.rarity.legendary + l.rarity.unique + l.rarity.mythic;
   check('С роботов не падают фиолетовые, золотые и выше', robotHigh === 0);
   check('Снижение наград за слабых противников', rewardDecay(30, getLocation(1)) < rewardDecay(5, getLocation(1)));
+}
+
+console.log('— Инженер');
+{
+  let p = { ...createNewProfile(), bunker: { level: 5, xp: 0 } };
+  check('Очки характеристик: 5 за каждый уровень после первого', statPointsFree(p) === 20);
+  p = addStatPoints(p, 'str', 5)!;
+  p = addStatPoints(p, 'end', 50)!;
+  check('Нельзя вложить больше свободных очков', statPointsFree(p) === 0 && p.engineer.points.end === 15);
+  check('Выносливость даёт жизни', engineerStats(p).hp === 100 + 20 * 20);
+  check('Сброс без предмета невозможен', resetStatPoints(p) === null);
+  const r0 = resetStatPoints({ ...p, resources: { ...p.resources, statResets: 1 } })!;
+  check('Сброс возвращает очки и тратит предмет', statPointsFree(r0) === 20 && r0.resources.statResets === 0);
+
+  // Мастерская: бластер из двух катушек и конденсатора.
+  // Подбираем вещи с качеством 30–50%.
+  const mk = (category: 'coil' | 'capacitor') => generateItem({ category, rarity: 'rare', tier: 2, source: { kind: 'start' } });
+  const pool = Array.from({ length: 200 }, () => mk('coil')).concat(Array.from({ length: 100 }, () => mk('capacitor')));
+  const coils = pool.filter((x) => x.category === 'coil' && itemQuality(x) >= 0.3 && itemQuality(x) <= 0.5).slice(0, 2);
+  const cap = pool.find((x) => x.category === 'capacitor' && itemQuality(x) >= 0.3 && itemQuality(x) <= 0.5)!;
+  let w = { ...createNewProfile(), resources: { ...createNewProfile().resources, coins: 10000 } };
+  w = addItems(w, [...coils, cap]).profile;
+  const ids = [...coils.map((x) => x.id), cap.id];
+  const pre = craftPreview(w, 'weapon', ids)!;
+  check('Предпросмотр: диапазон качества = качество вложенных вещей', !!pre && pre.qMin >= 0.3 && pre.qMax <= 0.5 && pre.tier === 2 && pre.rarity === 'rare');
+  check('Без свитка создать нельзя', craftGear(w, 'weapon', ids).error === 'scroll');
+  check('Неверный набор вещей не принимается', craftPreview(w, 'weapon', [coils[0].id, cap.id]) === null);
+  w = { ...w, resources: { ...w.resources, crystals: 100 } };
+  w = buyScroll(w, 'weapon')!;
+  check('Свиток покупается за кристаллы', w.resources.scrollWeapon === 1 && w.resources.crystals === 40);
+  const c = craftGear(w, 'weapon', ids);
+  check(
+    `Создан бластер: качество ${Math.round((c.gear?.quality ?? 0) * 100)}% в диапазоне ${Math.round(pre.qMin * 100)}–${Math.round(pre.qMax * 100)}%`,
+    !!c.gear && c.gear.quality >= pre.qMin && c.gear.quality <= pre.qMax,
+  );
+  check('Вещи бункера, свиток и монеты потрачены', ids.every((id) => !c.profile.items[id]) && c.profile.resources.scrollWeapon === 0 && c.profile.resources.coins === 10000 - 300);
+  const eq = equipGear(c.profile, c.gear!.id)!;
+  check('Бластер надевается и даёт урон', eq.engineer.equip.weapon === c.gear!.id && engineerStats(eq).damage > engineerStats(c.profile).damage);
+  check('Надетое не продаётся', sellGear(eq, c.gear!.id) === null);
+  const sold = sellGear(c.profile, c.gear!.id)!;
+  check('Снаряжение продаётся за монеты', sold.coins > 0 && !sold.profile.engineer.gear[c.gear!.id]);
+  const old = migrate({ ...createNewProfile(), engineer: undefined });
+  check('Старое сохранение получает пустого инженера', !!old.engineer && old.engineer.points.str === 0 && old.engineer.equip.ring2 === null);
 }
 
 console.log('— Сохранения');

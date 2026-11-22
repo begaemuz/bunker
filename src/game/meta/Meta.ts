@@ -231,6 +231,8 @@ export function buySpecial(p: Profile, id: string): { profile: Profile; got?: st
       return { profile: addResources(paid, { stabilizers: 3 }), got: 'Стабилизаторы ×3' };
     case 'key':
       return { profile: addResources(paid, { expansionKeys: 1 }), got: 'Ключ расширения' };
+    case 'statReset':
+      return { profile: addResources(paid, { statResets: 1 }), got: 'Сброс характеристик' };
     case 'boost1':
     case 'boost2':
     case 'boost3':

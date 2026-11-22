@@ -4,13 +4,24 @@ import type { LocationDef } from '../config/locationsConfig';
 import type { Enemy } from '../enemies/Enemy';
 import { generateItem } from '../items/ItemGenerator';
 import { rollRarity } from '../items/ItemRarity';
-import { chance, randInt } from '../rng';
+import { chance, pickWeighted, randInt } from '../rng';
 import type { Item, Part, Rarity, ResourceKey, Resources } from '../types';
 import { partDrops } from '../config/partsConfig';
 import { generatePart } from '../items/Parts';
 
 /** Шанс выпадения «Сброса навыков» с босса: очень редкая добыча. */
 export const SKILL_RESET_CHANCE = 0.01;
+/** Шанс свитка с босса по тех. уровню зоны и вес каждого вида (бластер реже). */
+export const scrollChance = (tier: number) => Math.min(0.35, 0.05 + 0.03 * (tier - 1));
+const SCROLL_DROP: [ResourceKey, number][] = [
+  ['scrollWeapon', 1],
+  ['scrollHelmet', 2],
+  ['scrollArmor', 2],
+  ['scrollPants', 2],
+  ['scrollBoots', 2],
+  ['scrollAmulet', 1.5],
+  ['scrollRing', 1.5],
+];
 /** Шансы бустеров с босса. */
 export const BOOST_DROP = { boost1: 0.04, boost2: 0.012, boost3: 0.003 };
 
@@ -107,6 +118,8 @@ export function rollBossLoot(bossId: string, ctx: DropContext): Loot {
   if (chance(boss.passChance)) r.bossPasses = 1;
   // Сброс навыков — редчайшая добыча с боссов.
   if (chance(SKILL_RESET_CHANCE)) r.skillResets = 1;
+  // Свиток мастерской инженера: чем дальше зона, тем чаще.
+  if (chance(scrollChance(loc.tier))) r[pickWeighted(SCROLL_DROP, (x) => x[1])[0]] = 1;
   // Бустеры: редкая добыча с боссов, самый сильный — редчайший.
   if (chance(BOOST_DROP.boost1)) r.boost1 = 1;
   if (chance(BOOST_DROP.boost2)) r.boost2 = 1;

@@ -5087,3 +5087,33 @@ button.pavatar:active {
 .item-icon.bare { border: 0 !important; background: none !important; box-shadow: none !important; display: grid; place-items: center; position: relative; }
 .item-tile.bare { border: 1px solid #2a3138 !important; box-shadow: none !important; background: radial-gradient(circle at 50% 42%, #232a31, #12161a 75%); }
 .item-tile.bare .tile-glyph { display: grid; place-items: center; }
+
+/* Инженер */
+.eng-center { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; overflow: hidden; min-height: 330px; background: radial-gradient(ellipse at 50% 30%, #2f3c46, #11171b 75%); }
+.eng-figure { position: absolute; inset: 6px 0 26px; width: 100%; height: calc(100% - 32px); object-fit: contain; object-position: 50% 100%; }
+.eng-xp { position: relative; width: calc(100% - 8px); height: 18px; margin-bottom: 4px; border-radius: 9px; background: #0b0e11; box-shadow: inset 0 0 0 1px #2e363e; overflow: hidden; }
+.eng-xp-fill { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #b46b10, #f2a93b); }
+.eng-xp span { position: relative; display: block; text-align: center; font-size: 10.5px; line-height: 18px; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.eng-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.eng-sum { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 10px; background: linear-gradient(180deg, #20262d, #161a1f); box-shadow: inset 0 0 0 1px #2e363e; }
+.eng-sum b { font-family: var(--display); font-weight: 400; font-size: 16px; }
+.eng-attrs { display: flex; flex-direction: column; gap: 6px; }
+.eng-attr { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 10px; background: linear-gradient(180deg, #20262d, #161a1f); box-shadow: inset 0 0 0 1px #2e363e; }
+.eng-attr-name { font-weight: 800; }
+.eng-attr-name b { font-family: var(--display); font-weight: 400; color: var(--amber); margin-left: 4px; }
+.gear-tile .tile-glyph { display: grid; place-items: center; height: 58px; }
+.gear-on { position: absolute; top: 4px; left: 4px; padding: 1px 5px; border-radius: 6px; font-size: 9px; font-weight: 800; color: #11161b; background: var(--amber); }
+.eng-gear-stats { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 10px; background: #12171b; box-shadow: inset 0 0 0 1px #2e363e; }
+.eng-recipes { display: flex; flex-direction: column; gap: 6px; }
+.eng-recipe { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: linear-gradient(180deg, #20262d, #161a1f); box-shadow: inset 0 0 0 1px #2e363e; }
+.eng-recipe-name { font-weight: 800; }
+.eng-recipe-btns { display: flex; flex-direction: column; gap: 4px; flex: none; }
+.eng-preview { display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; margin-bottom: 10px; border-radius: 10px; background: #12171b; box-shadow: inset 0 0 0 1px #2e363e; }
+.eng-inputs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.eng-input { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 5px 2px 4px; border-radius: 10px; border: 1px solid #2e363e; background: linear-gradient(180deg, #232a31, #171c21); color: inherit; }
+.eng-input.on { border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber), 0 0 10px rgba(242, 169, 59, 0.35); }
+.eng-input-q { font-size: 11px; font-weight: 800; }
+.eng-input-t { font-size: 9.5px; color: var(--muted); }
+.eng-kv { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.eng-row { display: flex; }
+.eng-tab-badge { display: inline-block; min-width: 18px; margin-left: 4px; padding: 0 4px; border-radius: 9px; font-size: 11px; line-height: 17px; color: #11161b; background: #7be38a; vertical-align: 1px; }

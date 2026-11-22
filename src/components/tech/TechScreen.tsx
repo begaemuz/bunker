@@ -149,8 +149,8 @@ function NodeSheet({ node, onClose }: { node: TechNode; onClose: () => void }) {
         ))}
       </div>
       <div className="small muted">Каждый следующий уровень дороже в {node.growth.toFixed(2)} раза. Уровни не ограничены.</div>
-      {block === 'level' && <div className="warn-box" style={{ marginTop: 10 }}>Нужен уровень бункера {node.levelReq}.</div>}
-      {block === 'points' && <div className="warn-box" style={{ marginTop: 10 }}>Нет свободных очков навыков. Новое очко — с каждым уровнем бункера.</div>}
+      {block === 'level' && <div className="warn-box" style={{ marginTop: 10 }}>Нужен уровень инженера {node.levelReq}.</div>}
+      {block === 'points' && <div className="warn-box" style={{ marginTop: 10 }}>Нет свободных очков навыков. Новое очко — с каждым уровнем инженера.</div>}
       <div className="small muted" style={{ marginTop: 8 }}>
         Каждый уровень навыка стоит 1 очко. Свободно очков: {skillPointsFree(profile)} из {skillPointsTotal(profile)}.
       </div>
@@ -311,11 +311,11 @@ export function TechScreen() {
           </div>
           <span className="small muted skill-branch-pts">в ветке {branchPoints(profile, branch.id)}</span>
         </div>
-        {free < 0 && <div className="warn-box skill-warn">Вложено больше очков, чем даёт уровень бункера. Изученное сохранится, но новые уровни откроются, когда уровень бункера догонит. Чтобы распределить заново, примените предмет «Сброс навыков» со склада.</div>}
+        {free < 0 && <div className="warn-box skill-warn">Вложено больше очков, чем даёт уровень инженера. Изученное сохранится, но новые уровни откроются, когда уровень инженера догонит. Чтобы распределить заново, примените предмет «Сброс навыков» со склада.</div>}
 
         <BranchTree branch={branch} onOpen={setOpen} />
         <div className="small muted" style={{ margin: '4px 0 12px', textAlign: 'center' }}>
-          Знак «+» — можно изучить сейчас. Каждый уровень бункера даёт 1 очко навыков.
+          Знак «+» — можно изучить сейчас. Каждый уровень инженера даёт 1 очко навыков.
         </div>
       </div>
       {open && <NodeSheet node={open} onClose={() => setOpen(null)} />}

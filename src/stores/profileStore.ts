@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { applyAutoSell } from '../game/economy/AutoSell';
+import { addStatPoints, buyScroll, craftGear, equipGear, resetStatPoints, sellGear, unequipGear, type CraftError } from '../game/engineer/Engineer';
+import type { EngStat, Gear, GearKind, GearSlot } from '../game/engineer/types';
 import type { Loot } from '../game/economy/DropSystem';
 import { tryUpgrade, type UpgradeOutcome } from '../game/items/ItemUpgrade';
 import { addParts, dismantleParts, extractPart, fuseAll, fuseParts, installPart, unlockSlot, type InstallError } from '../game/items/Parts';
@@ -97,6 +99,14 @@ interface ProfileState {
   scrapPart: (partId: string) => number;
   extractPart: (itemId: string, slot: number) => string | null;
   setPlayer: (patch: Partial<Profile['player']>) => void;
+  /** Инженер: очки характеристик, сброс, снаряжение и мастерская. */
+  engAddPoints: (stat: EngStat, n: number) => boolean;
+  engResetPoints: () => boolean;
+  engCraft: (kind: GearKind, ids: string[]) => { gear?: Gear; error?: CraftError };
+  engEquip: (gearId: string, slot?: GearSlot) => boolean;
+  engUnequip: (slot: GearSlot) => void;
+  engSell: (gearId: string) => number | null;
+  engBuyScroll: (kind: GearKind) => boolean;
   claimVipChest: () => boolean;
   claimVipGift: (level: number) => boolean;
   fuseAll: (rarity: Rarity) => { success: number; failed: number; results: Part[] };
@@ -537,6 +547,54 @@ export const useProfile = create<ProfileState>((set, get) => {
       if (!r) return false;
       commit(r.profile, true, true);
       return true;
+    },
+
+    engAddPoints: (stat, n) => {
+      const p = get().profile;
+      const q = p ? addStatPoints(p, stat, n) : null;
+      if (q) commit(q, false, true);
+      return !!q;
+    },
+
+    engResetPoints: () => {
+      const p = get().profile;
+      const q = p ? resetStatPoints(p) : null;
+      if (q) commit(q, false, true);
+      return !!q;
+    },
+
+    engCraft: (kind, ids) => {
+      const p = get().profile;
+      if (!p) return { error: 'inputs' };
+      const r = craftGear(p, kind, ids);
+      if (r.gear) commit(r.profile, true, true);
+      return { gear: r.gear, error: r.error };
+    },
+
+    engEquip: (gearId, slot) => {
+      const p = get().profile;
+      const q = p ? equipGear(p, gearId, slot) : null;
+      if (q) commit(q, false, true);
+      return !!q;
+    },
+
+    engUnequip: (slot) => {
+      const p = get().profile;
+      if (p) commit(unequipGear(p, slot), false, true);
+    },
+
+    engSell: (gearId) => {
+      const p = get().profile;
+      const r = p ? sellGear(p, gearId) : null;
+      if (r) commit(r.profile, false, true);
+      return r ? r.coins : null;
+    },
+
+    engBuyScroll: (kind) => {
+      const p = get().profile;
+      const q = p ? buyScroll(p, kind) : null;
+      if (q) commit(q, false, true);
+      return !!q;
     },
 
     setPlayer: (patch) => {

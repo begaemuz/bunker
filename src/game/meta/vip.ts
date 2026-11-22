@@ -71,7 +71,7 @@ export function vipPerkList(level: number): { key: string; text: string }[] {
   };
   add('chest', level >= 1, 'Ежедневный VIP-сундук');
   add('coin', p.coinPct, `${pct(p.coinPct)} монет с роботов`);
-  add('xp', p.xpPct, `${pct(p.xpPct)} опыта бункера`);
+  add('xp', p.xpPct, `${pct(p.xpPct)} опыта инженера`);
   add('drop', p.dropPct, `${pct(p.dropPct)} к шансу выпадения вещей и модификаций`);
   add('speed', p.speed4, 'Скорость боя ×4');
   add('auto', p.autoBoss, 'Автовызов босса, когда он готов');

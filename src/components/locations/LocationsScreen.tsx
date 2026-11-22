@@ -26,7 +26,7 @@ const DANGER: Record<Danger, { label: string; color: string }> = {
   level: { label: 'Мал уровень', color: '#8a7a5a' },
 };
 
-/** Опасность зоны относительно уровня бункера. */
+/** Опасность зоны относительно уровня инженера. */
 function dangerOf(p: Profile, l: LocationDef): Danger {
   if (!isLocationUnlocked(p, l.id)) return 'locked';
   if (p.bunker.level < l.recommendedLevel) return 'level';
@@ -244,7 +244,7 @@ function ZoneSheet({ loc: l, onClose }: { loc: LocationDef; onClose: () => void 
     >
       <div className="zone-danger" style={{ ['--dc' as string]: DANGER[danger].color }}>
         <b>{DANGER[danger].label}</b>
-        <span className="small muted">вход с {l.recommendedLevel} уровня бункера · у вас {profile.bunker.level}</span>
+        <span className="small muted">вход с {l.recommendedLevel} уровня инженера · у вас {profile.bunker.level}</span>
       </div>
       <p className="small" style={{ color: '#c5cdd3', lineHeight: 1.45, margin: '10px 0' }}>
         {l.description}
@@ -255,7 +255,7 @@ function ZoneSheet({ loc: l, onClose }: { loc: LocationDef; onClose: () => void 
         </div>
       )}
       {!unlocked ? (
-        <div className="info-box">Откроется после победы над боссом зоны {l.id - 1}. Вход — с {l.recommendedLevel} уровня бункера.</div>
+        <div className="info-box">Откроется после победы над боссом зоны {l.id - 1}. Вход — с {l.recommendedLevel} уровня инженера.</div>
       ) : (
         <>
           <div className="zone-row">

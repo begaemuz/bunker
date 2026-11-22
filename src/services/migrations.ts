@@ -184,6 +184,11 @@ export function migrate(raw: unknown): Profile {
     exchange: p.exchange ?? base.exchange,
     daily: p.daily ?? base.daily,
     quests: { ...base.quests, ...(p.quests ?? {}) },
+    engineer: {
+      points: { ...base.engineer.points, ...(p.engineer?.points ?? {}) },
+      gear: p.engineer?.gear ?? {},
+      equip: { ...base.engineer.equip, ...(p.engineer?.equip ?? {}) },
+    },
     player: { ...base.player, ...(p.player ?? {}), ...(AVATARS[p.player?.avatar ?? 0] ? {} : { avatar: 0 }) },
     vip: { ...base.vip, ...(p.vip ?? {}) },
   };

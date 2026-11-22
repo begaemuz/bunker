@@ -120,6 +120,14 @@ const resColors: Record<ResourceKey, string> = {
   boost1: '#9fe6ff',
   boost2: '#c58bff',
   boost3: '#ffcf4d',
+  scrollWeapon: '#ff7a3d',
+  scrollHelmet: '#46d4ff',
+  scrollArmor: '#5fd16a',
+  scrollPants: '#7d9bff',
+  scrollBoots: '#c9a36b',
+  scrollAmulet: '#d58cff',
+  scrollRing: '#ffd06a',
+  statResets: '#ff9de2',
 };
 
 export function ResourceIcon({ type, size = 14 }: { type: ResourceKey; size?: number }) {
@@ -191,6 +199,31 @@ export function ResourceIcon({ type, size = 14 }: { type: ResourceKey; size?: nu
           <circle cx="5.6" cy="10" r="1.7" fill="#0b0e11" />
         </svg>
       );
+    case 'scrollWeapon':
+    case 'scrollHelmet':
+    case 'scrollArmor':
+    case 'scrollPants':
+    case 'scrollBoots':
+    case 'scrollAmulet':
+    case 'scrollRing':
+      // Свиток: пергамент с цветной печатью вида снаряжения.
+      return (
+        <svg {...p}>
+          <rect x="3" y="2.5" width="10" height="11" rx="1" fill="#efe3c2" />
+          <rect x="2" y="1.5" width="12" height="2.6" rx="1.3" fill="#c9b07a" />
+          <rect x="2" y="12" width="12" height="2.6" rx="1.3" fill="#c9b07a" />
+          <path d="M5 6h6M5 8h4" stroke="#9a8656" strokeWidth="0.9" strokeLinecap="round" />
+          <circle cx="10.5" cy="10" r="2.1" fill={c} stroke="#3a2a14" strokeWidth="0.6" />
+        </svg>
+      );
+    case 'statResets':
+      return (
+        <svg {...p}>
+          <circle cx="8" cy="8" r="6.5" fill={c} />
+          <path d="M10.8 6A3.2 3.2 0 1 0 11.2 8.8" fill="none" stroke="#3a0f2e" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M11.4 4.2v2.2H9.2" fill="none" stroke="#3a0f2e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
     case 'boost1':
     case 'boost2':
     case 'boost3': {
@@ -224,7 +257,7 @@ export function ResourceIcon({ type, size = 14 }: { type: ResourceKey; size?: nu
   }
 }
 
-type UiKind = 'shop' | 'gift' | 'battle' | 'bunker' | 'inventory' | 'tech' | 'map' | 'menu' | 'pause' | 'play' | 'close' | 'skull' | 'lock' | 'up' | 'bolt' | 'refresh' | 'calendar' | 'tasks' | 'info' | 'trophy' | 'filter';
+type UiKind = 'engineer' | 'shop' | 'gift' | 'battle' | 'bunker' | 'inventory' | 'tech' | 'map' | 'menu' | 'pause' | 'play' | 'close' | 'skull' | 'lock' | 'up' | 'bolt' | 'refresh' | 'calendar' | 'tasks' | 'info' | 'trophy' | 'filter';
 
 export function UiIcon({ kind, size = 22 }: { kind: UiKind; size?: number }) {
   const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -235,6 +268,15 @@ export function UiIcon({ kind, size = 22 }: { kind: UiKind; size?: number }) {
           <circle cx="12" cy="12" r="3" />
           <circle cx="12" cy="12" r="8" strokeDasharray="3 3" />
           <path d="M12 1v3M12 20v3M1 12h3M20 12h3" />
+        </svg>
+      );
+    case 'engineer':
+      return (
+        <svg {...p}>
+          <path d="M6 11a6 6 0 0 1 12 0" />
+          <path d="M4.5 11h15M12 5v2" />
+          <path d="M8 11.5a4 4 0 0 0 8 0" />
+          <path d="M4 22c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
         </svg>
       );
     case 'shop':

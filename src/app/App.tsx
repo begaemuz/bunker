@@ -10,6 +10,8 @@ import { setSoundEnabled, setVolumes } from '../services/sound';
 import { useProfile } from '../stores/profileStore';
 import { useUi, type Screen } from '../stores/uiStore';
 import { BunkerScreen } from '../components/bunker/BunkerScreen';
+import { EngineerScreen } from '../components/engineer/EngineerScreen';
+import { statPointsFree } from '../game/engineer/Engineer';
 import { Toasts } from '../components/common/Common';
 import { UiIcon } from '../components/common/Icons';
 import { NickDialog, ProfileSheet } from '../components/player/ProfileSheet';
@@ -25,9 +27,10 @@ import { LeadersScreen } from '../components/leaders/LeadersScreen';
 import { ShopScreen } from '../components/shop/ShopScreen';
 import { LoginSheet, QuestsSheet } from '../components/shop/QuestsSheet';
 
-const navItems: { id: Screen; label: string; icon: 'battle' | 'bunker' | 'tech' | 'trophy' | 'menu' | 'map' }[] = [
+const navItems: { id: Screen; label: string; icon: 'battle' | 'bunker' | 'engineer' | 'tech' | 'trophy' | 'menu' | 'map' }[] = [
   { id: 'game', label: 'Бой', icon: 'battle' },
   { id: 'bunker', label: 'Бункер', icon: 'bunker' },
+  { id: 'engineer', label: 'Инженер', icon: 'engineer' },
   { id: 'tech', label: 'Наука', icon: 'tech' },
   { id: 'leaders', label: 'Лидеры', icon: 'trophy' },
 ];
@@ -70,6 +73,7 @@ function Main() {
   const better = useMemo(() => upgradeHints(profile).size, [profile]);
   const canResearch = useProfile((s) => techConfig.some((t) => !researchBlock(s.profile!, t)));
   const freePoints = useProfile((s) => Math.max(0, skillPointsFree(s.profile!)));
+  const engPoints = useProfile((s) => Math.max(0, statPointsFree(s.profile!)));
   const pullDeliveries = useProfile((s) => s.pullDeliveries);
   const toastUi = useUi((s) => s.toast);
   // Посылки с аукциона: при запуске и раз в 2 минуты.
@@ -100,6 +104,7 @@ function Main() {
       <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <GameScreen />
         {screen === 'bunker' && <BunkerScreen />}
+        {screen === 'engineer' && <EngineerScreen />}
         {screen === 'tech' && <TechScreen />}
         {screen === 'shop' && <ShopScreen />}
         {screen === 'locations' && <LocationsScreen />}
@@ -133,6 +138,7 @@ function Main() {
                 <UiIcon kind={n.icon} size={22} />
                 {n.id === 'tech' && freePoints > 0 && <span className="nav-badge good">{freePoints}</span>}
                 {n.id === 'tech' && freePoints === 0 && canResearch && <span className="nav-dot" />}
+                {n.id === 'engineer' && engPoints > 0 && <span className="nav-badge good">{engPoints}</span>}
                 {n.id === 'bunker' && better > 0 && <span className="nav-badge good">{better}</span>}
                 {n.id === 'bunker' && better === 0 && canUpgrade && <span className="nav-dot" />}
               </span>

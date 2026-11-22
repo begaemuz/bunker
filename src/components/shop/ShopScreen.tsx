@@ -324,7 +324,7 @@ export function ShopScreen() {
             {shopConfig.special.map((o) => (
               <div key={o.id} className="deal">
                 <span className="deal-gem">
-                  <ResourceIcon type={o.kind === 'boost1' || o.kind === 'boost2' || o.kind === 'boost3' ? o.kind : 'crystals'} size={30} />
+                  <ResourceIcon type={o.kind === 'boost1' || o.kind === 'boost2' || o.kind === 'boost3' ? o.kind : o.kind === 'statReset' ? 'statResets' : 'crystals'} size={30} />
                 </span>
                 <div className="grow">
                   <div className="deal-title">{o.title}</div>

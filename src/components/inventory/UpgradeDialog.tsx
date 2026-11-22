@@ -137,7 +137,7 @@ export function UpgradeDialog({ itemId, onClose, onDestroyed }: { itemId: string
         )}
         {block === 'bunker' && (
           <div className="info-box" style={{ marginBottom: 10 }}>
-            Уровень оборудования не может быть выше уровня бункера + {balanceConfig.item.levelOverBunker} (сейчас до {cap}). Повышайте уровень бункера.
+            Уровень оборудования не может быть выше уровня инженера + {balanceConfig.item.levelOverBunker} (сейчас до {cap}). Повышайте уровень инженера.
           </div>
         )}
         {block === 'max' && (

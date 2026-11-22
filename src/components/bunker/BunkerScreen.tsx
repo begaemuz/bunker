@@ -288,7 +288,6 @@ export function BunkerScreen() {
         <span className="power" title="Боевая мощь">
           <UiIcon kind="bolt" size={15} /> {fmtNum(power)}
         </span>
-        <span className="lvl-badge">УР {profile.bunker.level}</span>
       </div>
       <div className="screen-body">
         <div className="doll">

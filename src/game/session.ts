@@ -154,7 +154,7 @@ export class GameSession {
       case 'kill': {
         const r = prof.applyLoot(e.loot, e.xp, e.enemy.kind);
         if (r.levels > 0) {
-          ui.toast(`Уровень бункера ${useProfile.getState().profile!.bunker.level}`, 'good');
+          ui.toast(`Уровень инженера ${useProfile.getState().profile!.bunker.level}`, 'good');
           sfx.levelUp();
           haptic('success');
         }

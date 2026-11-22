@@ -33,6 +33,7 @@ export const shopConfig = {
     { id: 'sp_epicpart', title: 'Эпическая модификация', description: 'Случайная эпическая модификация.', price: { crystals: 45 }, kind: 'epicPart' as const },
     { id: 'sp_pass', title: 'Пропуск вызова босса', description: 'Вызов босса без уничтожения групп.', price: { crystals: 30 }, kind: 'pass' as const },
     { id: 'sp_stab', title: 'Стабилизаторы ×3', description: 'Защита оборудования при улучшении.', price: { crystals: 20 }, kind: 'stabilizers' as const },
+    { id: 'sp_statreset', title: 'Сброс характеристик', description: 'Возвращает очки характеристик инженера.', price: { crystals: 50 }, kind: 'statReset' as const },
     { id: 'sp_key', title: 'Ключ расширения', description: 'Открывает заблокированный слот модификации.', price: { crystals: 25 }, kind: 'key' as const },
     { id: 'sp_boost1', title: 'Бустер I', description: 'Буст вещи ±0–10%: в плюс или в минус.', price: { crystals: 90 }, kind: 'boost1' as const },
     { id: 'sp_boost2', title: 'Бустер II', description: 'Буст вещи ±10–20%: в плюс или в минус.', price: { crystals: 300 }, kind: 'boost2' as const },

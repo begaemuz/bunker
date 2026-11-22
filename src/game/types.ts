@@ -49,6 +49,15 @@ export const RESOURCE_KEYS = [
   'boost1',
   'boost2',
   'boost3',
+  // Мастерская инженера: свитки снаряжения и сброс характеристик.
+  'scrollWeapon',
+  'scrollHelmet',
+  'scrollArmor',
+  'scrollPants',
+  'scrollBoots',
+  'scrollAmulet',
+  'scrollRing',
+  'statResets',
 ] as const;
 export type ResourceKey = (typeof RESOURCE_KEYS)[number];
 export type Resources = Record<ResourceKey, number>;
